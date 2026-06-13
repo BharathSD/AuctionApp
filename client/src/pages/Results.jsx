@@ -21,22 +21,145 @@ export default function Results() {
   const soldPlayers = players.filter(p => p.status === 'sold')
   const unsoldPlayers = players.filter(p => p.status !== 'sold')
 
-  // Build bid history from all teams' players
-  const allBids = players
-    .filter(p => p.status === 'sold')
-    .map(p => ({ player: p.name, role: p.role, team: teams.find(t => t.id === p.soldTo)?.name || '?', price: p.soldPrice }))
+  const exportXLSX = async () => {
+    const ExcelJS = (await import('exceljs')).default
+    const wb = new ExcelJS.Workbook()
+    wb.creator = 'Cricket Auction App'
+    wb.created = new Date()
 
-  const exportCSV = () => {
-    const rows = [
-      ['Player', 'Role', 'Team', 'Sold Price'],
-      ...allBids.map(b => [b.player, b.role, b.team, b.price]),
+    // ── Sheet 1: Rosters (grouped by team) ──────────────────
+    const rosterSheet = wb.addWorksheet('Rosters')
+    rosterSheet.columns = [
+      { key: 'team',      width: 22 },
+      { key: 'player',    width: 24 },
+      { key: 'role',      width: 18 },
+      { key: 'basePrice', width: 14 },
+      { key: 'soldPrice', width: 14 },
     ]
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+
+    // Column header row
+    const headerRow = rosterSheet.addRow(['Team', 'Player', 'Role', 'Base Price', 'Sold Price'])
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FF93C5FD' } } }
+    })
+
+    // Team colour palette (cycles if > 8 teams)
+    const TEAM_COLORS = [
+      'FFdbeafe', 'FFdcfce7', 'FFfef9c3', 'FFfce7f3',
+      'FFede9fe', 'FFffedd5', 'FFf0fdfa', 'FFfff7ed',
+    ]
+    const TEAM_HEADER_COLORS = [
+      'FF1d4ed8', 'FF15803d', 'FFca8a04', 'FFbe185d',
+      'FF7c3aed', 'FFc2410c', 'FF0f766e', 'FFea580c',
+    ]
+
+    teams.forEach((team, ti) => {
+      const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
+      const rowColor   = TEAM_COLORS[ti % TEAM_COLORS.length]
+      const headerColor = TEAM_HEADER_COLORS[ti % TEAM_HEADER_COLORS.length]
+
+      // Team header row (spans all cols, merged)
+      const teamHeaderRow = rosterSheet.addRow([team.name, '', '', '', ''])
+      rosterSheet.mergeCells(teamHeaderRow.number, 1, teamHeaderRow.number, 5)
+      teamHeaderRow.getCell(1).font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }
+      teamHeaderRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: headerColor } }
+      teamHeaderRow.getCell(1).alignment = { horizontal: 'left', indent: 1 }
+      teamHeaderRow.height = 20
+
+      if (roster.length === 0) {
+        const emptyRow = rosterSheet.addRow(['', 'No players acquired', '', '', ''])
+        emptyRow.getCell(2).font = { italic: true, color: { argb: 'FF9CA3AF' } }
+        emptyRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+        })
+      } else {
+        roster.forEach(p => {
+          const row = rosterSheet.addRow(['', p.name, p.role, p.basePrice, p.soldPrice])
+          row.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+            cell.alignment = { horizontal: 'left' }
+          })
+          row.getCell(4).alignment = { horizontal: 'right' }
+          row.getCell(5).alignment = { horizontal: 'right' }
+          row.getCell(5).font = { bold: true }
+        })
+        // Team subtotal row
+        const subtotal = roster.reduce((s, p) => s + p.soldPrice, 0)
+        const subtotalRow = rosterSheet.addRow(['', '', `${roster.length} players`, 'Spent:', subtotal])
+        subtotalRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+          cell.font = { italic: true }
+        })
+        subtotalRow.getCell(4).font = { bold: true, italic: true }
+        subtotalRow.getCell(5).font = { bold: true, italic: true }
+        subtotalRow.getCell(5).alignment = { horizontal: 'right' }
+        subtotalRow.getCell(4).alignment = { horizontal: 'right' }
+      }
+
+      // Budget remaining row
+      const budgetRow = rosterSheet.addRow(['', '', '', 'Budget left:', team.budget])
+      budgetRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+      })
+      budgetRow.getCell(4).font = { bold: true, italic: true }
+      budgetRow.getCell(4).alignment = { horizontal: 'right' }
+      budgetRow.getCell(5).font = { bold: true }
+      budgetRow.getCell(5).alignment = { horizontal: 'right' }
+
+      // Spacer
+      rosterSheet.addRow([])
+    })
+
+    // ── Sheet 2: Summary (one row per team) ─────────────────
+    const summarySheet = wb.addWorksheet('Summary')
+    summarySheet.columns = [
+      { key: 'team',       width: 22 },
+      { key: 'players',    width: 14 },
+      { key: 'spent',      width: 16 },
+      { key: 'budget',     width: 16 },
+      { key: 'pct',        width: 16 },
+    ]
+
+    const sumHeader = summarySheet.addRow(['Team', 'Players', 'Points Spent', 'Budget Left', '% Used'])
+    sumHeader.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+
+    teams.forEach((team, ti) => {
+      const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
+      const spent = roster.reduce((s, p) => s + p.soldPrice, 0)
+      const pct = Math.round((spent / config.pointsPerTeam) * 100)
+      const row = summarySheet.addRow([team.name, roster.length, spent, team.budget, `${pct}%`])
+      const rowColor = TEAM_COLORS[ti % TEAM_COLORS.length]
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+        cell.alignment = { horizontal: 'center' }
+      })
+      row.getCell(1).alignment = { horizontal: 'left' }
+    })
+
+    // Totals row
+    const totalSpent = soldPlayers.reduce((s, p) => s + p.soldPrice, 0)
+    const totalRow = summarySheet.addRow(['TOTAL', soldPlayers.length, totalSpent, '', ''])
+    totalRow.eachCell(cell => {
+      cell.font = { bold: true }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe2e8f0' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+    totalRow.getCell(1).alignment = { horizontal: 'left' }
+
+    // ── Write and download ───────────────────────────────────
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'auction-results.csv'
+    a.download = 'auction-results.xlsx'
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -128,8 +251,8 @@ export default function Results() {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-4 justify-center">
-          <button onClick={exportCSV} className="btn-secondary flex items-center gap-2">
-            📥 Export CSV
+          <button onClick={exportXLSX} className="btn-secondary flex items-center gap-2">
+            📥 Export XLSX
           </button>
           <button onClick={handleNewAuction} className="btn-primary">
             🏏 New Auction
