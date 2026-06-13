@@ -1,0 +1,25 @@
+name,role,basePrice
+Virat Kohli,Batsman,200
+Rohit Sharma,Batsman,200
+Shubman Gill,Batsman,150
+KL Rahul,Batsman,150
+Shreyas Iyer,Batsman,100
+Suryakumar Yadav,Batsman,100
+Devdutt Padikkal,Batsman,50
+Ruturaj Gaikwad,Batsman,50
+Jasprit Bumrah,Bowler,200
+Mohammed Shami,Bowler,150
+Ravindra Jadeja,All-rounder,200
+Hardik Pandya,All-rounder,200
+Axar Patel,All-rounder,100
+Washington Sundar,All-rounder,80
+Shardul Thakur,All-rounder,80
+Yuzvendra Chahal,Bowler,100
+Kuldeep Yadav,Bowler,100
+Mohammed Siraj,Bowler,100
+Arshdeep Singh,Bowler,80
+Umesh Yadav,Bowler,50
+Rishabh Pant,Wicket-keeper,200
+Ishan Kishan,Wicket-keeper,100
+Sanju Samson,Wicket-keeper,100
+KS Bharat,Wicket-keeper,50
