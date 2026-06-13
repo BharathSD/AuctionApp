@@ -2,6 +2,7 @@ const express = require('express')
 const { createServer } = require('http')
 const { Server } = require('socket.io')
 const cors = require('cors')
+const path = require('path')
 const engine = require('./auction-engine')
 
 const app = express()
@@ -13,6 +14,11 @@ const io = new Server(httpServer, {
 
 app.use(cors())
 app.use(express.json())
+
+// ── Serve React app in production ────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')))
+}
 
 // ── REST: Create auction room ─────────────────────────────────
 app.post('/api/auction/create', (req, res) => {
@@ -116,6 +122,13 @@ io.on('connection', (socket) => {
     }
   })
 })
+
+// ── SPA catch-all (must be after API routes) ─────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'))
+  })
+}
 
 // ── Start ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001

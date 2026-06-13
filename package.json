@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build": "npm install --prefix client && npm run build --prefix client && npm install --prefix server",
+    "start": "node server/index.js",
     "dev": "start cmd /k \"cd server && node index.js\" && cd client && npm run dev",
     "dev:server": "cd server && node --watch index.js",
     "dev:client": "cd client && npm run dev",
