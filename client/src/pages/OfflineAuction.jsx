@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineAuction } from '../hooks/useOfflineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
@@ -12,6 +13,7 @@ const ROLE_COLORS = {
 export default function OfflineAuction() {
   const navigate = useNavigate()
   const saved = loadAuctionState()
+  const [expandedTeamId, setExpandedTeamId] = useState(null)
   const {
     state, currentPlayer, leadingTeam,
     startAuction, recordBid, undoBid, markSold, markUnsold, nextPlayer, pause, resume, requeueUnsold, finishAuction,
@@ -43,7 +45,9 @@ export default function OfflineAuction() {
           {state.players.some(p => p.status === 'unsold') && (
             <button onClick={requeueUnsold} className="btn-secondary">Re-auction unsold players</button>
           )}
-          <button onClick={() => navigate('/results')} className="btn-primary">View Results →</button>
+          <button onClick={() => navigate('/results')} className="animate-pulse-ring bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-lg shadow-blue-900 transition-all hover:scale-105 cursor-pointer">
+            View Results →
+          </button>
         </div>
       </div>
     )
@@ -205,19 +209,49 @@ export default function OfflineAuction() {
           {/* Teams — always fully visible */}
           <div className="p-4 border-b border-gray-800 shrink-0">
             <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Teams</p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {teams.map(team => {
                 const pct = Math.round((team.budget / saved.config.pointsPerTeam) * 100)
+                const isExpanded = expandedTeamId === team.id
+                const isLeading = state.leadingTeamId === team.id
                 return (
-                  <div key={team.id} className={`rounded-lg p-2 ${state.leadingTeamId === team.id ? 'bg-blue-900/60 ring-1 ring-blue-500' : 'bg-gray-800'}`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium truncate">{team.name}</span>
-                      <span className="text-xs text-yellow-400 font-bold">{team.budget}</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-1.5">
-                      <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{team.players.length} players</p>
+                  <div key={team.id} className={`rounded-lg overflow-hidden ${isLeading ? 'ring-1 ring-blue-500' : ''}`}>
+                    {/* Team header row — click to expand */}
+                    <button
+                      onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
+                      className={`w-full px-2 pt-2 pb-1 text-left transition-colors ${
+                        isLeading ? 'bg-blue-900/60' : 'bg-gray-800 hover:bg-gray-750'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium truncate">{team.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-yellow-400 font-bold">{team.budget}</span>
+                          <span className="text-gray-500 text-xs">{isExpanded ? '▲' : '▼'}</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1">
+                        <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-500">{team.players.length} player{team.players.length !== 1 ? 's' : ''}</p>
+                    </button>
+                    {/* Expanded roster */}
+                    {isExpanded && (
+                      <div className={`px-2 pb-2 ${isLeading ? 'bg-blue-900/40' : 'bg-gray-800'}`}>
+                        {team.players.length === 0 ? (
+                          <p className="text-xs text-gray-600 py-1 italic">No players yet</p>
+                        ) : (
+                          <div className="space-y-0.5 mt-1">
+                            {team.players.map((p, i) => (
+                              <div key={i} className="flex justify-between text-xs">
+                                <span className="text-gray-300 truncate">{p.name}</span>
+                                <span className="text-yellow-400 font-mono ml-2 shrink-0">{p.soldPrice}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
