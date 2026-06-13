@@ -224,7 +224,7 @@ export default function AdminOnline() {
                     </button>
                     {/* Expanded roster */}
                     {isExpanded && (
-                      <div className={`px-2 pb-2 ${isLeading ? 'bg-blue-900/40' : 'bg-gray-800'}`}>
+                      <div className={`px-2 pb-2 text-left ${isLeading ? 'bg-blue-900/40' : 'bg-gray-800'}`}>
                         {team.players.length === 0 ? (
                           <p className="text-xs text-gray-600 py-1 italic">No players yet</p>
                         ) : (
