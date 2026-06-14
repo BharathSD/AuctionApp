@@ -25,9 +25,17 @@ function makeIoProxy(roomCode) {
     to: (rc) => ({
       emit: (event, data) => {
         io.to(rc).emit(event, data)
-        // After each emit, push viewer-safe state to viewers room
         const room = engine.getRoom(roomCode)
-        if (room) io.to(`${roomCode}:viewers`).emit(event, engine.viewerState(room))
+        if (!room) return
+        const viewersRoom = `${roomCode}:viewers`
+        // Lightweight events carry no sensitive data — pass through as-is
+        // Full state events — send viewer-safe state (hides exact budgets)
+        const passThrough = ['bid:accepted', 'timer:tick', 'captain:connected', 'captain:disconnected']
+        if (passThrough.includes(event)) {
+          io.to(viewersRoom).emit(event, data)
+        } else {
+          io.to(viewersRoom).emit(event, engine.viewerState(room))
+        }
       },
     }),
   }
