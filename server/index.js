@@ -125,7 +125,7 @@ io.on('connection', (socket) => {
 
 // ── SPA catch-all (must be after API routes) ─────────────────
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.get('/{*path}', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'))
   })
 }
