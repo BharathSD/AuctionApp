@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadAuctionState, saveAuctionConfig } from '../hooks/useAuctionStorage'
+import {
+  loadAuctionState,
+  saveOnlineLiveSnapshot,
+  loadOnlineLiveSnapshot,
+  clearOnlineLiveSnapshot,
+} from '../hooks/useAuctionStorage'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 
 const ROLE_COLORS = {
@@ -17,24 +22,54 @@ export default function AdminOnline() {
   const [roomCode, setRoomCode] = useState(saved?.roomCode || null)
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [restored, setRestored] = useState(false)
 
-  // Push auction config to server on mount
+  // Smart mount: check if room exists → restore from snapshot if not → create fresh if no snapshot
   useEffect(() => {
     if (!saved || !saved.roomCode) return
-    fetch('/api/auction/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode: saved.roomCode, auctionData: saved }),
-    })
-      .then(r => r.json())
-      .then(() => setRoomReady(true))
-      .catch(() => setRoomReady(true)) // allow retry via socket
+    const rc = saved.roomCode
+    fetch(`/api/auction/${rc}/state`)
+      .then(r => {
+        if (r.ok) { setRoomReady(true); return }
+        const liveSnapshot = loadOnlineLiveSnapshot()
+        if (liveSnapshot && liveSnapshot.roomCode === rc) {
+          return fetch('/api/auction/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomCode: rc, snapshot: liveSnapshot.state, originalSetup: saved }),
+          }).then(r => r.json()).then(() => { setRestored(true); setRoomReady(true) })
+        }
+        return fetch('/api/auction/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomCode: rc, auctionData: saved }),
+        }).then(r => r.json()).then(() => setRoomReady(true))
+      })
+      .catch(() => setRoomReady(true))
   }, [])
 
   const {
     state, currentPlayer, leadingTeam,
     adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminUnsold, adminRequeueUnsold,
   } = useOnlineAuction({ roomCode, role: 'admin', teamId: null })
+
+  // Auto-save live state on every meaningful change
+  useEffect(() => {
+    if (!roomCode || !state.status || state.status === 'idle') return
+    if (state.status === 'finished') { clearOnlineLiveSnapshot(); return }
+    saveOnlineLiveSnapshot({ roomCode, state, savedAt: Date.now() })
+  }, [state, roomCode])
+
+  const downloadSnapshot = useCallback(() => {
+    const data = { version: 1, roomCode, savedAt: new Date().toISOString(), state, originalSetup: saved }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `auction-${roomCode}-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [roomCode, state, saved])
 
   if (!saved) {
     return (
@@ -82,6 +117,9 @@ export default function AdminOnline() {
           <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
             {state.connected ? '● Live' : '○ Connecting…'}
           </span>
+          {restored && (
+            <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded font-semibold">✅ Restored</span>
+          )}
           {state.secondRound && (
             <span className="text-xs bg-orange-700 text-orange-100 px-2 py-1 rounded font-semibold">🔁 Unsold Round</span>
           )}
@@ -110,6 +148,13 @@ export default function AdminOnline() {
             )}
           </div>
           <span className="text-xs text-gray-500">{soldCount}/{totalPlayers} sold</span>
+          <button
+            onClick={downloadSnapshot}
+            title="Save snapshot (for manual recovery)"
+            className="text-gray-400 hover:text-white text-xs border border-gray-700 px-2 py-1 rounded"
+          >
+            💾 Save
+          </button>
           {status !== 'idle' && status !== 'finished' && (
             <button
               onClick={() => { if (window.confirm('End the auction now? Remaining players will be skipped.')) adminFinish() }}

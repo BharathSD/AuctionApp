@@ -205,6 +205,29 @@ function finishAuction(roomCode, io) {
   return publicState(room)
 }
 
+function restoreRoom(roomCode, snapshot, originalSetup) {
+  const room = makeRoom(snapshot.config || originalSetup.config)
+
+  // Merge snapshot teams (live budget/roster) with PINs from original setup
+  room.teams = snapshot.teams.map(snapshotTeam => {
+    const orig = (originalSetup.teams || []).find(t => t.id === snapshotTeam.id) || {}
+    return { ...snapshotTeam, pin: orig.pin || '' }
+  })
+
+  room.players = snapshot.players || []
+  room.queue = snapshot.queue || []
+  room.currentIdx = snapshot.currentIdx ?? -1
+  room.currentPrice = snapshot.currentPrice
+  room.leadingTeamId = snapshot.leadingTeamId
+  room.bids = snapshot.bids || []
+  room.status = snapshot.status
+  room.timerLeft = null  // timer does not auto-resume; admin proceeds manually
+  room.secondRound = snapshot.secondRound || false
+
+  rooms.set(roomCode, room)
+  return room
+}
+
 function requeueUnsold(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
@@ -274,5 +297,6 @@ module.exports = {
   unsellPlayer,
   finishAuction,
   requeueUnsold,
+  restoreRoom,
   publicState,
 }

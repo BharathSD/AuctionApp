@@ -43,6 +43,14 @@ app.post('/api/auction/:roomCode/join', (req, res) => {
   res.json({ teamId: result.team.id, teamName: result.team.name })
 })
 
+// ── REST: Restore auction room from snapshot ─────────────────
+app.post('/api/auction/restore', (req, res) => {
+  const { roomCode, snapshot, originalSetup } = req.body
+  if (!roomCode || !snapshot || !originalSetup) return res.status(400).json({ error: 'Missing data' })
+  engine.restoreRoom(roomCode, snapshot, originalSetup)
+  res.json({ ok: true, roomCode, restored: true })
+})
+
 // ── Socket.io ─────────────────────────────────────────────────
 io.on('connection', (socket) => {
   let currentRoom = null
