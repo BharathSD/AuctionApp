@@ -1,10 +1,15 @@
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { saveAuctionConfig, saveOnlineLiveSnapshot } from '../hooks/useAuctionStorage'
+import { loadAuctionState, saveAuctionConfig, saveOnlineLiveSnapshot, clearAuctionState } from '../hooks/useAuctionStorage'
 
 export default function Landing() {
   const navigate = useNavigate()
   const fileRef = useRef(null)
+
+  // Detect in-progress offline auction
+  const saved = loadAuctionState()
+  const offlineInProgress = saved && !saved.roomCode && saved._runtime &&
+    saved._runtime.status !== 'finished' && saved._runtime.status !== 'idle'
 
   const handleResumeFile = async (e) => {
     const file = e.target.files[0]
@@ -41,6 +46,34 @@ export default function Landing() {
           Run a live player auction for your cricket league — online or offline.
         </p>
       </div>
+
+      {/* Resume in-progress offline auction */}
+      {offlineInProgress && (
+        <div className="w-full max-w-2xl mb-6 bg-yellow-900/60 border border-yellow-600 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-yellow-200 font-semibold text-sm">⚡ Offline auction in progress</p>
+            <p className="text-yellow-400 text-xs mt-0.5">
+              {saved._runtime.status === 'sold' || saved._runtime.status === 'running'
+                ? `Player ${saved._runtime.currentIdx + 1} of ${saved._runtime.queue?.length ?? '?'} — ${saved._runtime.status}`
+                : saved._runtime.status}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => navigate('/auction/offline')}
+              className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold text-sm px-4 py-2 rounded-xl"
+            >
+              Resume →
+            </button>
+            <button
+              onClick={() => { if (window.confirm('Discard the in-progress auction and start fresh?')) { clearAuctionState(); window.location.reload() } }}
+              className="text-yellow-500 hover:text-white text-xs border border-yellow-700 px-3 py-2 rounded-xl"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mode cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
