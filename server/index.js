@@ -12,6 +12,27 @@ const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 })
 
+// Broadcast to both the main room and the viewer room
+function broadcast(roomCode, event, data) {
+  io.to(roomCode).emit(event, data)
+  const room = engine.getRoom(roomCode)
+  if (room) io.to(`${roomCode}:viewers`).emit(event, engine.viewerState(room))
+}
+
+// Proxy io so the engine automatically broadcasts to viewers too
+function makeIoProxy(roomCode) {
+  return {
+    to: (rc) => ({
+      emit: (event, data) => {
+        io.to(rc).emit(event, data)
+        // After each emit, push viewer-safe state to viewers room
+        const room = engine.getRoom(roomCode)
+        if (room) io.to(`${roomCode}:viewers`).emit(event, engine.viewerState(room))
+      },
+    }),
+  }
+}
+
 app.use(cors())
 app.use(express.json())
 
@@ -67,6 +88,15 @@ io.on('connection', (socket) => {
     socket.emit('auction:stateUpdate', engine.publicState(room))
   })
 
+  // Join as viewer (read-only, no controls)
+  socket.on('viewer:join', ({ roomCode }) => {
+    const room = engine.getRoom(roomCode)
+    if (!room) { socket.emit('error', { message: 'Room not found' }); return }
+    currentRoom = roomCode
+    socket.join(`${roomCode}:viewers`)
+    socket.emit('auction:stateUpdate', engine.viewerState(room))
+  })
+
   // Join as captain (after REST validation)
   socket.on('captain:join', ({ roomCode, teamId }) => {
     const room = engine.getRoom(roomCode)
@@ -82,44 +112,44 @@ io.on('connection', (socket) => {
   // Admin: start next player
   socket.on('admin:nextPlayer', () => {
     if (!isAdmin || !currentRoom) return
-    engine.startNextPlayer(currentRoom, io)
+    engine.startNextPlayer(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Captain: place bid
   socket.on('captain:bid', () => {
     if (!currentTeamId || !currentRoom) return
-    const result = engine.placeBid(currentRoom, currentTeamId, io)
+    const result = engine.placeBid(currentRoom, currentTeamId, makeIoProxy(currentRoom))
     if (result.error) socket.emit('bid:rejected', { reason: result.error })
   })
 
   // Admin: undo last bid
   socket.on('admin:undoBid', () => {
     if (!isAdmin || !currentRoom) return
-    engine.undoBid(currentRoom, io)
+    engine.undoBid(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Admin: mark sold (manual mode)
   socket.on('admin:sold', () => {
     if (!isAdmin || !currentRoom) return
-    engine.sellPlayer(currentRoom, io)
+    engine.sellPlayer(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Admin: mark unsold
   socket.on('admin:unsold', () => {
     if (!isAdmin || !currentRoom) return
-    engine.unsellPlayer(currentRoom, io)
+    engine.unsellPlayer(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Admin: finish auction early
   socket.on('admin:finish', () => {
     if (!isAdmin || !currentRoom) return
-    engine.finishAuction(currentRoom, io)
+    engine.finishAuction(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Admin: re-queue unsold players
   socket.on('admin:requeueUnsold', () => {
     if (!isAdmin || !currentRoom) return
-    engine.requeueUnsold(currentRoom, io)
+    engine.requeueUnsold(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Disconnect

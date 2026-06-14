@@ -149,6 +149,13 @@ export default function AdminOnline() {
           </div>
           <span className="text-xs text-gray-500">{soldCount}/{totalPlayers} sold</span>
           <button
+            onClick={() => window.open(`/watch/${roomCode}`, '_blank')}
+            title="Open viewer display (stream this on YouTube)"
+            className="text-purple-400 hover:text-white text-xs border border-purple-800 px-2 py-1 rounded"
+          >
+            📺 Viewer
+          </button>
+          <button
             onClick={downloadSnapshot}
             title="Save snapshot (for manual recovery)"
             className="text-gray-400 hover:text-white text-xs border border-gray-700 px-2 py-1 rounded"

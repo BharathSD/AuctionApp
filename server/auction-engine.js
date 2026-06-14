@@ -286,6 +286,21 @@ function publicState(room) {
   }
 }
 
+function viewerState(room) {
+  const full = publicState(room)
+  return {
+    ...full,
+    // Hide exact budgets — replace with percentage only
+    teams: full.teams.map(t => ({
+      id: t.id,
+      name: t.name,
+      players: t.players,
+      playerCount: t.players.length,
+      budgetPct: Math.round((t.budget / room.config.pointsPerTeam) * 100),
+    })),
+  }
+}
+
 module.exports = {
   createRoom,
   getRoom,
@@ -301,4 +316,5 @@ module.exports = {
   requeueUnsold,
   restoreRoom,
   publicState,
+  viewerState,
 }
