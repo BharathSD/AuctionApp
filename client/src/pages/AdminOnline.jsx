@@ -16,6 +16,7 @@ export default function AdminOnline() {
   const [roomReady, setRoomReady] = useState(false)
   const [roomCode, setRoomCode] = useState(saved?.roomCode || null)
   const [expandedTeamId, setExpandedTeamId] = useState(null)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   // Push auction config to server on mount
   useEffect(() => {
@@ -91,12 +92,23 @@ export default function AdminOnline() {
             <span className="text-gray-500">Room: </span>
             <span className="font-mono font-bold text-yellow-400">{roomCode}</span>
           </div>
-          <button
-            onClick={() => navigator.clipboard?.writeText(joinUrl)}
-            className="text-xs bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg"
-          >
-            Copy join link
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(joinUrl)
+                setLinkCopied(true)
+                setTimeout(() => setLinkCopied(false), 2000)
+              }}
+              className="text-xs bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg"
+            >
+              Copy join link
+            </button>
+            {linkCopied && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 bg-green-700 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                ✓ Link copied!
+              </div>
+            )}
+          </div>
           <span className="text-xs text-gray-500">{soldCount}/{totalPlayers} sold</span>
           {status !== 'idle' && status !== 'finished' && (
             <button
