@@ -1,7 +1,33 @@
+import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { saveAuctionConfig, saveOnlineLiveSnapshot } from '../hooks/useAuctionStorage'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const fileRef = useRef(null)
+
+  const handleResumeFile = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    try {
+      const data = JSON.parse(await file.text())
+      if (!data.roomCode || !data.snapshot || !data.originalSetup) {
+        alert('Invalid snapshot file'); return
+      }
+      const r = await fetch('/api/auction/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode: data.roomCode, snapshot: data.snapshot, originalSetup: data.originalSetup }),
+      })
+      if (!r.ok) throw new Error('Restore failed')
+      saveAuctionConfig(data.originalSetup)
+      saveOnlineLiveSnapshot({ roomCode: data.roomCode, state: data.snapshot, savedAt: Date.now() })
+      navigate('/auction/online/admin')
+    } catch (err) {
+      alert('Failed to restore: ' + err.message)
+    }
+    e.target.value = ''
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 flex flex-col items-center justify-center p-6">
@@ -52,6 +78,15 @@ export default function Landing() {
       <p className="text-blue-400 text-xs mt-10">
         Cricket Auction App — Built for your league
       </p>
+
+      {/* Resume from snapshot */}
+      <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleResumeFile} />
+      <button
+        onClick={() => fileRef.current?.click()}
+        className="mt-4 text-blue-400 hover:text-white text-xs underline underline-offset-2 transition-colors"
+      >
+        Resume saved auction from snapshot file →
+      </button>
     </div>
   )
 }

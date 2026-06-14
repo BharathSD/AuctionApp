@@ -28,3 +28,21 @@ export function updateAuctionState(updater) {
 export function clearAuctionState() {
   localStorage.removeItem(KEY)
 }
+
+// ── Online live snapshot (auto-save for recovery) ─────────────
+const SNAPSHOT_KEY = 'cricket_auction_online_snapshot'
+
+export function saveOnlineLiveSnapshot(data) {
+  try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(data)) } catch {}
+}
+
+export function loadOnlineLiveSnapshot() {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+export function clearOnlineLiveSnapshot() {
+  localStorage.removeItem(SNAPSHOT_KEY)
+}
