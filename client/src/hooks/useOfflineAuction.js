@@ -106,7 +106,9 @@ function reducer(state, action) {
       const team = state.teams.find(t => t.id === teamId)
       if (!team) return state
       if (state.leadingTeamId === teamId) return state // already leading
-      const newPrice = state.currentPrice + state.config.bidIncrement
+      const newPrice = state.bids.length === 0
+        ? state.currentPrice
+        : state.currentPrice + state.config.bidIncrement
       if (team.budget < newPrice) return state // not enough budget
       if (state.status !== 'running' || state.paused) return state
       return {

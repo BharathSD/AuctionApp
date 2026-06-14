@@ -117,7 +117,9 @@ function placeBid(roomCode, teamId, io) {
   const team = room.teams.find(t => t.id === teamId)
   if (!team) return { error: 'Team not found' }
 
-  const newPrice = room.currentPrice + room.config.bidIncrement
+  const newPrice = room.bids.length === 0
+    ? room.currentPrice
+    : room.currentPrice + room.config.bidIncrement
   if (room.leadingTeamId === teamId) return { error: 'Already leading' }
   if (team.budget < newPrice) return { error: 'Insufficient budget' }
 

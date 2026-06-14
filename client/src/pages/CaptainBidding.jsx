@@ -40,7 +40,9 @@ export default function CaptainBidding() {
   const myTeam = state.teams.find(t => t.id === teamId)
   const { status, timerLeft, config, bids } = state
   const isLeading = state.leadingTeamId === teamId
-  const nextBidPrice = (state.currentPrice ?? 0) + (config.bidIncrement ?? 0)
+  const nextBidPrice = state.bids && state.bids.length === 0
+    ? (state.currentPrice ?? 0)
+    : (state.currentPrice ?? 0) + (config.bidIncrement ?? 0)
   const canBid = status === 'running' && myTeam && myTeam.budget >= nextBidPrice && !isLeading
 
   const handleBid = () => {
