@@ -22,6 +22,10 @@ function reducer(state, action) {
       return { ...state, lastError: null }
     case 'SESSION_ERROR':
       return { ...state, sessionError: action.payload.reason }
+    case 'CAPTAIN_CONNECTED':
+      return { ...state, connectedTeamIds: action.payload.connectedTeamIds }
+    case 'CAPTAIN_DISCONNECTED':
+      return { ...state, connectedTeamIds: state.connectedTeamIds.filter(id => id !== action.payload.teamId) }
     default:
       return state
   }
@@ -71,6 +75,8 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     socket.on('timer:tick', (data) => dispatch({ type: 'TIMER_TICK', payload: data }))
     socket.on('session:kicked', (data) => dispatch({ type: 'SESSION_ERROR', payload: data }))
     socket.on('session:rejected', (data) => dispatch({ type: 'SESSION_ERROR', payload: data }))
+    socket.on('captain:connected', (data) => dispatch({ type: 'CAPTAIN_CONNECTED', payload: data }))
+    socket.on('captain:disconnected', (data) => dispatch({ type: 'CAPTAIN_DISCONNECTED', payload: data }))
 
     return () => socket.disconnect()
   }, [roomCode, role, teamId])
