@@ -180,12 +180,33 @@ export default function AdminOnline() {
             <div className="text-center">
               <p className="text-gray-400 mb-2">Share the join link with captains, then start.</p>
               <p className="font-mono text-blue-300 text-sm mb-6 break-all">{joinUrl}</p>
-              <div className="mb-4 text-sm text-gray-400">
-                Connected captains: <span className="text-white">{state.connectedTeamIds.length}</span> / {config.numTeams}
+              <div className="mb-4 space-y-1">
+                {state.teams.map(team => {
+                  const isOnline = state.connectedTeamIds.includes(team.id)
+                  return (
+                    <div key={team.id} className="flex items-center justify-center gap-2 text-sm">
+                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-600'}`} />
+                      <span className={isOnline ? 'text-white' : 'text-gray-500'}>{team.name}</span>
+                      <span className="text-xs text-gray-600">{isOnline ? 'Ready' : 'Waiting…'}</span>
+                    </div>
+                  )
+                })}
               </div>
-              <button onClick={adminNextPlayer} className="btn-primary text-xl px-10 py-4">
+              {state.connectedTeamIds.length < config.numTeams && (
+                <p className="text-yellow-500 text-xs mb-3">
+                  Waiting for {config.numTeams - state.connectedTeamIds.length} more captain{config.numTeams - state.connectedTeamIds.length !== 1 ? 's' : ''} to join…
+                </p>
+              )}
+              <button
+                onClick={adminNextPlayer}
+                disabled={state.connectedTeamIds.length < config.numTeams}
+                className={`btn-primary text-xl px-10 py-4 transition-opacity ${state.connectedTeamIds.length < config.numTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
                 🚀 Start Auction
               </button>
+              {state.connectedTeamIds.length < config.numTeams && (
+                <p className="text-gray-600 text-xs mt-2">All captains must connect before the auction can begin</p>
+              )}
             </div>
           )}
 
