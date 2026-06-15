@@ -151,6 +151,9 @@ function placeBid(roomCode, teamId, io) {
   const team = room.teams.find(t => t.id === teamId)
   if (!team) return { error: 'Team not found' }
 
+  const maxPlayers = room.config.maxPlayersPerTeam
+  if (maxPlayers && team.players.length >= maxPlayers) return { error: 'Team roster is full' }
+
   const newPrice = room.bids.length === 0
     ? room.currentPrice
     : room.currentPrice + room.config.bidIncrement

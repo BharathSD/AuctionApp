@@ -111,6 +111,8 @@ function reducer(state, action) {
         : state.currentPrice + state.config.bidIncrement
       if (team.budget < newPrice) return state // not enough budget
       if (state.status !== 'running' || state.paused) return state
+      const maxPlayers = state.config.maxPlayersPerTeam
+      if (maxPlayers && team.players.length >= maxPlayers) return state // roster full
       return {
         ...state,
         currentPrice: newPrice,

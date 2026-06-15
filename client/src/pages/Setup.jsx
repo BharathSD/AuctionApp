@@ -10,6 +10,7 @@ const DEFAULT_CONFIG = {
   timerEnabled: true,
   timerSeconds: 15,
   minBidBase: 10,
+  maxPlayersPerTeam: 11,
 }
 
 export default function Setup() {
@@ -130,6 +131,11 @@ export default function Setup() {
             <Field label="Points per Team (budget)">
               <input type="number" min={100} value={config.pointsPerTeam}
                 onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
+                className="input-field" />
+            </Field>
+            <Field label="Max Players per Team">
+              <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
+                onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
                 className="input-field" />
             </Field>
             <Field label="Bid Increment">
@@ -263,6 +269,7 @@ export default function Setup() {
               <StatCard label="Teams" value={config.numTeams} />
               <StatCard label="Points per team" value={config.pointsPerTeam} />
               <StatCard label="Bid increment" value={config.bidIncrement} />
+              <StatCard label="Max players/team" value={config.maxPlayersPerTeam} />
               <StatCard label="Players" value={players.length} />
               <StatCard label="Timer" value={config.timerEnabled ? `${config.timerSeconds}s` : 'Manual'} />
               <StatCard label="Mode" value={mode === 'offline' ? 'Offline' : 'Online'} />

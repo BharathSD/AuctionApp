@@ -145,9 +145,12 @@ export default function OfflineAuction() {
                   <p className="text-xs text-gray-500 text-center uppercase tracking-widest">Click when team bids</p>
                   <div className="grid grid-cols-2 gap-3">
                     {teams.map(team => {
-                      const canBid = team.budget >= (state.bids.length === 0 ? state.currentPrice : state.currentPrice + config.bidIncrement)
+                      const nextPrice = state.bids.length === 0 ? state.currentPrice : state.currentPrice + config.bidIncrement
+                      const rosterFull = config.maxPlayersPerTeam && team.players.length >= config.maxPlayersPerTeam
+                      const canBid = team.budget >= nextPrice
                         && !paused
                         && state.leadingTeamId !== team.id
+                        && !rosterFull
                       return (
                         <button
                           key={team.id}
@@ -163,7 +166,7 @@ export default function OfflineAuction() {
                         >
                           <span className="block truncate">{team.name}</span>
                           <span className="block text-xs font-normal mt-1 opacity-70">
-                            {state.leadingTeamId === team.id ? '🔥 Leading' : `${team.budget} pts left`}
+                            {state.leadingTeamId === team.id ? '🔥 Leading' : rosterFull ? '🚫 Roster Full' : `${team.budget} pts left`}
                           </span>
                         </button>
                       )
