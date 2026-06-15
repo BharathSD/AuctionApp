@@ -161,6 +161,18 @@ io.on('connection', (socket) => {
     engine.finishAuction(currentRoom, makeIoProxy(currentRoom))
   })
 
+  // Admin: pause auction
+  socket.on('admin:pause', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.pauseAuction(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: resume auction
+  socket.on('admin:resume', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.resumeAuction(currentRoom, makeIoProxy(currentRoom))
+  })
+
   // Admin: kick a team's captain connection
   socket.on('admin:kickTeam', ({ teamId }) => {
     if (!isAdmin || !currentRoom) return

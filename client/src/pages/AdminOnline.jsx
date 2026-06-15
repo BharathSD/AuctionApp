@@ -50,7 +50,7 @@ export default function AdminOnline() {
 
   const {
     state, currentPlayer, leadingTeam,
-    adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminUnsold, adminRequeueUnsold, adminKickTeam,
+    adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminUnsold, adminRequeueUnsold, adminKickTeam, adminPause, adminResume,
   } = useOnlineAuction({ roomCode, role: 'admin', teamId: null })
 
   // Auto-save live state on every meaningful change
@@ -247,21 +247,36 @@ export default function AdminOnline() {
 
               {status === 'running' && !config.timerEnabled && (
                 <div className="flex gap-3 flex-wrap justify-center">
-                  <button onClick={adminSold} disabled={!leadingTeam} className="bg-green-700 hover:bg-green-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-6 font-bold">
+                  <button onClick={adminSold} disabled={!leadingTeam || state.paused} className="bg-green-700 hover:bg-green-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-6 font-bold">
                     ✅ Sold
                   </button>
-                  <button onClick={adminUnsold} className="bg-red-800 hover:bg-red-700 text-white rounded-xl py-3 px-6 font-bold">
+                  <button onClick={adminUnsold} disabled={state.paused} className="bg-red-800 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-6 font-bold">
                     ❌ Unsold
                   </button>
-                  <button onClick={adminUndoBid} disabled={!bids.length} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-5 font-bold text-sm">
+                  <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-5 font-bold text-sm">
                     ↩ Undo
                   </button>
                 </div>
               )}
               {status === 'running' && config.timerEnabled && (
-                <button onClick={adminUndoBid} disabled={!bids.length} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-2 px-5 font-bold text-sm">
+                <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-2 px-5 font-bold text-sm">
                   ↩ Undo Last Bid
                 </button>
+              )}
+
+              {status === 'running' && (
+                <button
+                  onClick={state.paused ? adminResume : adminPause}
+                  className={`rounded-xl py-2 px-6 font-bold text-sm ${state.paused ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-yellow-300'}`}
+                >
+                  {state.paused ? '▶ Resume Auction' : '⏸ Pause Auction'}
+                </button>
+              )}
+
+              {state.paused && status === 'running' && (
+                <div className="bg-yellow-900/50 border border-yellow-700 rounded-xl px-4 py-2 text-yellow-300 text-sm font-semibold text-center">
+                  ⏸ Auction Paused — Bidding disabled
+                </div>
               )}
 
               {(status === 'sold' || status === 'unsold') && (

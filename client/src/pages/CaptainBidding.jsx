@@ -60,7 +60,7 @@ export default function CaptainBidding() {
   const nextBidPrice = state.bids && state.bids.length === 0
     ? (state.currentPrice ?? 0)
     : (state.currentPrice ?? 0) + (config.bidIncrement ?? 0)
-  const canBid = status === 'running' && myTeam && myTeam.budget >= nextBidPrice && !isLeading
+  const canBid = status === 'running' && !state.paused && myTeam && myTeam.budget >= nextBidPrice && !isLeading
 
   const handleBid = () => {
     if (!canBid) return
@@ -155,8 +155,13 @@ export default function CaptainBidding() {
                 <div className="bg-red-900 rounded-xl px-6 py-3 text-red-200 font-bold text-lg">❌ Unsold</div>
               )}
 
-              {/* BIG BID BUTTON */}
-              {status === 'running' && (
+              {/* BID BUTTON */}
+              {status === 'running' && state.paused && (
+                <div className="w-full max-w-xs rounded-2xl py-5 text-center bg-yellow-900/50 border border-yellow-700 text-yellow-300 font-bold text-lg">
+                  ⏸ Auction Paused
+                </div>
+              )}
+              {status === 'running' && !state.paused && (
                 <button
                   onClick={handleBid}
                   disabled={!canBid}

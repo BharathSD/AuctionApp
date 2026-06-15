@@ -21,6 +21,7 @@ function makeRoom(config) {
     timerLeft: null,
     timerHandle: null,
     secondRound: false,
+    paused: false,
     connectedCaptains: new Map(), // socketId -> teamId
     // Session tracking: teamId -> { socketId, disconnectedAt (ms) | null }
     captainSessions: new Map(),
@@ -145,6 +146,7 @@ function placeBid(roomCode, teamId, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
   if (room.status !== 'running') return { error: 'Auction not running' }
+  if (room.paused) return { error: 'Auction is paused' }
 
   const team = room.teams.find(t => t.id === teamId)
   if (!team) return { error: 'Team not found' }
@@ -230,6 +232,24 @@ function unsellPlayer(roomCode, io) {
   return publicState(room)
 }
 
+function pauseAuction(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room || room.status !== 'running') return { error: 'Not running' }
+  clearTimer(room)
+  room.paused = true
+  io.to(roomCode).emit('auction:stateUpdate', publicState(room))
+  return publicState(room)
+}
+
+function resumeAuction(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room || !room.paused) return { error: 'Not paused' }
+  room.paused = false
+  if (room.config.timerEnabled && room.timerLeft > 0) startTimer(roomCode, room, io)
+  io.to(roomCode).emit('auction:stateUpdate', publicState(room))
+  return publicState(room)
+}
+
 function finishAuction(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
@@ -311,8 +331,7 @@ function publicState(room) {
     currentPrice: room.currentPrice,
     leadingTeamId: room.leadingTeamId,
     bids: room.bids.slice(0, 50),
-    status: room.status,
-    timerLeft: room.timerLeft,
+    status: room.status,    paused: room.paused,    timerLeft: room.timerLeft,
     secondRound: room.secondRound,
     connectedTeamIds: [...room.connectedCaptains.values()],
   }
@@ -345,6 +364,8 @@ module.exports = {
   undoBid,
   sellPlayer,
   unsellPlayer,
+  pauseAuction,
+  resumeAuction,
   finishAuction,
   requeueUnsold,
   restoreRoom,
