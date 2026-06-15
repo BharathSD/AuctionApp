@@ -87,6 +87,7 @@ export default function AdminOnline() {
   const soldCount = state.players.filter(p => p.status === 'sold').length
   const totalPlayers = state.players.length
   const joinUrl = `${window.location.origin}/join/${roomCode}`
+  const totalTeams = teams.length || saved?.teams?.length || config.numTeams || 0
 
   if (status === 'finished') {
     return (
@@ -192,19 +193,19 @@ export default function AdminOnline() {
                   )
                 })}
               </div>
-              {state.connectedTeamIds.length < config.numTeams && (
+              {state.connectedTeamIds.length < totalTeams && (
                 <p className="text-yellow-500 text-xs mb-3">
-                  Waiting for {config.numTeams - state.connectedTeamIds.length} more captain{config.numTeams - state.connectedTeamIds.length !== 1 ? 's' : ''} to join…
+                  Waiting for {totalTeams - state.connectedTeamIds.length} more captain{totalTeams - state.connectedTeamIds.length !== 1 ? 's' : ''} to join…
                 </p>
               )}
               <button
                 onClick={adminNextPlayer}
-                disabled={state.connectedTeamIds.length < config.numTeams}
-                className={`btn-primary text-xl px-10 py-4 transition-opacity ${state.connectedTeamIds.length < config.numTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
+                disabled={state.connectedTeamIds.length < totalTeams}
+                className={`btn-primary text-xl px-10 py-4 transition-opacity ${state.connectedTeamIds.length < totalTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 🚀 Start Auction
               </button>
-              {state.connectedTeamIds.length < config.numTeams && (
+              {state.connectedTeamIds.length < totalTeams && (
                 <p className="text-gray-600 text-xs mt-2">All captains must connect before the auction can begin</p>
               )}
             </div>
