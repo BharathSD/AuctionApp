@@ -109,6 +109,13 @@ io.on('connection', (socket) => {
   socket.on('captain:join', ({ roomCode, teamId }) => {
     const room = engine.getRoom(roomCode)
     if (!room) { socket.emit('error', { message: 'Room not found' }); return }
+
+    const conflict = engine.checkCaptainJoin(roomCode, teamId)
+    if (conflict === 'already_connected') {
+      socket.emit('session:rejected', { reason: 'This team is already connected from another device.' })
+      return
+    }
+
     currentRoom = roomCode
     currentTeamId = teamId
     socket.join(roomCode)
@@ -152,6 +159,21 @@ io.on('connection', (socket) => {
   socket.on('admin:finish', () => {
     if (!isAdmin || !currentRoom) return
     engine.finishAuction(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: kick a team's captain connection
+  socket.on('admin:kickTeam', ({ teamId }) => {
+    if (!isAdmin || !currentRoom) return
+    const room = engine.getRoom(currentRoom)
+    if (!room) return
+    const session = room.captainSessions.get(teamId)
+    if (session && session.socketId) {
+      const targetSocket = io.sockets.sockets.get(session.socketId)
+      if (targetSocket) {
+        targetSocket.emit('session:kicked', { reason: 'You have been disconnected by the auctioneer.' })
+        targetSocket.disconnect(true)
+      }
+    }
   })
 
   // Admin: re-queue unsold players

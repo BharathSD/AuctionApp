@@ -20,6 +20,8 @@ function reducer(state, action) {
       return { ...state, lastError: action.payload.reason }
     case 'CLEAR_ERROR':
       return { ...state, lastError: null }
+    case 'SESSION_ERROR':
+      return { ...state, sessionError: action.payload.reason }
     default:
       return state
   }
@@ -39,6 +41,7 @@ const INITIAL = {
   config: {},
   connectedTeamIds: [],
   lastError: null,
+  sessionError: null,
 }
 
 export function useOnlineAuction({ roomCode, role, teamId }) {
@@ -66,6 +69,8 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     socket.on('bid:accepted', (data) => dispatch({ type: 'BID_ACCEPTED', payload: data }))
     socket.on('bid:rejected', (data) => dispatch({ type: 'BID_REJECTED', payload: data }))
     socket.on('timer:tick', (data) => dispatch({ type: 'TIMER_TICK', payload: data }))
+    socket.on('session:kicked', (data) => dispatch({ type: 'SESSION_ERROR', payload: data }))
+    socket.on('session:rejected', (data) => dispatch({ type: 'SESSION_ERROR', payload: data }))
 
     return () => socket.disconnect()
   }, [roomCode, role, teamId])
@@ -76,6 +81,7 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
   const adminSold = useCallback(() => socketRef.current?.emit('admin:sold'), [])
   const adminUnsold = useCallback(() => socketRef.current?.emit('admin:unsold'), [])
   const adminRequeueUnsold = useCallback(() => socketRef.current?.emit('admin:requeueUnsold'), [])
+  const adminKickTeam = useCallback((teamId) => socketRef.current?.emit('admin:kickTeam', { teamId }), [])
   const captainBid = useCallback(() => socketRef.current?.emit('captain:bid'), [])
   const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), [])
 
@@ -94,6 +100,7 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     adminSold,
     adminUnsold,
     adminRequeueUnsold,
+    adminKickTeam,
     captainBid,
     clearError,
   }

@@ -50,7 +50,7 @@ export default function AdminOnline() {
 
   const {
     state, currentPlayer, leadingTeam,
-    adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminUnsold, adminRequeueUnsold,
+    adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminUnsold, adminRequeueUnsold, adminKickTeam,
   } = useOnlineAuction({ roomCode, role: 'admin', teamId: null })
 
   // Auto-save live state on every meaningful change
@@ -278,6 +278,13 @@ export default function AdminOnline() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-yellow-400 font-bold">{team.budget}</span>
+                          {isOnline && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm(`Kick ${team.name} from the auction?`)) adminKickTeam(team.id) }}
+                              title="Kick this captain"
+                              className="text-red-500 hover:text-red-300 text-xs leading-none px-1"
+                            >✕</button>
+                          )}
                           <span className="text-gray-500 text-xs">{isExpanded ? '▲' : '▼'}</span>
                         </div>
                       </div>

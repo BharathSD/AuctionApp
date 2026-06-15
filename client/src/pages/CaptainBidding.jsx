@@ -37,6 +37,23 @@ export default function CaptainBidding() {
     }
   }, [state.lastError, clearError])
 
+  // Session kicked or rejected
+  if (state.sessionError) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <div className="text-6xl">🚫</div>
+        <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
+        <p className="text-gray-400 max-w-xs">{state.sessionError}</p>
+        <button
+          onClick={() => { sessionStorage.clear(); navigate('/') }}
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl"
+        >
+          Back to Home
+        </button>
+      </div>
+    )
+  }
+
   const myTeam = state.teams.find(t => t.id === teamId)
   const { status, timerLeft, config, bids } = state
   const isLeading = state.leadingTeamId === teamId

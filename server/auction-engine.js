@@ -22,6 +22,9 @@ function makeRoom(config) {
     timerHandle: null,
     secondRound: false,
     connectedCaptains: new Map(), // socketId -> teamId
+    // Session tracking: teamId -> { socketId, disconnectedAt (ms) | null }
+    captainSessions: new Map(),
+    gracePeriodHandles: new Map(), // teamId -> setTimeout handle
   }
 }
 
@@ -52,12 +55,41 @@ function connectCaptain(roomCode, teamId, socketId) {
   const room = getRoom(roomCode)
   if (!room) return
   room.connectedCaptains.set(socketId, teamId)
+  // Clear any pending grace timer
+  if (room.gracePeriodHandles.has(teamId)) {
+    clearTimeout(room.gracePeriodHandles.get(teamId))
+    room.gracePeriodHandles.delete(teamId)
+  }
+  room.captainSessions.set(teamId, { socketId, disconnectedAt: null })
 }
 
 function disconnectCaptain(roomCode, socketId) {
   const room = getRoom(roomCode)
   if (!room) return
+  const teamId = room.connectedCaptains.get(socketId)
   room.connectedCaptains.delete(socketId)
+  if (!teamId) return
+  // Start grace period — keep session alive for 10s for reconnects
+  room.captainSessions.set(teamId, { socketId: null, disconnectedAt: Date.now() })
+  const handle = setTimeout(() => {
+    const session = room.captainSessions.get(teamId)
+    if (session && session.socketId === null) {
+      room.captainSessions.delete(teamId)
+    }
+    room.gracePeriodHandles.delete(teamId)
+  }, 10000)
+  room.gracePeriodHandles.set(teamId, handle)
+}
+
+// Returns null if allowed, or an error string if rejected
+function checkCaptainJoin(roomCode, teamId) {
+  const room = getRoom(roomCode)
+  if (!room) return 'Room not found'
+  const session = room.captainSessions.get(teamId)
+  if (!session) return null // first join, allowed
+  if (session.socketId !== null) return 'already_connected' // active connection exists
+  // In grace period — allow reconnect
+  return null
 }
 
 function startNextPlayer(roomCode, io) {
@@ -307,6 +339,7 @@ module.exports = {
   joinRoom,
   connectCaptain,
   disconnectCaptain,
+  checkCaptainJoin,
   startNextPlayer,
   placeBid,
   undoBid,
