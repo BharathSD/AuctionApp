@@ -111,7 +111,7 @@ export default function OfflineAuction() {
                   <p className="text-xs text-gray-500 mb-1">Current Bid</p>
                   <p className="text-5xl font-black text-yellow-400">{state.currentPrice}</p>
                   {leadingTeam && (
-                    <p className="text-sm text-blue-300 mt-2 font-semibold">🔥 {leadingTeam.name}</p>
+                    <p className="text-4xl font-extrabold text-blue-300 mt-2">🔥 {leadingTeam.name}</p>
                   )}
                   {!leadingTeam && status === 'running' && (
                     <p className="text-sm text-gray-500 mt-2">No bids yet</p>
