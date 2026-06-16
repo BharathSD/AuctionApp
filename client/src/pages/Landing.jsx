@@ -16,17 +16,18 @@ export default function Landing() {
     if (!file) return
     try {
       const data = JSON.parse(await file.text())
-      if (!data.roomCode || !data.snapshot || !data.originalSetup) {
+      const snapshot = data.snapshot || data.state
+      if (!data.roomCode || !snapshot || !data.originalSetup) {
         alert('Invalid snapshot file'); return
       }
       const r = await fetch('/api/auction/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode: data.roomCode, snapshot: data.snapshot, originalSetup: data.originalSetup }),
+        body: JSON.stringify({ roomCode: data.roomCode, snapshot, originalSetup: data.originalSetup }),
       })
       if (!r.ok) throw new Error('Restore failed')
       saveAuctionConfig(data.originalSetup)
-      saveOnlineLiveSnapshot({ roomCode: data.roomCode, state: data.snapshot, savedAt: Date.now() })
+      saveOnlineLiveSnapshot({ roomCode: data.roomCode, state: snapshot, savedAt: Date.now() })
       navigate('/auction/online/admin')
     } catch (err) {
       alert('Failed to restore: ' + err.message)
@@ -116,9 +117,9 @@ export default function Landing() {
       <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleResumeFile} />
       <button
         onClick={() => fileRef.current?.click()}
-        className="mt-4 text-blue-400 hover:text-white text-xs underline underline-offset-2 transition-colors"
+        className="mt-6 px-6 py-3 bg-blue-700 hover:bg-blue-600 text-white font-semibold text-base rounded-xl border border-blue-500 transition-colors shadow-md"
       >
-        Resume saved auction from snapshot file →
+        💾 Resume saved auction from snapshot file →
       </button>
     </div>
   )

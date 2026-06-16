@@ -5,6 +5,14 @@ const cors = require('cors')
 const path = require('path')
 const engine = require('./auction-engine')
 
+// Keep the process alive — log unexpected errors instead of crashing
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err.message)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
+
 const app = express()
 const httpServer = createServer(app)
 
@@ -82,6 +90,11 @@ app.post('/api/auction/restore', (req, res) => {
 
 // ── Socket.io ─────────────────────────────────────────────────
 io.on('connection', (socket) => {
+  // Swallow transport-level errors (ECONNABORTED, ECONNRESET, etc.)
+  socket.on('error', (err) => {
+    console.warn('[socket error]', err.message)
+  })
+
   let currentRoom = null
   let currentTeamId = null
   let isAdmin = false
@@ -119,7 +132,7 @@ io.on('connection', (socket) => {
     currentRoom = roomCode
     currentTeamId = teamId
     socket.join(roomCode)
-    engine.connectCaptain(roomCode, teamId, socket.id)
+    engine.connectCaptain(roomCode, teamId, socket.id, makeIoProxy(roomCode))
     socket.emit('auction:stateUpdate', engine.publicState(room))
     io.to(roomCode).emit('captain:connected', { teamId, connectedTeamIds: engine.publicState(room).connectedTeamIds })
   })
@@ -197,7 +210,7 @@ io.on('connection', (socket) => {
   // Disconnect
   socket.on('disconnect', () => {
     if (currentRoom && currentTeamId) {
-      engine.disconnectCaptain(currentRoom, socket.id)
+      engine.disconnectCaptain(currentRoom, socket.id, makeIoProxy(currentRoom))
       io.to(currentRoom).emit('captain:disconnected', { teamId: currentTeamId })
     }
   })
