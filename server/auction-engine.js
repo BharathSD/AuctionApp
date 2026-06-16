@@ -39,6 +39,11 @@ function createRoom(roomCode, auctionData) {
   room.players = auctionData.players.map(p => ({ ...p }))
   // Queue only contains pending (not pre-allocated) players
   room.queue = room.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
+  if (room.config.randomizeOrder) {
+    for (let i = room.queue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));[room.queue[i], room.queue[j]] = [room.queue[j], room.queue[i]]
+    }
+  }
   rooms.set(roomCode, room)
   return room
 }

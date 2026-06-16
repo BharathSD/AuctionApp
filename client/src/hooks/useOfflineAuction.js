@@ -40,7 +40,15 @@ function buildInitialState(saved) {
     config: saved.config,
     teams: saved.teams,
     // queue: indices into players array (unsold/pending)
-    queue: saved.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, []),
+    queue: (() => {
+      const q = saved.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
+      if (saved.config.randomizeOrder) {
+        for (let i = q.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));[q[i], q[j]] = [q[j], q[i]]
+        }
+      }
+      return q
+    })(),
     players: saved.players,
     currentIdx: 0,       // index into queue
     currentPrice: null,

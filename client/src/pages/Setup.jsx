@@ -11,6 +11,7 @@ const DEFAULT_CONFIG = {
   timerSeconds: 15,
   minBidBase: 10,
   maxPlayersPerTeam: 11,
+  randomizeOrder: false,
 }
 
 export default function Setup() {
@@ -156,6 +157,14 @@ export default function Setup() {
               <input type="number" min={1} value={config.minBidBase}
                 onChange={e => handleConfigChange('minBidBase', e.target.value)}
                 className="input-field" />
+            </Field>
+            <Field label="Player Order">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={config.randomizeOrder}
+                  onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
+                  className="w-5 h-5 rounded" />
+                <span className="text-sm text-gray-300">Randomize player auction order</span>
+              </label>
             </Field>
             <Field label="Timer Mode">
               <label className="flex items-center gap-3 cursor-pointer">
