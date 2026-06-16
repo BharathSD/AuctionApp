@@ -7,9 +7,18 @@
 // rooms: Map<roomCode, AuctionRoom>
 const rooms = new Map()
 
+// Returns the bid increment for the given current price based on staged tiers.
+// Backward compat: falls back to flat config.bidIncrement if bidTiers absent.
+function getIncrement(currentPrice, config) {
+  const tiers = config.bidTiers
+  if (!tiers || tiers.length === 0) return Number(config.bidIncrement) || 0
+  const tier = tiers.find(t => t.upTo === null || t.upTo === undefined || currentPrice < Number(t.upTo))
+  return Number(tier?.increment ?? tiers[tiers.length - 1].increment ?? 0)
+}
+
 function makeRoom(config) {
   return {
-    config,           // { numTeams, pointsPerTeam, bidIncrement, timerEnabled, timerSeconds, minBidBase }
+    config,           // { numTeams, pointsPerTeam, bidTiers, timerEnabled, timerSeconds, minBidBase }
     teams: [],        // [{ id, name, pin, budget, spent, players: [] }]
     players: [],      // [{ id, name, role, basePrice, status, soldTo, soldPrice }]
     queue: [],        // indices into players[]
@@ -164,7 +173,7 @@ function placeBid(roomCode, teamId, io) {
 
   const newPrice = room.bids.length === 0
     ? room.currentPrice
-    : room.currentPrice + room.config.bidIncrement
+    : room.currentPrice + getIncrement(room.currentPrice, room.config)
   if (room.leadingTeamId === teamId) return { error: 'Already leading' }
   if (team.budget < newPrice) return { error: 'Insufficient budget' }
 
