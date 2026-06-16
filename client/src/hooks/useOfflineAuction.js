@@ -1,5 +1,6 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react'
 import { loadAuctionState, updateAuctionState } from './useAuctionStorage'
+import { getIncrement } from '../utils/bidTiers'
 
 // ─── Action types ─────────────────────────────────────────────
 const A = {
@@ -116,7 +117,7 @@ function reducer(state, action) {
       if (state.leadingTeamId === teamId) return state // already leading
       const newPrice = state.bids.length === 0
         ? state.currentPrice
-        : state.currentPrice + state.config.bidIncrement
+        : state.currentPrice + getIncrement(state.currentPrice, state.config)
       if (team.budget < newPrice) return state // not enough budget
       if (state.status !== 'running' || state.paused) return state
       const maxPlayers = Number(state.config.maxPlayersPerTeam) || 0

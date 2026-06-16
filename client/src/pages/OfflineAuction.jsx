@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineAuction } from '../hooks/useOfflineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
+import { getIncrement } from '../utils/bidTiers'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
@@ -145,7 +146,7 @@ export default function OfflineAuction() {
                   <p className="text-xs text-gray-500 text-center uppercase tracking-widest">Click when team bids</p>
                   <div className="grid grid-cols-2 gap-3">
                     {teams.map(team => {
-                      const canBid = team.budget >= (state.bids.length === 0 ? state.currentPrice : state.currentPrice + config.bidIncrement)
+                      const canBid = team.budget >= (state.bids.length === 0 ? state.currentPrice : state.currentPrice + getIncrement(state.currentPrice, config))
                         && !paused
                         && state.leadingTeamId !== team.id
                       return (

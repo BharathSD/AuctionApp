@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
+import { getIncrement } from '../utils/bidTiers'
 
 const ROLE_COLORS = {
   Batsman: 'text-blue-400',
@@ -59,7 +60,7 @@ export default function CaptainBidding() {
   const isLeading = state.leadingTeamId === teamId
   const nextBidPrice = state.bids && state.bids.length === 0
     ? (state.currentPrice ?? 0)
-    : (state.currentPrice ?? 0) + (config.bidIncrement ?? 0)
+    : (state.currentPrice ?? 0) + getIncrement(state.currentPrice ?? 0, config)
   const canBid = status === 'running' && !state.paused && myTeam && myTeam.budget >= nextBidPrice && !isLeading
 
   const handleBid = () => {

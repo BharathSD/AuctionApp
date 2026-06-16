@@ -2,11 +2,12 @@ import { useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Papa from 'papaparse'
 import { saveAuctionConfig } from '../hooks/useAuctionStorage'
+import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,
   pointsPerTeam: 1000,
-  bidIncrement: 10,
+  bidTiers: [{ upTo: null, increment: 10 }],
   timerEnabled: true,
   timerSeconds: 15,
   minBidBase: 10,
@@ -33,9 +34,32 @@ export default function Setup() {
   const [retainSearch, setRetainSearch] = useState('')
   const fileRef = useRef()
 
-  /* ---------- helpers ---------- */
+  /* ---------- bid tier helpers ---------- */
+  const tiers = config.bidTiers || DEFAULT_BID_TIERS
+  const updateTier = (idx, field, value) => {
+    const next = tiers.map((t, i) => i === idx ? { ...t, [field]: field === 'upTo' ? (value === '' ? null : Number(value)) : Number(value) } : t)
+    setConfig(prev => ({ ...prev, bidTiers: next }))
+  }
+  const addTier = () => {
+    // Insert before the last (unlimited) tier
+    const last = tiers[tiers.length - 1]
+    const newTier = { upTo: null, increment: last.increment }
+    const prev = tiers.slice(0, -1)
+    // Give the last bounded row a default upTo
+    const lastBounded = prev.length > 0 ? prev[prev.length - 1] : null
+    const defaultUpTo = lastBounded?.upTo ? lastBounded.upTo * 2 : 1000
+    setConfig(c => ({ ...c, bidTiers: [...prev, { upTo: defaultUpTo, increment: last.increment }, newTier] }))
+  }
+  const removeTier = (idx) => {
+    if (tiers.length <= 1) return // must keep at least one
+    const next = tiers.filter((_, i) => i !== idx)
+    // Ensure last tier has upTo = null
+    next[next.length - 1] = { ...next[next.length - 1], upTo: null }
+    setConfig(prev => ({ ...prev, bidTiers: next }))
+  }
+
   const handleConfigChange = (field, value) => {
-    const parsed = field === 'timerEnabled' ? value : Number(value) || value
+    const parsed = field === 'timerEnabled' || field === 'randomizeOrder' ? value : Number(value) || value
     setConfig(prev => ({ ...prev, [field]: parsed }))
     if (field === 'numTeams') {
       const n = Number(value) || 2
@@ -143,14 +167,51 @@ export default function Setup() {
                 onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
                 className="input-field" />
             </Field>
-            <Field label="Bid Increment">
-              <input type="number" min={1} value={config.bidIncrement}
-                onChange={e => handleConfigChange('bidIncrement', e.target.value)}
-                className="input-field" />
+            <Field label="Bid Increment Tiers">
+              <div className="space-y-2">
+                {tiers.map((tier, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 w-16 shrink-0">
+                      {idx === 0 ? 'From 0' : `From ${tiers[idx - 1].upTo}`}
+                    </span>
+                    <span className="text-xs text-gray-500">to</span>
+                    {tier.upTo === null ? (
+                      <span className="text-xs text-gray-400 w-20 text-center">∞</span>
+                    ) : (
+                      <input
+                        type="number" min={1} value={tier.upTo ?? ''}
+                        onChange={e => updateTier(idx, 'upTo', e.target.value)}
+                        className="input-field w-20 text-center text-sm py-1"
+                        placeholder="Up to"
+                      />
+                    )}
+                    <span className="text-xs text-gray-500">→ +</span>
+                    <input
+                      type="number" min={1} value={tier.increment}
+                      onChange={e => updateTier(idx, 'increment', e.target.value)}
+                      className="input-field w-20 text-center text-sm py-1"
+                      placeholder="Inc"
+                    />
+                    <span className="text-xs text-gray-500">pts</span>
+                    {tiers.length > 1 && (
+                      <button onClick={() => removeTier(idx)} className="text-red-400 hover:text-red-300 text-sm px-1">✕</button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={addTier}
+                  className="text-blue-400 hover:text-blue-300 text-xs mt-1"
+                >+ Add tier</button>
+              </div>
             </Field>
             <Field label="Minimum Base Bid">
               <input type="number" min={1} value={config.minBidBase}
                 onChange={e => handleConfigChange('minBidBase', e.target.value)}
+                className="input-field" />
+            </Field>
+            <Field label="Max Players per Team">
+              <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
+                onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
                 className="input-field" />
             </Field>
             <Field label="Player Order">
@@ -360,7 +421,8 @@ export default function Setup() {
             <div className="grid grid-cols-2 gap-4">
               <StatCard label="Teams" value={config.numTeams} />
               <StatCard label="Points per team" value={config.pointsPerTeam} />
-              <StatCard label="Bid increment" value={config.bidIncrement} />
+              <StatCard label="Bid tiers" value={tiers.length === 1 ? `+${tiers[0].increment} flat` : `${tiers.length} tiers`} />
+              <StatCard label="Max players/team" value={config.maxPlayersPerTeam} />
               <StatCard label="Players" value={players.length} />
               <StatCard label="Retained" value={preAllocations.length} />
               <StatCard label="Timer" value={config.timerEnabled ? `${config.timerSeconds}s` : 'Manual'} />
