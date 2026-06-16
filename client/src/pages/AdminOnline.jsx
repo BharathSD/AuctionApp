@@ -280,9 +280,30 @@ export default function AdminOnline() {
               )}
 
               {(status === 'sold' || status === 'unsold') && (
-                <button onClick={adminNextPlayer} className="btn-primary text-lg px-8 py-3">
-                  Next Player →
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={adminNextPlayer}
+                    disabled={state.connectedTeamIds.length < totalTeams}
+                    className={`btn-primary text-lg px-8 py-3 transition-opacity ${state.connectedTeamIds.length < totalTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    Next Player →
+                  </button>
+                  {state.connectedTeamIds.length < totalTeams && (
+                    <div className="bg-yellow-900/40 border border-yellow-700 rounded-xl px-4 py-2 text-xs w-full max-w-xs">
+                      <p className="text-yellow-300 font-semibold mb-1.5">⚠ Captain connection status</p>
+                      {teams.map(team => {
+                        const online = state.connectedTeamIds.includes(team.id)
+                        return (
+                          <div key={team.id} className="flex items-center gap-1.5 py-0.5">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${online ? 'bg-green-400' : 'bg-red-500'}`} />
+                            <span className={online ? 'text-green-300' : 'text-red-300'}>{team.name}</span>
+                            <span className={`ml-auto font-medium ${online ? 'text-green-400' : 'text-red-400'}`}>{online ? 'Connected' : 'Disconnected'}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </>
           )}
