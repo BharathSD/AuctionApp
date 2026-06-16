@@ -16,6 +16,13 @@ process.on('unhandledRejection', (reason) => {
 const app = express()
 const httpServer = createServer(app)
 
+// Swallow aborted connection errors on the HTTP server (ECONNABORTED, ECONNRESET)
+httpServer.on('clientError', (err, socket) => {
+  console.warn('[clientError]', err.message)
+  if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
+  else socket.destroy()
+})
+
 const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 })
