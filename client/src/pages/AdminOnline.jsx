@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   loadAuctionState,
@@ -23,6 +23,7 @@ export default function AdminOnline() {
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [restored, setRestored] = useState(false)
+  const [disconnectAlert, setDisconnectAlert] = useState(null) // { teamName, at }
 
   // Smart mount: check if room exists → restore from snapshot if not → create fresh if no snapshot
   useEffect(() => {
@@ -59,6 +60,20 @@ export default function AdminOnline() {
     if (state.status === 'finished') { clearOnlineLiveSnapshot(); return }
     saveOnlineLiveSnapshot({ roomCode, state, savedAt: Date.now() })
   }, [state, roomCode])
+
+  // Flash disconnect alert when a captain drops mid-auction
+  const prevConnectedRef = React.useRef(state.connectedTeamIds)
+  useEffect(() => {
+    const prev = prevConnectedRef.current
+    const curr = state.connectedTeamIds
+    const dropped = prev.filter(id => !curr.includes(id))
+    if (dropped.length > 0 && (state.status === 'running')) {
+      const team = state.teams.find(t => t.id === dropped[0])
+      setDisconnectAlert({ teamName: team?.name || dropped[0], at: Date.now() })
+      setTimeout(() => setDisconnectAlert(null), 8000)
+    }
+    prevConnectedRef.current = curr
+  }, [state.connectedTeamIds])
 
   const downloadSnapshot = useCallback(() => {
     const data = { version: 1, roomCode, savedAt: new Date().toISOString(), state, originalSetup: saved }
@@ -173,6 +188,18 @@ export default function AdminOnline() {
           )}
         </div>
       </div>
+
+      {/* Captain disconnect alert */}
+      {disconnectAlert && (
+        <div className="bg-red-700 border-b border-red-500 px-4 py-2 flex items-center justify-between gap-4 animate-pulse">
+          <span className="text-white font-semibold text-sm">
+            ⚠️ <strong>{disconnectAlert.teamName}</strong> disconnected mid-auction! Pause if you want to wait for them to rejoin.
+          </span>
+          <button onClick={state.paused ? adminResume : adminPause} className="bg-white text-red-700 text-xs font-bold px-3 py-1 rounded-lg shrink-0">
+            {state.paused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: current player + controls ── */}

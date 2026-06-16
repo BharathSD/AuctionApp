@@ -65,17 +65,6 @@ function connectCaptain(roomCode, teamId, socketId, io) {
     room.gracePeriodHandles.delete(teamId)
   }
   room.captainSessions.set(teamId, { socketId, disconnectedAt: null })
-  // If all captains are back and auction was auto-paused due to disconnect, resume
-  if (room._autoPaused && room.status === 'running') {
-    const totalTeams = room.teams.length
-    const connectedCount = room.connectedCaptains.size
-    if (connectedCount >= totalTeams) {
-      room._autoPaused = false
-      room.paused = false
-      if (room.config.timerEnabled && room.timerLeft > 0) startTimer(roomCode, room, io)
-      if (io) io.to(roomCode).emit('auction:stateUpdate', publicState(room))
-    }
-  }
 }
 
 function disconnectCaptain(roomCode, socketId, io) {
@@ -84,14 +73,6 @@ function disconnectCaptain(roomCode, socketId, io) {
   const teamId = room.connectedCaptains.get(socketId)
   room.connectedCaptains.delete(socketId)
   if (!teamId) return
-  // Auto-pause timer if running so disconnected captain doesn't miss bidding
-  if (room.status === 'running' && !room.paused) {
-    clearTimer(room)
-    room.paused = true
-    room._autoPaused = true
-    console.log(`[auto-pause] captain ${teamId} disconnected mid-auction in room ${roomCode}`)
-    if (io) io.to(roomCode).emit('auction:stateUpdate', publicState(room))
-  }
   // Start grace period — keep session alive for 10s for reconnects
   room.captainSessions.set(teamId, { socketId: null, disconnectedAt: Date.now() })
   const handle = setTimeout(() => {
@@ -100,10 +81,6 @@ function disconnectCaptain(roomCode, socketId, io) {
       room.captainSessions.delete(teamId)
     }
     room.gracePeriodHandles.delete(teamId)
-    // Grace period expired without reconnect — clear auto-pause so admin can manually resume
-    if (room._autoPaused) {
-      room._autoPaused = false
-    }
   }, 10000)
   room.gracePeriodHandles.set(teamId, handle)
 }
