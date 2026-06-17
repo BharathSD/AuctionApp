@@ -16,6 +16,18 @@ function getIncrement(currentPrice, config) {
   return Number(tier?.increment ?? tiers[tiers.length - 1].increment ?? 0)
 }
 
+// Returns the minimum budget needed to fill `spotsNeeded` more roster spots
+// using the cheapest still-available (pending/unsold) players' base prices,
+// excluding the player currently on the block (by array index).
+function minCostForRemainingSpots(players, excludeIdx, spotsNeeded) {
+  if (spotsNeeded <= 0) return 0
+  const prices = players
+    .filter((p, i) => i !== excludeIdx && (p.status === 'pending' || p.status === 'unsold'))
+    .map(p => Number(p.basePrice) || 0)
+    .sort((a, b) => a - b)
+  return prices.slice(0, spotsNeeded).reduce((sum, v) => sum + v, 0)
+}
+
 function makeRoom(config) {
   return {
     config,           // { numTeams, pointsPerTeam, bidTiers, timerEnabled, timerSeconds, minBidBase }
@@ -176,6 +188,15 @@ function placeBid(roomCode, teamId, io) {
     : room.currentPrice + getIncrement(room.currentPrice, room.config)
   if (room.leadingTeamId === teamId) return { error: 'Already leading' }
   if (team.budget < newPrice) return { error: 'Insufficient budget' }
+
+  // Ensure the team can still afford to fill its remaining roster spots
+  // using the cheapest available players after winning this one.
+  if (maxPlayers > 0) {
+    const currentPlayerIdx = room.queue[room.currentIdx]
+    const spotsNeededAfter = maxPlayers - team.players.length - 1
+    const minNeeded = minCostForRemainingSpots(room.players, currentPlayerIdx, spotsNeededAfter)
+    if (team.budget - newPrice < minNeeded) return { error: 'Insufficient budget to fill remaining roster' }
+  }
 
   room.currentPrice = newPrice
   room.leadingTeamId = teamId

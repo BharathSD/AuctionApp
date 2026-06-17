@@ -14,3 +14,20 @@ export function getIncrement(currentPrice, config) {
 }
 
 export const DEFAULT_BID_TIERS = [{ upTo: null, increment: 10 }]
+
+/**
+ * Returns the minimum budget needed to fill `spotsNeeded` more roster spots
+ * after the current player is won, using the cheapest still-available players'
+ * base prices. Excludes the player currently on the block (by array index).
+ *
+ * Example: spots needed = 2, available base prices = [200, 300, 300, 500]
+ *   → returns 200 + 300 = 500
+ */
+export function minCostForRemainingSpots(players, excludeIdx, spotsNeeded) {
+  if (spotsNeeded <= 0) return 0
+  const prices = players
+    .filter((p, i) => i !== excludeIdx && (p.status === 'pending' || p.status === 'unsold'))
+    .map(p => Number(p.basePrice) || 0)
+    .sort((a, b) => a - b)
+  return prices.slice(0, spotsNeeded).reduce((sum, v) => sum + v, 0)
+}
