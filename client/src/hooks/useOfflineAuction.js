@@ -1,6 +1,6 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react'
 import { loadAuctionState, updateAuctionState } from './useAuctionStorage'
-import { getIncrement } from '../utils/bidTiers'
+import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
 
 // ─── Action types ─────────────────────────────────────────────
 const A = {
@@ -122,6 +122,14 @@ function reducer(state, action) {
       if (state.status !== 'running' || state.paused) return state
       const maxPlayers = Number(state.config.maxPlayersPerTeam) || 0
       if (maxPlayers > 0 && team.players.length >= maxPlayers) return state // roster full
+      // Ensure the team can still afford to fill remaining roster spots
+      // using cheapest available players after winning this one.
+      if (maxPlayers > 0) {
+        const currentPlayerIdx = state.queue[state.currentIdx]
+        const spotsNeededAfter = maxPlayers - team.players.length - 1
+        const minNeeded = minCostForRemainingSpots(state.players, currentPlayerIdx, spotsNeededAfter)
+        if (team.budget - newPrice < minNeeded) return state
+      }
       return {
         ...state,
         currentPrice: newPrice,
@@ -207,6 +215,9 @@ function reducer(state, action) {
       return state
   }
 }
+
+// Exported for unit testing only
+export { reducer as _reducer, buildInitialState as _buildInitialState }
 
 // ─── Hook ─────────────────────────────────────────────────────
 export function useOfflineAuction() {

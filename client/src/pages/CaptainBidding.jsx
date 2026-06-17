@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
-import { getIncrement } from '../utils/bidTiers'
+import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
 
 const ROLE_COLORS = {
   Batsman: 'text-blue-400',
@@ -61,7 +61,17 @@ export default function CaptainBidding() {
   const nextBidPrice = state.bids && state.bids.length === 0
     ? (state.currentPrice ?? 0)
     : (state.currentPrice ?? 0) + getIncrement(state.currentPrice ?? 0, config)
-  const canBid = status === 'running' && !state.paused && myTeam && myTeam.budget >= nextBidPrice && !isLeading
+
+  // Affordability check: after bidding, can the team still cover remaining roster spots?
+  const maxPlayers = Number(config.maxPlayersPerTeam) || 0
+  const currentPlayerIdx = state.queue != null && state.currentIdx >= 0 ? state.queue[state.currentIdx] : -1
+  const spotsNeededAfter = maxPlayers > 0 ? maxPlayers - (myTeam?.players?.length ?? 0) - 1 : 0
+  const minNeededForRest = maxPlayers > 0 && spotsNeededAfter > 0
+    ? minCostForRemainingSpots(state.players ?? [], currentPlayerIdx, spotsNeededAfter)
+    : 0
+  const canAffordRemaining = !myTeam || maxPlayers === 0 || (myTeam.budget - nextBidPrice) >= minNeededForRest
+
+  const canBid = status === 'running' && !state.paused && myTeam && myTeam.budget >= nextBidPrice && !isLeading && canAffordRemaining
 
   const handleBid = () => {
     if (!canBid) return
@@ -205,6 +215,7 @@ export default function CaptainBidding() {
                    bidFlash === 'late' ? 'Too late!' :
                    isLeading ? '🔥 You\'re leading!' :
                    config.maxPlayersPerTeam && myTeam?.players?.length >= config.maxPlayersPerTeam ? '🚫 Roster Full' :
+                   !canAffordRemaining ? '💸 Can\'t fill roster' :
                    canBid ? `BID ${nextBidPrice} pts` :
                    myTeam && myTeam.budget < nextBidPrice ? 'Budget too low' : 'Waiting…'}
                 </button>
