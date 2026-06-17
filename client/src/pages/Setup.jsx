@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Papa from 'papaparse'
 import { saveAuctionConfig } from '../hooks/useAuctionStorage'
 import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
+import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
+import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,
@@ -72,8 +74,14 @@ export default function Setup() {
   }
 
   const addPlayer = () => {
-    if (!newPlayer.name.trim() || !newPlayer.basePrice) return
-    setPlayers(prev => [...prev, { ...newPlayer, id: `p-${Date.now()}`, basePrice: Number(newPlayer.basePrice) }])
+    // Validate player name and price
+    const nameVal = validatePlayerName(newPlayer.name)
+    if (!nameVal.valid) { alert(nameVal.error); return }
+    
+    const priceVal = validateBasePrice(newPlayer.basePrice, config.minBidBase)
+    if (!priceVal.valid) { alert(priceVal.error); return }
+    
+    setPlayers(prev => [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value }])
     setNewPlayer({ name: '', role: 'Batsman', basePrice: '' })
   }
 
@@ -91,8 +99,16 @@ export default function Setup() {
           const name = row.name || row.Name || row.player || row.Player
           const role = row.role || row.Role || 'Batsman'
           const basePrice = Number(row.basePrice || row.base_price || row['Base Price'] || config.minBidBase)
-          if (!name) return null
-          return { id: `csv-${i}-${Date.now()}`, name: name.trim(), role: role.trim(), basePrice }
+          
+          // Validate player name
+          const nameVal = validatePlayerName(name)
+          if (!nameVal.valid) return null
+          
+          // Validate base price
+          const priceVal = validateBasePrice(basePrice, config.minBidBase)
+          if (!priceVal.valid) { setCsvError(`Row ${i + 1}: ${priceVal.error}`); return null }
+          
+          return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value }
         }).filter(Boolean)
         if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice'); return }
         setPlayers(prev => [...prev, ...parsed])
@@ -103,6 +119,14 @@ export default function Setup() {
   }
 
   const handleStart = () => {
+    // Validate config values
+    const configVal = validateConfigValues(config)
+    if (!configVal.valid) { alert(`Config error: ${configVal.error}`); return }
+    
+    // Validate auction startup conditions
+    const startupVal = validateAuctionStartup(config, teams, players, preAllocations)
+    if (!startupVal.valid) { alert(`Cannot start: ${startupVal.error}`); return }
+    
     if (!players.length) return
     const auctionData = {
       mode,
@@ -124,9 +148,32 @@ export default function Setup() {
       roomCode: mode === 'online' ? Math.random().toString(36).slice(2, 8).toUpperCase() : null,
       createdAt: Date.now(),
     }
-    saveAuctionConfig(auctionData)
-    if (mode === 'offline') navigate('/auction/offline')
-    else navigate('/auction/online/admin')
+    
+    if (mode === 'offline') {
+      saveAuctionConfig(auctionData)
+      navigate('/auction/offline')
+    } else {
+      // Online mode: create room via API and get adminToken
+      fetch('/api/auction/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode: auctionData.roomCode, auctionData }),
+      })
+        .then(r => {
+          if (!r.ok) throw new Error('Failed to create room')
+          return r.json()
+        })
+        .then(({ adminToken }) => {
+          // Store auction data with admin token
+          auctionData.adminToken = adminToken
+          saveAuctionConfig(auctionData)
+          navigate('/auction/online/admin')
+        })
+        .catch(err => {
+          console.error('Create room failed:', err)
+          alert('Failed to create auction room: ' + err.message)
+        })
+    }
   }
 
   /* ---------- render ---------- */

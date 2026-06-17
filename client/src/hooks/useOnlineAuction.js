@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useReducer } from 'react'
 import { io } from 'socket.io-client'
+import { loadAuctionState } from './useAuctionStorage'
 
 function reducer(state, action) {
   switch (action.type) {
@@ -59,8 +60,14 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
 
     socket.on('connect', () => {
       dispatch({ type: 'SET_CONNECTED', payload: true })
-      if (role === 'admin') socket.emit('admin:join', { roomCode })
-      else socket.emit('captain:join', { roomCode, teamId })
+      if (role === 'admin') {
+        // Get admin token from stored auction data
+        const saved = loadAuctionState?.() || {}
+        const adminToken = saved.adminToken || ''
+        socket.emit('admin:join', { roomCode, adminToken })
+      } else {
+        socket.emit('captain:join', { roomCode, teamId })
+      }
     })
 
     socket.on('disconnect', () => dispatch({ type: 'SET_CONNECTED', payload: false }))

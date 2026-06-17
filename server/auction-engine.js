@@ -193,7 +193,8 @@ function placeBid(roomCode, teamId, io) {
   // using the cheapest available players after winning this one.
   if (maxPlayers > 0) {
     const currentPlayerIdx = room.queue[room.currentIdx]
-    const spotsNeededAfter = maxPlayers - team.players.length - 1
+    const spotsFilledAfter = team.players.length + 1
+    const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
     const minNeeded = minCostForRemainingSpots(room.players, currentPlayerIdx, spotsNeededAfter)
     if (team.budget - newPrice < minNeeded) return { error: 'Insufficient budget to fill remaining roster' }
   }

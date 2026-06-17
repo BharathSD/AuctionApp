@@ -65,7 +65,8 @@ export default function CaptainBidding() {
   // Affordability check: after bidding, can the team still cover remaining roster spots?
   const maxPlayers = Number(config.maxPlayersPerTeam) || 0
   const currentPlayerIdx = state.queue != null && state.currentIdx >= 0 ? state.queue[state.currentIdx] : -1
-  const spotsNeededAfter = maxPlayers > 0 ? maxPlayers - (myTeam?.players?.length ?? 0) - 1 : 0
+  const spotsFilledAfter = (myTeam?.players?.length ?? 0) + 1
+  const spotsNeededAfter = maxPlayers > 0 ? Math.max(0, maxPlayers - spotsFilledAfter) : 0
   const minNeededForRest = maxPlayers > 0 && spotsNeededAfter > 0
     ? minCostForRemainingSpots(state.players ?? [], currentPlayerIdx, spotsNeededAfter)
     : 0

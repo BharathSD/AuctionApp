@@ -16,6 +16,17 @@ process.on('unhandledRejection', (reason) => {
 const app = express()
 const httpServer = createServer(app)
 
+// Track admin tokens and rate limits
+const adminTokens = new Map() // roomCode -> adminToken
+const bidRateLimitMap = new Map() // teamId -> { count, resetTime }
+const BID_RATE_LIMIT = 3 // max 3 bids per second per team
+const RATE_LIMIT_WINDOW = 1000 // milliseconds
+
+// ── Admin auth helper ──────────────────────────────────────────
+function generateAdminToken() {
+  return Math.random().toString(36).slice(2, 12)
+}
+
 // Swallow aborted connection errors on the HTTP server (ECONNABORTED, ECONNRESET)
 httpServer.on('clientError', (err, socket) => {
   console.warn('[clientError]', err.message)
@@ -69,7 +80,12 @@ app.post('/api/auction/create', (req, res) => {
   const { roomCode, auctionData } = req.body
   if (!roomCode || !auctionData) return res.status(400).json({ error: 'Missing roomCode or auctionData' })
   engine.createRoom(roomCode, auctionData)
-  res.json({ ok: true, roomCode })
+  
+  // Generate admin token for this room
+  const adminToken = generateAdminToken()
+  adminTokens.set(roomCode, adminToken)
+  
+  res.json({ ok: true, roomCode, adminToken })
 })
 
 // ── REST: Get room state (for page reload) ────────────────────
@@ -105,11 +121,20 @@ io.on('connection', (socket) => {
   let currentRoom = null
   let currentTeamId = null
   let isAdmin = false
+  const bidAttempts = { count: 0, resetTime: Date.now() }
 
-  // Join as admin
-  socket.on('admin:join', ({ roomCode }) => {
+  // Join as admin (requires token)
+  socket.on('admin:join', ({ roomCode, adminToken }) => {
     const room = engine.getRoom(roomCode)
     if (!room) { socket.emit('error', { message: 'Room not found' }); return }
+    
+    // Validate admin token
+    const expectedToken = adminTokens.get(roomCode)
+    if (!expectedToken || adminToken !== expectedToken) {
+      socket.emit('error', { message: 'Invalid admin token' })
+      return
+    }
+    
     currentRoom = roomCode
     isAdmin = true
     socket.join(roomCode)
@@ -150,9 +175,24 @@ io.on('connection', (socket) => {
     engine.startNextPlayer(currentRoom, makeIoProxy(currentRoom))
   })
 
-  // Captain: place bid
+  // Captain: place bid (rate limited)
   socket.on('captain:bid', () => {
     if (!currentTeamId || !currentRoom) return
+    
+    // Rate limiting: max BID_RATE_LIMIT bids per RATE_LIMIT_WINDOW ms per team
+    const now = Date.now()
+    if (bidAttempts.resetTime + RATE_LIMIT_WINDOW < now) {
+      // Reset window
+      bidAttempts.count = 0
+      bidAttempts.resetTime = now
+    }
+    
+    bidAttempts.count++
+    if (bidAttempts.count > BID_RATE_LIMIT) {
+      socket.emit('bid:rejected', { reason: 'Bid rate limit exceeded. Wait before bidding again.' })
+      return
+    }
+    
     const result = engine.placeBid(currentRoom, currentTeamId, makeIoProxy(currentRoom))
     if (result.error) socket.emit('bid:rejected', { reason: result.error })
   })

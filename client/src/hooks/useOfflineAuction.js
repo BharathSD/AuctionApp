@@ -126,7 +126,8 @@ function reducer(state, action) {
       // using cheapest available players after winning this one.
       if (maxPlayers > 0) {
         const currentPlayerIdx = state.queue[state.currentIdx]
-        const spotsNeededAfter = maxPlayers - team.players.length - 1
+        const spotsFilledAfter = team.players.length + 1
+        const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
         const minNeeded = minCostForRemainingSpots(state.players, currentPlayerIdx, spotsNeededAfter)
         if (team.budget - newPrice < minNeeded) return state
       }
