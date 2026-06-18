@@ -3,6 +3,7 @@ const { createServer } = require('http')
 const { Server } = require('socket.io')
 const cors = require('cors')
 const path = require('path')
+const crypto = require('crypto')
 const engine = require('./auction-engine')
 
 // Keep the process alive — log unexpected errors instead of crashing
@@ -18,13 +19,40 @@ const httpServer = createServer(app)
 
 // Track admin tokens and rate limits
 const adminTokens = new Map() // roomCode -> adminToken
-const bidRateLimitMap = new Map() // teamId -> { count, resetTime }
+const bidRateLimitMap = new Map() // `${roomCode}:${teamId}` -> { count, resetTime }
+const captainTokens = new Map() // roomCode -> Map<teamId, token>
 const BID_RATE_LIMIT = 3 // max 3 bids per second per team
 const RATE_LIMIT_WINDOW = 1000 // milliseconds
 
 // ── Admin auth helper ──────────────────────────────────────────
 function generateAdminToken() {
   return Math.random().toString(36).slice(2, 12)
+}
+
+function generateCaptainToken() {
+  return crypto.randomBytes(24).toString('hex')
+}
+
+function getCaptainTokenMap(roomCode) {
+  if (!captainTokens.has(roomCode)) captainTokens.set(roomCode, new Map())
+  return captainTokens.get(roomCode)
+}
+
+function validateCaptainSession(room, roomCode, teamId, captainToken) {
+  const team = room.teams.find(t => t.id === teamId)
+  if (!team) return 'Invalid team for this room.'
+
+  const expectedCaptainToken = captainTokens.get(roomCode)?.get(teamId)
+  if (!expectedCaptainToken || captainToken !== expectedCaptainToken) {
+    return 'Invalid captain session. Please rejoin with PIN.'
+  }
+  return null
+}
+
+function resetServerStateForTests() {
+  adminTokens.clear()
+  captainTokens.clear()
+  bidRateLimitMap.clear()
 }
 
 // Swallow aborted connection errors on the HTTP server (ECONNABORTED, ECONNRESET)
@@ -84,6 +112,7 @@ app.post('/api/auction/create', (req, res) => {
   // Generate admin token for this room
   const adminToken = generateAdminToken()
   adminTokens.set(roomCode, adminToken)
+  captainTokens.set(roomCode, new Map())
   
   res.json({ ok: true, roomCode, adminToken })
 })
@@ -98,15 +127,23 @@ app.get('/api/auction/:roomCode/state', (req, res) => {
 // ── REST: Validate captain join ───────────────────────────────
 app.post('/api/auction/:roomCode/join', (req, res) => {
   const { pin } = req.body
-  const result = engine.joinRoom(req.params.roomCode, pin)
+  const roomCode = req.params.roomCode
+  const result = engine.joinRoom(roomCode, pin)
   if (result.error) return res.status(401).json(result)
-  res.json({ teamId: result.team.id, teamName: result.team.name })
+  const captainToken = generateCaptainToken()
+  const roomTokens = getCaptainTokenMap(roomCode)
+  roomTokens.set(result.team.id, captainToken)
+  res.json({ teamId: result.team.id, teamName: result.team.name, captainToken })
 })
 
 // ── REST: Restore auction room from snapshot ─────────────────
 app.post('/api/auction/restore', (req, res) => {
-  const { roomCode, snapshot, originalSetup } = req.body
+  const { roomCode, snapshot, originalSetup, adminToken } = req.body
   if (!roomCode || !snapshot || !originalSetup) return res.status(400).json({ error: 'Missing data' })
+  const expectedToken = adminTokens.get(roomCode)
+  if (!expectedToken || adminToken !== expectedToken) {
+    return res.status(401).json({ error: 'Invalid admin token' })
+  }
   engine.restoreRoom(roomCode, snapshot, originalSetup)
   res.json({ ok: true, roomCode, restored: true })
 })
@@ -121,8 +158,6 @@ io.on('connection', (socket) => {
   let currentRoom = null
   let currentTeamId = null
   let isAdmin = false
-  const bidAttempts = { count: 0, resetTime: Date.now() }
-
   // Join as admin (requires token)
   socket.on('admin:join', ({ roomCode, adminToken }) => {
     const room = engine.getRoom(roomCode)
@@ -151,9 +186,15 @@ io.on('connection', (socket) => {
   })
 
   // Join as captain (after REST validation)
-  socket.on('captain:join', ({ roomCode, teamId }) => {
+  socket.on('captain:join', ({ roomCode, teamId, captainToken }) => {
     const room = engine.getRoom(roomCode)
     if (!room) { socket.emit('error', { message: 'Room not found' }); return }
+
+    const sessionError = validateCaptainSession(room, roomCode, teamId, captainToken)
+    if (sessionError) {
+      socket.emit('session:rejected', { reason: sessionError })
+      return
+    }
 
     const conflict = engine.checkCaptainJoin(roomCode, teamId)
     if (conflict === 'already_connected') {
@@ -178,17 +219,19 @@ io.on('connection', (socket) => {
   // Captain: place bid (rate limited)
   socket.on('captain:bid', () => {
     if (!currentTeamId || !currentRoom) return
-    
+
     // Rate limiting: max BID_RATE_LIMIT bids per RATE_LIMIT_WINDOW ms per team
     const now = Date.now()
-    if (bidAttempts.resetTime + RATE_LIMIT_WINDOW < now) {
-      // Reset window
-      bidAttempts.count = 0
-      bidAttempts.resetTime = now
+    const rateKey = `${currentRoom}:${currentTeamId}`
+    const attempts = bidRateLimitMap.get(rateKey) || { count: 0, resetTime: now }
+    if (attempts.resetTime + RATE_LIMIT_WINDOW < now) {
+      attempts.count = 0
+      attempts.resetTime = now
     }
-    
-    bidAttempts.count++
-    if (bidAttempts.count > BID_RATE_LIMIT) {
+
+    attempts.count += 1
+    bidRateLimitMap.set(rateKey, attempts)
+    if (attempts.count > BID_RATE_LIMIT) {
       socket.emit('bid:rejected', { reason: 'Bid rate limit exceeded. Wait before bidding again.' })
       return
     }
@@ -271,7 +314,21 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ── Start ─────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3001
-httpServer.listen(PORT, () => {
-  console.log(`Auction server running on port ${PORT}`)
-})
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001
+  httpServer.listen(PORT, () => {
+    console.log(`Auction server running on port ${PORT}`)
+  })
+}
+
+module.exports = {
+  app,
+  httpServer,
+  validateCaptainSession,
+  _test: {
+    adminTokens,
+    captainTokens,
+    bidRateLimitMap,
+    resetServerStateForTests,
+  },
+}

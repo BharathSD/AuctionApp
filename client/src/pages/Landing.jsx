@@ -23,7 +23,7 @@ export default function Landing() {
       const r = await fetch('/api/auction/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode: data.roomCode, snapshot, originalSetup: data.originalSetup }),
+        body: JSON.stringify({ roomCode: data.roomCode, snapshot, originalSetup: data.originalSetup, adminToken: data.originalSetup?.adminToken }),
       })
       if (!r.ok) throw new Error('Restore failed')
       saveAuctionConfig(data.originalSetup)

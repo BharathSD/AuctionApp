@@ -4,7 +4,6 @@ import Papa from 'papaparse'
 import { saveAuctionConfig } from '../hooks/useAuctionStorage'
 import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
 import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
-import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,

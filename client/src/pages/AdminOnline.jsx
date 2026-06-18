@@ -37,7 +37,7 @@ export default function AdminOnline() {
           return fetch('/api/auction/restore', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomCode: rc, snapshot: liveSnapshot.state, originalSetup: saved }),
+            body: JSON.stringify({ roomCode: rc, snapshot: liveSnapshot.state, originalSetup: saved, adminToken: saved.adminToken }),
           }).then(r => r.json()).then(() => { setRestored(true); setRoomReady(true) })
         }
         return fetch('/api/auction/create', {

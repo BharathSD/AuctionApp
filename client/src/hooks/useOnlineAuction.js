@@ -66,7 +66,8 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
         const adminToken = saved.adminToken || ''
         socket.emit('admin:join', { roomCode, adminToken })
       } else {
-        socket.emit('captain:join', { roomCode, teamId })
+        const captainToken = sessionStorage.getItem('captain_token') || ''
+        socket.emit('captain:join', { roomCode, teamId, captainToken })
       }
     })
 
