@@ -92,6 +92,13 @@ export default function CaptainBidding() {
           <p className="text-xs text-gray-500">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.open(`/available/${roomCode}`, '_blank')}
+            title="View available players (pending & unsold)"
+            className="text-cyan-400 hover:text-white text-xs border border-cyan-800 px-2 py-1 rounded"
+          >
+            📋 Available
+          </button>
           <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300 animate-pulse'}`}>
             {state.connected ? '● Live' : '○ Reconnecting…'}
           </span>

@@ -95,6 +95,13 @@ export default function ViewerDisplay() {
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <span>{soldCount} / {totalPlayers} players sold</span>
+          <button
+            onClick={() => window.open(`/available/${roomCode}`, '_blank')}
+            title="View available players (pending & unsold)"
+            className="text-cyan-400 hover:text-white text-xs border border-cyan-800 px-2 py-0.5 rounded"
+          >
+            📋 Available
+          </button>
           <span className={`text-xs px-2 py-0.5 rounded ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
             {connected ? '● LIVE' : '○ Connecting…'}
           </span>

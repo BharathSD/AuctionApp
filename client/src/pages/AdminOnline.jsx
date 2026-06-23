@@ -193,6 +193,13 @@ export default function AdminOnline() {
             📺 Viewer
           </button>
           <button
+            onClick={() => window.open(`/available/${roomCode}`, '_blank')}
+            title="View available players (pending & unsold)"
+            className="text-cyan-400 hover:text-white text-xs border border-cyan-800 px-2 py-1 rounded"
+          >
+            📋 Available
+          </button>
+          <button
             onClick={downloadSnapshot}
             title="Save snapshot (for manual recovery)"
             className="text-gray-400 hover:text-white text-xs border border-gray-700 px-2 py-1 rounded"
