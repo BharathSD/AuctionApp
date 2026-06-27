@@ -7,6 +7,7 @@ import CaptainJoin from './pages/CaptainJoin'
 import CaptainBidding from './pages/CaptainBidding'
 import Results from './pages/Results'
 import ViewerDisplay from './pages/ViewerDisplay'
+import AvailablePlayers from './pages/AvailablePlayers'
 
 export default function App() {
   return (
@@ -18,6 +19,8 @@ export default function App() {
       <Route path="/join/:roomCode" element={<CaptainJoin />} />
       <Route path="/auction/online/captain" element={<CaptainBidding />} />
       <Route path="/watch/:roomCode" element={<ViewerDisplay />} />
+      <Route path="/available/:roomCode" element={<AvailablePlayers />} />
+      <Route path="/available" element={<AvailablePlayers />} />
       <Route path="/results" element={<Results />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

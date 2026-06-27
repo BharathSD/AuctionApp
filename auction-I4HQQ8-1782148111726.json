@@ -1,0 +1,2408 @@
+{
+  "version": 1,
+  "roomCode": "I4HQQ8",
+  "savedAt": "2026-06-22T17:08:31.725Z",
+  "state": {
+    "connected": true,
+    "status": "sold",
+    "currentPrice": 1400,
+    "leadingTeamId": "team-5",
+    "timerLeft": 0,
+    "teams": [
+      {
+        "id": "team-0",
+        "name": "Rohit",
+        "budget": 4600,
+        "spent": 20400,
+        "players": [
+          {
+            "id": "csv-28-1782139292594",
+            "name": "Rohit shetty",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "soldPrice": 2500,
+            "status": "sold",
+            "soldTo": "team-0"
+          },
+          {
+            "id": "csv-8-1782139292594",
+            "name": "Yuva (Darshan)",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-0"
+          },
+          {
+            "id": "csv-77-1782139292594",
+            "name": "Prithviraj Harle",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2200
+          },
+          {
+            "id": "csv-63-1782139292594",
+            "name": "Shashank R",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1800
+          },
+          {
+            "id": "csv-52-1782139292594",
+            "name": "Rajeev BR",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 900
+          },
+          {
+            "id": "csv-0-1782139292594",
+            "name": "Girish Makam",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3400
+          },
+          {
+            "id": "csv-51-1782139292594",
+            "name": "Krishnamurthy Mayya",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 600
+          },
+          {
+            "id": "csv-21-1782139292594",
+            "name": "Jayanth",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 5500
+          },
+          {
+            "id": "csv-13-1782139292594",
+            "name": "Nagadhanush",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1400
+          },
+          {
+            "id": "csv-33-1782139292594",
+            "name": "N N PRASAD",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 600
+          }
+        ]
+      },
+      {
+        "id": "team-1",
+        "name": "Sarvesh",
+        "budget": 1600,
+        "spent": 23400,
+        "players": [
+          {
+            "id": "csv-29-1782139292594",
+            "name": "Sarvesh C S",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-1"
+          },
+          {
+            "id": "csv-15-1782139292594",
+            "name": "Ashwin N",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-1"
+          },
+          {
+            "id": "csv-4-1782139292594",
+            "name": "Hitesh",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 4000
+          },
+          {
+            "id": "csv-19-1782139292594",
+            "name": "Meghashyam BJ",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2400
+          },
+          {
+            "id": "csv-20-1782139292594",
+            "name": "Shravan sl",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2400
+          },
+          {
+            "id": "csv-72-1782139292594",
+            "name": "Prashanth",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2000
+          },
+          {
+            "id": "csv-50-1782139292594",
+            "name": "Adithya Sakala",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 700
+          },
+          {
+            "id": "csv-64-1782139292594",
+            "name": "Bharath.K",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 4000
+          },
+          {
+            "id": "csv-68-1782139292594",
+            "name": "Akshay",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 4500
+          },
+          {
+            "id": "csv-49-1782139292594",
+            "name": "Murali Krishna",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 200
+          },
+          {
+            "id": "csv-17-1782139292594",
+            "name": "Vishwas V",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 200
+          }
+        ]
+      },
+      {
+        "id": "team-2",
+        "name": "Arjun",
+        "budget": 1500,
+        "spent": 23500,
+        "players": [
+          {
+            "id": "csv-26-1782139292594",
+            "name": "Arjun",
+            "role": "Batsman",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-2"
+          },
+          {
+            "id": "csv-3-1782139292594",
+            "name": "R S Sachin",
+            "role": "Batsman",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-2"
+          },
+          {
+            "id": "csv-5-1782139292594",
+            "name": "Sreekar Tej",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3200
+          },
+          {
+            "id": "csv-32-1782139292594",
+            "name": "Balamurali",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3400
+          },
+          {
+            "id": "csv-18-1782139292594",
+            "name": "Shabharish Guptha LS",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3800
+          },
+          {
+            "id": "csv-10-1782139292594",
+            "name": "Soma",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 800
+          },
+          {
+            "id": "csv-62-1782139292594",
+            "name": "Sreevatsa K B",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 900
+          },
+          {
+            "id": "csv-58-1782139292594",
+            "name": "Rajesh M S",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3000
+          },
+          {
+            "id": "csv-74-1782139292594",
+            "name": "Santhosh",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1200
+          },
+          {
+            "id": "csv-30-1782139292594",
+            "name": "Gagan BS",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1000
+          },
+          {
+            "id": "csv-22-1782139292594",
+            "name": "Naresh Makam",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 700
+          },
+          {
+            "id": "csv-7-1782139292594",
+            "name": "Muniraju CN",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 300
+          },
+          {
+            "id": "csv-24-1782139292594",
+            "name": "Karthik M S",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3200
+          }
+        ]
+      },
+      {
+        "id": "team-3",
+        "name": "RajeshRS",
+        "budget": 200,
+        "spent": 24800,
+        "players": [
+          {
+            "id": "csv-36-1782139292594",
+            "name": "Rajesh",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-3"
+          },
+          {
+            "id": "csv-69-1782139292594",
+            "name": "Yogi",
+            "role": "Batsman",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-3"
+          },
+          {
+            "id": "p-1782139352067",
+            "name": "Vignesh",
+            "role": "All-rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2200
+          },
+          {
+            "id": "csv-27-1782139292594",
+            "name": "Sharath RA",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1600
+          },
+          {
+            "id": "csv-73-1782139292594",
+            "name": "Suhas Naidu",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3400
+          },
+          {
+            "id": "csv-2-1782139292594",
+            "name": "Sridhar",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 600
+          },
+          {
+            "id": "csv-53-1782139292594",
+            "name": "Krishna Chaitanya",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 700
+          },
+          {
+            "id": "csv-39-1782139292594",
+            "name": "Suresh Kumar(suri)",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 900
+          },
+          {
+            "id": "csv-60-1782139292594",
+            "name": "K.C Darshan",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 400
+          },
+          {
+            "id": "csv-65-1782139292594",
+            "name": "Kedarnath",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1400
+          },
+          {
+            "id": "csv-46-1782139292594",
+            "name": "Kishore Kanchi",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1600
+          },
+          {
+            "id": "csv-55-1782139292594",
+            "name": "Vinod kumar DS",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 5000
+          },
+          {
+            "id": "csv-16-1782139292594",
+            "name": "Madhu Babu A A",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 4500
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "name": "RajeshKM",
+        "budget": 3700,
+        "spent": 21300,
+        "players": [
+          {
+            "id": "csv-37-1782139292594",
+            "name": "Rajesh SP",
+            "role": "Bowler",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-4"
+          },
+          {
+            "id": "csv-6-1782139292594",
+            "name": "Kushal NL",
+            "role": "Bowler",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-4"
+          },
+          {
+            "id": "csv-59-1782139292594",
+            "name": "Sharan A Makam",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2400
+          },
+          {
+            "id": "csv-67-1782139292594",
+            "name": "Ashwin TR",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3000
+          },
+          {
+            "id": "csv-76-1782139292594",
+            "name": "Sharath belwadi",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 600
+          },
+          {
+            "id": "csv-1-1782139292594",
+            "name": "Sreemanth S",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1000
+          },
+          {
+            "id": "csv-9-1782139292594",
+            "name": "Suchith Kumar M",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2000
+          },
+          {
+            "id": "csv-61-1782139292594",
+            "name": "Nischal MN",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2200
+          },
+          {
+            "id": "csv-57-1782139292594",
+            "name": "Ritesh",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 4500
+          },
+          {
+            "id": "csv-14-1782139292594",
+            "name": "Shubakar Prabhakar",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1400
+          },
+          {
+            "id": "csv-71-1782139292594",
+            "name": "Vishwas",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2000
+          },
+          {
+            "id": "csv-41-1782139292594",
+            "name": "Sujith",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 200
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "name": "Danny",
+        "budget": 8800,
+        "spent": 16200,
+        "players": [
+          {
+            "id": "csv-44-1782139292594",
+            "name": "Danny",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-5"
+          },
+          {
+            "id": "csv-54-1782139292594",
+            "name": "Vinod kumar Dv",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "soldPrice": 2500,
+            "status": "sold",
+            "soldTo": "team-5"
+          },
+          {
+            "id": "csv-34-1782139292594",
+            "name": "Suhas Ramakrishna",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 200
+          },
+          {
+            "id": "csv-75-1782139292594",
+            "name": "Rohit A",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2800
+          },
+          {
+            "id": "csv-40-1782139292594",
+            "name": "Naveen Ramachandra",
+            "role": "Batsman",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 400
+          },
+          {
+            "id": "csv-12-1782139292594",
+            "name": "Bharath SD",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2600
+          },
+          {
+            "id": "csv-25-1782139292594",
+            "name": "Nagarjun",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 2000
+          },
+          {
+            "id": "csv-56-1782139292594",
+            "name": "Gaurav",
+            "role": "Bowler",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 1000
+          },
+          {
+            "id": "csv-45-1782139292594",
+            "name": "Karthik Pd",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 3000
+          },
+          {
+            "id": "csv-43-1782139292594",
+            "name": "Pradeep p",
+            "role": "PLAYER",
+            "basePrice": 200,
+            "status": "pending",
+            "soldTo": null,
+            "soldPrice": 200
+          }
+        ]
+      }
+    ],
+    "players": [
+      {
+        "id": "csv-0-1782139292594",
+        "name": "Girish Makam",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 3400
+      },
+      {
+        "id": "csv-1-1782139292594",
+        "name": "Sreemanth S",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-2-1782139292594",
+        "name": "Sridhar",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 600
+      },
+      {
+        "id": "csv-3-1782139292594",
+        "name": "R S Sachin",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-4-1782139292594",
+        "name": "Hitesh",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 4000
+      },
+      {
+        "id": "csv-5-1782139292594",
+        "name": "Sreekar Tej",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 3200
+      },
+      {
+        "id": "csv-6-1782139292594",
+        "name": "Kushal NL",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-7-1782139292594",
+        "name": "Muniraju CN",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 300
+      },
+      {
+        "id": "csv-8-1782139292594",
+        "name": "Yuva (Darshan)",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-9-1782139292594",
+        "name": "Suchith Kumar M",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 2000
+      },
+      {
+        "id": "csv-10-1782139292594",
+        "name": "Soma",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 800
+      },
+      {
+        "id": "csv-11-1782139292594",
+        "name": "G venkatesh babu",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "unsold",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-12-1782139292594",
+        "name": "Bharath SD",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 2600
+      },
+      {
+        "id": "csv-13-1782139292594",
+        "name": "Nagadhanush",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 1400
+      },
+      {
+        "id": "csv-14-1782139292594",
+        "name": "Shubakar Prabhakar",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 1400
+      },
+      {
+        "id": "csv-15-1782139292594",
+        "name": "Ashwin N",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-16-1782139292594",
+        "name": "Madhu Babu A A",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 4500
+      },
+      {
+        "id": "csv-17-1782139292594",
+        "name": "Vishwas V",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 200
+      },
+      {
+        "id": "csv-18-1782139292594",
+        "name": "Shabharish Guptha LS",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 3800
+      },
+      {
+        "id": "csv-19-1782139292594",
+        "name": "Meghashyam BJ",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 2400
+      },
+      {
+        "id": "csv-20-1782139292594",
+        "name": "Shravan sl",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 2400
+      },
+      {
+        "id": "csv-21-1782139292594",
+        "name": "Jayanth",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 5500
+      },
+      {
+        "id": "csv-22-1782139292594",
+        "name": "Naresh Makam",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 700
+      },
+      {
+        "id": "csv-23-1782139292594",
+        "name": "Nagesh S",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "unsold",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-24-1782139292594",
+        "name": "Karthik M S",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 3200
+      },
+      {
+        "id": "csv-25-1782139292594",
+        "name": "Nagarjun",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 2000
+      },
+      {
+        "id": "csv-26-1782139292594",
+        "name": "Arjun",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-27-1782139292594",
+        "name": "Sharath RA",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1600
+      },
+      {
+        "id": "csv-28-1782139292594",
+        "name": "Rohit shetty",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 2500
+      },
+      {
+        "id": "csv-29-1782139292594",
+        "name": "Sarvesh C S",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-30-1782139292594",
+        "name": "Gagan BS",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-31-1782139292594",
+        "name": "Madhukar KM",
+        "role": "PLAYER",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-32-1782139292594",
+        "name": "Balamurali",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 3400
+      },
+      {
+        "id": "csv-33-1782139292594",
+        "name": "N N PRASAD",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 600
+      },
+      {
+        "id": "csv-34-1782139292594",
+        "name": "Suhas Ramakrishna",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 200
+      },
+      {
+        "id": "csv-35-1782139292594",
+        "name": "SHASHIDHAR N",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-36-1782139292594",
+        "name": "Rajesh",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-37-1782139292594",
+        "name": "Rajesh SP",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-38-1782139292594",
+        "name": "Shashank Kanchi",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-39-1782139292594",
+        "name": "Suresh Kumar(suri)",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 900
+      },
+      {
+        "id": "csv-40-1782139292594",
+        "name": "Naveen Ramachandra",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 400
+      },
+      {
+        "id": "csv-41-1782139292594",
+        "name": "Sujith",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 200
+      },
+      {
+        "id": "csv-42-1782139292594",
+        "name": "Nagarjun N",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-43-1782139292594",
+        "name": "Pradeep p",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 200
+      },
+      {
+        "id": "csv-44-1782139292594",
+        "name": "Danny",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-45-1782139292594",
+        "name": "Karthik Pd",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 3000
+      },
+      {
+        "id": "csv-46-1782139292594",
+        "name": "Kishore Kanchi",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1600
+      },
+      {
+        "id": "csv-47-1782139292594",
+        "name": "Chethan JS",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-48-1782139292594",
+        "name": "Pavan Kumar",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-49-1782139292594",
+        "name": "Murali Krishna",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 200
+      },
+      {
+        "id": "csv-50-1782139292594",
+        "name": "Adithya Sakala",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 700
+      },
+      {
+        "id": "csv-51-1782139292594",
+        "name": "Krishnamurthy Mayya",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 600
+      },
+      {
+        "id": "csv-52-1782139292594",
+        "name": "Rajeev BR",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 900
+      },
+      {
+        "id": "csv-53-1782139292594",
+        "name": "Krishna Chaitanya",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 700
+      },
+      {
+        "id": "csv-54-1782139292594",
+        "name": "Vinod kumar Dv",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 2500
+      },
+      {
+        "id": "csv-55-1782139292594",
+        "name": "Vinod kumar DS",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 5000
+      },
+      {
+        "id": "csv-56-1782139292594",
+        "name": "Gaurav",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-57-1782139292594",
+        "name": "Ritesh",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 4500
+      },
+      {
+        "id": "csv-58-1782139292594",
+        "name": "Rajesh M S",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 3000
+      },
+      {
+        "id": "csv-59-1782139292594",
+        "name": "Sharan A Makam",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 2400
+      },
+      {
+        "id": "csv-60-1782139292594",
+        "name": "K.C Darshan",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 400
+      },
+      {
+        "id": "csv-61-1782139292594",
+        "name": "Nischal MN",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 2200
+      },
+      {
+        "id": "csv-62-1782139292594",
+        "name": "Sreevatsa K B",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 900
+      },
+      {
+        "id": "csv-63-1782139292594",
+        "name": "Shashank R",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 1800
+      },
+      {
+        "id": "csv-64-1782139292594",
+        "name": "Bharath.K",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 4000
+      },
+      {
+        "id": "csv-65-1782139292594",
+        "name": "Kedarnath",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1400
+      },
+      {
+        "id": "csv-66-1782139292594",
+        "name": "Arun Kishor R",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-67-1782139292594",
+        "name": "Ashwin TR",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 3000
+      },
+      {
+        "id": "csv-68-1782139292594",
+        "name": "Akshay",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 4500
+      },
+      {
+        "id": "csv-69-1782139292594",
+        "name": "Yogi",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-70-1782139292594",
+        "name": "Guru Charan",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-71-1782139292594",
+        "name": "Vishwas",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 2000
+      },
+      {
+        "id": "csv-72-1782139292594",
+        "name": "Prashanth",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 2000
+      },
+      {
+        "id": "csv-73-1782139292594",
+        "name": "Suhas Naidu",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 3400
+      },
+      {
+        "id": "csv-74-1782139292594",
+        "name": "Santhosh",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 1200
+      },
+      {
+        "id": "csv-75-1782139292594",
+        "name": "Rohit A",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 2800
+      },
+      {
+        "id": "csv-76-1782139292594",
+        "name": "Sharath belwadi",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 600
+      },
+      {
+        "id": "csv-77-1782139292594",
+        "name": "Prithviraj Harle",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 2200
+      },
+      {
+        "id": "p-1782139352067",
+        "name": "Vignesh",
+        "role": "All-rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 2200
+      }
+    ],
+    "queue": [
+      11,
+      13,
+      17,
+      23,
+      24,
+      33,
+      35,
+      38,
+      42,
+      47,
+      48,
+      66,
+      70
+    ],
+    "currentIdx": 6,
+    "bids": [
+      {
+        "teamId": "team-5",
+        "price": 1400,
+        "ts": 1782148037231
+      },
+      {
+        "teamId": "team-1",
+        "price": 1200,
+        "ts": 1782148027921
+      },
+      {
+        "teamId": "team-5",
+        "price": 1000,
+        "ts": 1782148008820
+      },
+      {
+        "teamId": "team-1",
+        "price": 900,
+        "ts": 1782148007466
+      },
+      {
+        "teamId": "team-5",
+        "price": 800,
+        "ts": 1782148000390
+      },
+      {
+        "teamId": "team-0",
+        "price": 700,
+        "ts": 1782147999813
+      },
+      {
+        "teamId": "team-1",
+        "price": 600,
+        "ts": 1782147980821
+      },
+      {
+        "teamId": "team-5",
+        "price": 500,
+        "ts": 1782147967792
+      },
+      {
+        "teamId": "team-1",
+        "price": 400,
+        "ts": 1782147964223
+      },
+      {
+        "teamId": "team-5",
+        "price": 300,
+        "ts": 1782147962469
+      },
+      {
+        "teamId": "team-1",
+        "price": 200,
+        "ts": 1782147958461
+      }
+    ],
+    "config": {
+      "numTeams": 6,
+      "pointsPerTeam": 25000,
+      "bidTiers": [
+        {
+          "upTo": 1000,
+          "increment": 100
+        },
+        {
+          "upTo": 4000,
+          "increment": 200
+        },
+        {
+          "upTo": null,
+          "increment": 500
+        }
+      ],
+      "timerEnabled": true,
+      "timerSeconds": 20,
+      "minBidBase": 100,
+      "maxPlayersPerTeam": 13,
+      "randomizeOrder": true
+    },
+    "connectedTeamIds": [
+      "team-5",
+      "team-1",
+      "team-3",
+      "team-2"
+    ],
+    "lastError": null,
+    "sessionError": null,
+    "paused": false,
+    "secondRound": true
+  },
+  "originalSetup": {
+    "mode": "online",
+    "config": {
+      "numTeams": 6,
+      "pointsPerTeam": 25000,
+      "bidTiers": [
+        {
+          "upTo": 1000,
+          "increment": 100
+        },
+        {
+          "upTo": 4000,
+          "increment": 200
+        },
+        {
+          "upTo": null,
+          "increment": 500
+        }
+      ],
+      "timerEnabled": true,
+      "timerSeconds": 20,
+      "minBidBase": 100,
+      "maxPlayersPerTeam": 13,
+      "randomizeOrder": true
+    },
+    "teams": [
+      {
+        "id": "team-0",
+        "name": "Rohit",
+        "pin": "1000",
+        "budget": 21000,
+        "spent": 4000,
+        "players": [
+          {
+            "id": "csv-28-1782139292594",
+            "name": "Rohit shetty",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "soldPrice": 2500,
+            "status": "sold",
+            "soldTo": "team-0"
+          },
+          {
+            "id": "csv-8-1782139292594",
+            "name": "Yuva (Darshan)",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-0"
+          }
+        ]
+      },
+      {
+        "id": "team-1",
+        "name": "Sarvesh",
+        "pin": "1001",
+        "budget": 22000,
+        "spent": 3000,
+        "players": [
+          {
+            "id": "csv-29-1782139292594",
+            "name": "Sarvesh C S",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-1"
+          },
+          {
+            "id": "csv-15-1782139292594",
+            "name": "Ashwin N",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-1"
+          }
+        ]
+      },
+      {
+        "id": "team-2",
+        "name": "Arjun",
+        "pin": "1002",
+        "budget": 23000,
+        "spent": 2000,
+        "players": [
+          {
+            "id": "csv-26-1782139292594",
+            "name": "Arjun",
+            "role": "Batsman",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-2"
+          },
+          {
+            "id": "csv-3-1782139292594",
+            "name": "R S Sachin",
+            "role": "Batsman",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-2"
+          }
+        ]
+      },
+      {
+        "id": "team-3",
+        "name": "RajeshRS",
+        "pin": "1003",
+        "budget": 22500,
+        "spent": 2500,
+        "players": [
+          {
+            "id": "csv-36-1782139292594",
+            "name": "Rajesh",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-3"
+          },
+          {
+            "id": "csv-69-1782139292594",
+            "name": "Yogi",
+            "role": "Batsman",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-3"
+          }
+        ]
+      },
+      {
+        "id": "team-4",
+        "name": "RajeshKM",
+        "pin": "1004",
+        "budget": 23000,
+        "spent": 2000,
+        "players": [
+          {
+            "id": "csv-37-1782139292594",
+            "name": "Rajesh SP",
+            "role": "Bowler",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-4"
+          },
+          {
+            "id": "csv-6-1782139292594",
+            "name": "Kushal NL",
+            "role": "Bowler",
+            "basePrice": 200,
+            "soldPrice": 1000,
+            "status": "sold",
+            "soldTo": "team-4"
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "name": "Danny",
+        "pin": "1005",
+        "budget": 21000,
+        "spent": 4000,
+        "players": [
+          {
+            "id": "csv-44-1782139292594",
+            "name": "Danny",
+            "role": "All Rounder",
+            "basePrice": 300,
+            "soldPrice": 1500,
+            "status": "sold",
+            "soldTo": "team-5"
+          },
+          {
+            "id": "csv-54-1782139292594",
+            "name": "Vinod kumar Dv",
+            "role": "Super Striker",
+            "basePrice": 500,
+            "soldPrice": 2500,
+            "status": "sold",
+            "soldTo": "team-5"
+          }
+        ]
+      }
+    ],
+    "players": [
+      {
+        "id": "csv-0-1782139292594",
+        "name": "Girish Makam",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-1-1782139292594",
+        "name": "Sreemanth S",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-2-1782139292594",
+        "name": "Sridhar",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-3-1782139292594",
+        "name": "R S Sachin",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-4-1782139292594",
+        "name": "Hitesh",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-5-1782139292594",
+        "name": "Sreekar Tej",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-6-1782139292594",
+        "name": "Kushal NL",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-7-1782139292594",
+        "name": "Muniraju CN",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-8-1782139292594",
+        "name": "Yuva (Darshan)",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-9-1782139292594",
+        "name": "Suchith Kumar M",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-10-1782139292594",
+        "name": "Soma",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-11-1782139292594",
+        "name": "G venkatesh babu",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-12-1782139292594",
+        "name": "Bharath SD",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-13-1782139292594",
+        "name": "Nagadhanush",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-14-1782139292594",
+        "name": "Shubakar Prabhakar",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-15-1782139292594",
+        "name": "Ashwin N",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-16-1782139292594",
+        "name": "Madhu Babu A A",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-17-1782139292594",
+        "name": "Vishwas V",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-18-1782139292594",
+        "name": "Shabharish Guptha LS",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-19-1782139292594",
+        "name": "Meghashyam BJ",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-20-1782139292594",
+        "name": "Shravan sl",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-21-1782139292594",
+        "name": "Jayanth",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-22-1782139292594",
+        "name": "Naresh Makam",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-23-1782139292594",
+        "name": "Nagesh S",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-24-1782139292594",
+        "name": "Karthik M S",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-25-1782139292594",
+        "name": "Nagarjun",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-26-1782139292594",
+        "name": "Arjun",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-2",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-27-1782139292594",
+        "name": "Sharath RA",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-28-1782139292594",
+        "name": "Rohit shetty",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-0",
+        "soldPrice": 2500
+      },
+      {
+        "id": "csv-29-1782139292594",
+        "name": "Sarvesh C S",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-1",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-30-1782139292594",
+        "name": "Gagan BS",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-31-1782139292594",
+        "name": "Madhukar KM",
+        "role": "PLAYER",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-32-1782139292594",
+        "name": "Balamurali",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-33-1782139292594",
+        "name": "N N PRASAD",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-34-1782139292594",
+        "name": "Suhas Ramakrishna",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-35-1782139292594",
+        "name": "SHASHIDHAR N",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-36-1782139292594",
+        "name": "Rajesh",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-37-1782139292594",
+        "name": "Rajesh SP",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-4",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-38-1782139292594",
+        "name": "Shashank Kanchi",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-39-1782139292594",
+        "name": "Suresh Kumar(suri)",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-40-1782139292594",
+        "name": "Naveen Ramachandra",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-41-1782139292594",
+        "name": "Sujith",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-42-1782139292594",
+        "name": "Nagarjun N",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-43-1782139292594",
+        "name": "Pradeep p",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-44-1782139292594",
+        "name": "Danny",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 1500
+      },
+      {
+        "id": "csv-45-1782139292594",
+        "name": "Karthik Pd",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-46-1782139292594",
+        "name": "Kishore Kanchi",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-47-1782139292594",
+        "name": "Chethan JS",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-48-1782139292594",
+        "name": "Pavan Kumar",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-49-1782139292594",
+        "name": "Murali Krishna",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-50-1782139292594",
+        "name": "Adithya Sakala",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-51-1782139292594",
+        "name": "Krishnamurthy Mayya",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-52-1782139292594",
+        "name": "Rajeev BR",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-53-1782139292594",
+        "name": "Krishna Chaitanya",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-54-1782139292594",
+        "name": "Vinod kumar Dv",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "sold",
+        "soldTo": "team-5",
+        "soldPrice": 2500
+      },
+      {
+        "id": "csv-55-1782139292594",
+        "name": "Vinod kumar DS",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-56-1782139292594",
+        "name": "Gaurav",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-57-1782139292594",
+        "name": "Ritesh",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-58-1782139292594",
+        "name": "Rajesh M S",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-59-1782139292594",
+        "name": "Sharan A Makam",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-60-1782139292594",
+        "name": "K.C Darshan",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-61-1782139292594",
+        "name": "Nischal MN",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-62-1782139292594",
+        "name": "Sreevatsa K B",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-63-1782139292594",
+        "name": "Shashank R",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-64-1782139292594",
+        "name": "Bharath.K",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-65-1782139292594",
+        "name": "Kedarnath",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-66-1782139292594",
+        "name": "Arun Kishor R",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-67-1782139292594",
+        "name": "Ashwin TR",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-68-1782139292594",
+        "name": "Akshay",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-69-1782139292594",
+        "name": "Yogi",
+        "role": "Batsman",
+        "basePrice": 200,
+        "status": "sold",
+        "soldTo": "team-3",
+        "soldPrice": 1000
+      },
+      {
+        "id": "csv-70-1782139292594",
+        "name": "Guru Charan",
+        "role": "PLAYER",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-71-1782139292594",
+        "name": "Vishwas",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-72-1782139292594",
+        "name": "Prashanth",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-73-1782139292594",
+        "name": "Suhas Naidu",
+        "role": "Super Striker",
+        "basePrice": 500,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-74-1782139292594",
+        "name": "Santhosh",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-75-1782139292594",
+        "name": "Rohit A",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-76-1782139292594",
+        "name": "Sharath belwadi",
+        "role": "Bowler",
+        "basePrice": 200,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "csv-77-1782139292594",
+        "name": "Prithviraj Harle",
+        "role": "All Rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      },
+      {
+        "id": "p-1782139352067",
+        "name": "Vignesh",
+        "role": "All-rounder",
+        "basePrice": 300,
+        "status": "pending",
+        "soldTo": null,
+        "soldPrice": null
+      }
+    ],
+    "roomCode": "I4HQQ8",
+    "createdAt": 1782139750019,
+    "adminToken": "hy865f5bxc"
+  }
+}
