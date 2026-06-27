@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
@@ -17,6 +17,12 @@ export default function CaptainBidding() {
   const teamName = sessionStorage.getItem('captain_teamName')
   const [activeTab, setActiveTab] = useState('bid') // bid | roster
   const [bidFlash, setBidFlash] = useState(null) // 'ok' | 'late' | 'low'
+  const [availableSearch, setAvailableSearch] = useState('')
+  const [availableRoles, setAvailableRoles] = useState([])
+  const [availableStatuses, setAvailableStatuses] = useState([])
+  const [availableSort, setAvailableSort] = useState('status')
+  const [showRoleFilter, setShowRoleFilter] = useState(false)
+  const [showStatusFilter, setShowStatusFilter] = useState(false)
 
   const {
     state, currentPlayer, leadingTeam,
@@ -57,6 +63,58 @@ export default function CaptainBidding() {
 
   const myTeam = state.teams.find(t => t.id === teamId)
   const { status, timerLeft, config, bids } = state
+  const allAvailablePlayers = useMemo(
+    () => (state.players || []).filter(p => p.status === 'pending' || p.status === 'unsold'),
+    [state.players]
+  )
+  const pendingCount = allAvailablePlayers.filter(p => p.status === 'pending').length
+  const unsoldCount = allAvailablePlayers.length - pendingCount
+  const uniqueAvailableRoles = useMemo(() => {
+    const roles = new Set(allAvailablePlayers.map(p => p.role).filter(Boolean))
+    return Array.from(roles).sort()
+  }, [allAvailablePlayers])
+
+  const availablePlayers = useMemo(() => {
+    let filtered = [...allAvailablePlayers]
+
+    if (availableSearch.trim()) {
+      const q = availableSearch.trim().toLowerCase()
+      filtered = filtered.filter(p => String(p.name || '').toLowerCase().includes(q))
+    }
+
+    if (availableRoles.length > 0) {
+      filtered = filtered.filter(p => availableRoles.includes(p.role))
+    }
+
+    if (availableStatuses.length > 0) {
+      filtered = filtered.filter(p => availableStatuses.includes(p.status))
+    }
+
+    if (availableSort === 'status') {
+      filtered.sort((a, b) => {
+        const order = { pending: 0, unsold: 1 }
+        return (order[a.status] ?? 99) - (order[b.status] ?? 99)
+      })
+    } else if (availableSort === 'role') {
+      filtered.sort((a, b) => String(a.role || '').localeCompare(String(b.role || '')))
+    } else if (availableSort === 'priceDesc') {
+      filtered.sort((a, b) => Number(b.basePrice || 0) - Number(a.basePrice || 0))
+    } else if (availableSort === 'priceAsc') {
+      filtered.sort((a, b) => Number(a.basePrice || 0) - Number(b.basePrice || 0))
+    } else if (availableSort === 'name') {
+      filtered.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+    }
+
+    return filtered
+  }, [allAvailablePlayers, availableSearch, availableRoles, availableStatuses, availableSort])
+
+  const toggleRole = (role) => {
+    setAvailableRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role])
+  }
+
+  const toggleStatus = (statusValue) => {
+    setAvailableStatuses(prev => prev.includes(statusValue) ? prev.filter(s => s !== statusValue) : [...prev, statusValue])
+  }
   const isLeading = state.leadingTeamId === teamId
   const nextBidPrice = state.bids && state.bids.length === 0
     ? (state.currentPrice ?? 0)
@@ -92,13 +150,6 @@ export default function CaptainBidding() {
           <p className="text-xs text-gray-500">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.open(`/available/${roomCode}`, '_blank')}
-            title="View available players (pending & unsold)"
-            className="text-cyan-400 hover:text-white text-xs border border-cyan-800 px-2 py-1 rounded"
-          >
-            📋 Available
-          </button>
           <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300 animate-pulse'}`}>
             {state.connected ? '● Live' : '○ Reconnecting…'}
           </span>
@@ -116,6 +167,7 @@ export default function CaptainBidding() {
         <button onClick={() => setActiveTab('bid')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>🏏 Bid</button>
         <button onClick={() => setActiveTab('roster')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>👕 My Roster</button>
         <button onClick={() => setActiveTab('teams')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📊 Teams</button>
+        <button onClick={() => setActiveTab('available')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📋 Available</button>
       </div>
 
       {/* ── BID TAB ── */}
@@ -279,6 +331,133 @@ export default function CaptainBidding() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── AVAILABLE TAB ── */}
+      {activeTab === 'available' && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="bg-gray-900 rounded-xl p-4 mb-4 flex items-center justify-between text-sm">
+            <p className="text-gray-400">Pending: <span className="text-yellow-400 font-bold">{pendingCount}</span> | Unsold: <span className="text-red-400 font-bold">{unsoldCount}</span></p>
+            <p className="text-gray-500">Total: <span className="text-white font-bold">{allAvailablePlayers.length}</span></p>
+          </div>
+
+          <div className="bg-gray-900 rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Search</label>
+              <input
+                value={availableSearch}
+                onChange={(e) => setAvailableSearch(e.target.value)}
+                placeholder="Player name"
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white"
+              />
+            </div>
+            <div className="relative">
+              <label className="text-xs text-gray-500 block mb-1">Role</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRoleFilter(v => !v)
+                  setShowStatusFilter(false)
+                }}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white text-left"
+              >
+                {availableRoles.length === 0 ? 'All roles' : `${availableRoles.length} selected`}
+              </button>
+              {showRoleFilter && (
+                <div className="absolute z-30 mt-2 w-full bg-gray-800 border border-gray-700 rounded-lg p-2 max-h-52 overflow-y-auto shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setAvailableRoles([])}
+                    className="w-full text-left text-xs text-blue-300 hover:text-blue-200 px-2 py-1"
+                  >
+                    Clear all
+                  </button>
+                  {uniqueAvailableRoles.map(role => (
+                    <label key={role} className="flex items-center gap-2 px-2 py-1 text-sm text-gray-200 hover:bg-gray-700 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={availableRoles.includes(role)}
+                        onChange={() => toggleRole(role)}
+                        className="accent-blue-500"
+                      />
+                      <span>{role}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <label className="text-xs text-gray-500 block mb-1">Status</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStatusFilter(v => !v)
+                  setShowRoleFilter(false)
+                }}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white text-left"
+              >
+                {availableStatuses.length === 0 ? 'All status' : `${availableStatuses.length} selected`}
+              </button>
+              {showStatusFilter && (
+                <div className="absolute z-30 mt-2 w-full bg-gray-800 border border-gray-700 rounded-lg p-2 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setAvailableStatuses([])}
+                    className="w-full text-left text-xs text-blue-300 hover:text-blue-200 px-2 py-1"
+                  >
+                    Clear all
+                  </button>
+                  {['pending', 'unsold'].map(statusValue => (
+                    <label key={statusValue} className="flex items-center gap-2 px-2 py-1 text-sm text-gray-200 hover:bg-gray-700 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={availableStatuses.includes(statusValue)}
+                        onChange={() => toggleStatus(statusValue)}
+                        className="accent-blue-500"
+                      />
+                      <span>{statusValue === 'pending' ? 'Pending' : 'Unsold'}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Sort</label>
+              <select
+                value={availableSort}
+                onChange={(e) => setAvailableSort(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white"
+              >
+                <option value="status">Status</option>
+                <option value="name">Name A-Z</option>
+                <option value="role">Role A-Z</option>
+                <option value="priceDesc">Price high to low</option>
+                <option value="priceAsc">Price low to high</option>
+              </select>
+            </div>
+          </div>
+
+          {availablePlayers.length === 0 ? (
+            <p className="text-gray-500 text-sm">No players match the current search/filter.</p>
+          ) : (
+            <div className="space-y-2">
+              {availablePlayers.map((p, i) => (
+                <div key={`${p.id || p.name || 'player'}-${i}`} className="bg-gray-800 rounded-xl px-4 py-3 flex justify-between items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{p.name}</p>
+                    <p className="text-xs text-gray-500">{p.role}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-yellow-400 font-bold">{p.basePrice} pts</p>
+                    <p className={`text-xs font-semibold ${p.status === 'pending' ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {p.status === 'pending' ? 'Pending' : 'Unsold'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
