@@ -20,21 +20,23 @@ export default function AvailablePlayers() {
   const { roomCode: paramRoomCode } = useParams()
   const saved = loadAuctionState()
   const roomCode = paramRoomCode || saved?.roomCode
-  const teamId = saved?.currentTeamId
+  const teamId = sessionStorage.getItem('captain_teamId')
+  const captainRoomCode = sessionStorage.getItem('captain_roomCode')
 
   // Determine role
   let role = 'viewer'
   if (saved?.adminToken && roomCode === saved?.roomCode) {
     role = 'admin'
-  } else if (teamId) {
+  } else if (teamId && captainRoomCode === roomCode) {
     role = 'captain'
   }
 
-  const { state, connected } = useOnlineAuction({
+  const { state } = useOnlineAuction({
     roomCode,
     role,
     teamId: role === 'captain' ? teamId : null,
   })
+  const connected = state.connected
 
   const [sortBy, setSortBy] = useState('status') // 'status', 'role', 'price'
   const [filterRole, setFilterRole] = useState('all')

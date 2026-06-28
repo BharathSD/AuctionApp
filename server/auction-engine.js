@@ -512,27 +512,41 @@ function autoAssignUnsold(roomCode, io) {
   // Assign players to teams with available spots
   shuffled.forEach(playerIdx => {
     const unsoldPlayer = room.players[playerIdx]
+    const basePrice = Number(unsoldPlayer.basePrice) || 0
     
     // Find teams with available roster spots, prioritize teams with fewer players
     const availableTeams = room.teams
-      .filter(t => maxPlayers <= 0 || t.players.length < maxPlayers)
+      .filter(t => {
+        if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
+        if (Number(t.budget) < basePrice) return false
+
+        // Keep budget-safe roster completion guarantees aligned with bid logic.
+        if (maxPlayers > 0) {
+          const spotsFilledAfter = t.players.length + 1
+          const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
+          const minNeeded = minCostForRemainingSpots(room.players, playerIdx, spotsNeededAfter)
+          if (Number(t.budget) - basePrice < minNeeded) return false
+        }
+
+        return true
+      })
       .sort((a, b) => a.players.length - b.players.length)
     
     if (availableTeams.length > 0) {
       const assignedTeam = availableTeams[0]
       const soldAt = Date.now()
       // Assign this player to the team
-      const playerWithPrice = { ...unsoldPlayer, soldPrice: unsoldPlayer.basePrice, soldAt }
+      const playerWithPrice = { ...unsoldPlayer, soldPrice: basePrice, soldAt }
       assignedTeam.players.push(playerWithPrice)
-      assignedTeam.budget -= unsoldPlayer.basePrice
-      assignedTeam.spent = (assignedTeam.spent || 0) + unsoldPlayer.basePrice
+      assignedTeam.budget -= basePrice
+      assignedTeam.spent = (assignedTeam.spent || 0) + basePrice
       
       // Update player status
       room.players[playerIdx] = {
         ...unsoldPlayer,
         status: 'sold',
         soldTo: assignedTeam.id,
-        soldPrice: unsoldPlayer.basePrice,
+        soldPrice: basePrice,
         soldAt,
       }
     }

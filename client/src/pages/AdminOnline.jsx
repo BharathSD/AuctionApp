@@ -2,10 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   loadAuctionState,
-  updateAuctionState,
-  saveOnlineLiveSnapshot,
+  syncOnlineAuctionProgress,
   loadOnlineLiveSnapshot,
-  clearOnlineLiveSnapshot,
 } from '../hooks/useAuctionStorage'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 
@@ -21,6 +19,7 @@ export default function AdminOnline() {
   const saved = loadAuctionState()
   const [roomReady, setRoomReady] = useState(false)
   const [roomCode, setRoomCode] = useState(saved?.roomCode || null)
+  const [bootstrapError, setBootstrapError] = useState('')
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [restored, setRestored] = useState(false)
@@ -30,6 +29,7 @@ export default function AdminOnline() {
   useEffect(() => {
     if (!saved || !saved.roomCode) return
     const rc = saved.roomCode
+    setBootstrapError('')
     fetch(`/api/auction/${rc}/state`)
       .then(r => {
         if (r.ok) { setRoomReady(true); return }
@@ -39,42 +39,38 @@ export default function AdminOnline() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomCode: rc, snapshot: liveSnapshot.state, originalSetup: saved, adminToken: saved.adminToken }),
-          }).then(r => r.json()).then(() => { setRestored(true); setRoomReady(true) })
+          }).then(async (resp) => {
+            const data = await resp.json().catch(() => ({}))
+            if (!resp.ok) throw new Error(data.error || 'Restore failed')
+            setRestored(true)
+            setRoomReady(true)
+          })
         }
         return fetch('/api/auction/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomCode: rc, auctionData: saved }),
-        }).then(r => r.json()).then(() => setRoomReady(true))
+        }).then(async (resp) => {
+          const data = await resp.json().catch(() => ({}))
+          if (!resp.ok) throw new Error(data.error || 'Failed to create room')
+          setRoomReady(true)
+        })
       })
-      .catch(() => setRoomReady(true))
+      .catch((err) => {
+        setBootstrapError(err?.message || 'Failed to initialize room')
+      })
   }, [])
+
+  const activeRoomCode = roomReady ? roomCode : null
 
   const {
     state, currentPlayer, leadingTeam,
     adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminReopenSold, adminUndoSold, adminReturnSoldToQueue, adminUnsold, adminRequeueUnsold, adminKickTeam, adminPause, adminResume, adminAutoAssignUnsold,
-  } = useOnlineAuction({ roomCode, role: 'admin', teamId: null })
+  } = useOnlineAuction({ roomCode: activeRoomCode, role: 'admin', teamId: null })
 
-  // Auto-save live state on every meaningful change
+  // Persist online auction progress (snapshot + results payload sync)
   useEffect(() => {
-    if (!roomCode || !state.status || state.status === 'idle') return
-    if (state.status === 'finished') { clearOnlineLiveSnapshot(); return }
-    saveOnlineLiveSnapshot({ roomCode, state, savedAt: Date.now() })
-  }, [state, roomCode])
-
-  // Keep the main saved auction payload in sync with live online progress.
-  // Results/export reads this storage key, so it must reflect latest sold players.
-  useEffect(() => {
-    if (!roomCode || !state.status || state.status === 'idle') return
-    updateAuctionState(current => {
-      if (!current) return current
-      return {
-        ...current,
-        teams: state.teams,
-        players: state.players,
-        config: { ...current.config, ...state.config },
-      }
-    })
+    syncOnlineAuctionProgress({ roomCode, state })
   }, [roomCode, state.status, state.teams, state.players, state.config])
 
   // Flash disconnect alert when a captain drops mid-auction
@@ -108,6 +104,25 @@ export default function AdminOnline() {
         <div className="text-center">
           <p className="text-gray-400 mb-4">No auction configured.</p>
           <button onClick={() => navigate('/setup/online')} className="btn-primary">Set up auction</button>
+        </div>
+        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
+      </div>
+    )
+  }
+
+  if (!roomReady) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-3">Preparing Auction Room…</h2>
+          {bootstrapError ? (
+            <>
+              <p className="text-red-400 text-sm mb-4">{bootstrapError}</p>
+              <button onClick={() => window.location.reload()} className="btn-primary">Retry</button>
+            </>
+          ) : (
+            <p className="text-gray-400 text-sm">Reconnecting to room <span className="font-mono text-yellow-400">{roomCode}</span></p>
+          )}
         </div>
         <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
       </div>
@@ -259,6 +274,20 @@ export default function AdminOnline() {
           </span>
           <button onClick={state.paused ? adminResume : adminPause} className="bg-white text-red-700 text-xs font-bold px-3 py-1 rounded-lg shrink-0">
             {state.paused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+        </div>
+      )}
+
+      {state.sessionError && (
+        <div className="bg-red-900/80 border-b border-red-700 px-4 py-2 flex items-center justify-between gap-4">
+          <span className="text-red-200 text-sm">
+            Admin session error: {state.sessionError}
+          </span>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-white text-red-700 text-xs font-bold px-3 py-1 rounded-lg shrink-0"
+          >
+            Retry
           </button>
         </div>
       )}

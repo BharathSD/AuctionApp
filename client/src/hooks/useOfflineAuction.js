@@ -379,25 +379,38 @@ function reducer(state, action) {
       let updatedPlayers = state.players.map(p => ({ ...p }))
       
       shuffled.forEach(unsoldPlayer => {
+        const basePrice = Number(unsoldPlayer.basePrice) || 0
         // Find teams with available roster spots, prioritize teams with fewer players
         const availableTeams = updatedTeams
-          .filter(t => maxPlayers <= 0 || t.players.length < maxPlayers)
+          .filter(t => {
+            if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
+            if (Number(t.budget) < basePrice) return false
+
+            if (maxPlayers > 0) {
+              const spotsFilledAfter = t.players.length + 1
+              const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
+              const minNeeded = minCostForRemainingSpots(updatedPlayers, unsoldPlayer.idx, spotsNeededAfter)
+              if (Number(t.budget) - basePrice < minNeeded) return false
+            }
+
+            return true
+          })
           .sort((a, b) => a.players.length - b.players.length)
         
         if (availableTeams.length > 0) {
           const assignedTeam = availableTeams[0]
           // Assign this player to the team
-          const playerWithPrice = { ...unsoldPlayer, soldPrice: unsoldPlayer.basePrice }
+          const playerWithPrice = { ...unsoldPlayer, soldPrice: basePrice }
           assignedTeam.players.push(playerWithPrice)
-          assignedTeam.budget -= unsoldPlayer.basePrice
-          assignedTeam.spent = (assignedTeam.spent || 0) + unsoldPlayer.basePrice
+          assignedTeam.budget -= basePrice
+          assignedTeam.spent = (assignedTeam.spent || 0) + basePrice
           
           // Update player status
           updatedPlayers[unsoldPlayer.idx] = {
             ...unsoldPlayer,
             status: 'sold',
             soldTo: assignedTeam.id,
-            soldPrice: unsoldPlayer.basePrice,
+            soldPrice: basePrice,
           }
         }
       })

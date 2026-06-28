@@ -19,7 +19,17 @@ export default function CaptainJoin() {
         body: JSON.stringify({ pin: pin.trim() }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Invalid PIN'); setLoading(false); return }
+      if (!res.ok) {
+        if (res.status === 409) {
+          setError('This team is already connected on another device. Ask the auctioneer to kick that session or wait for reconnect grace period.')
+        } else if (res.status === 401) {
+          setError(data.error || 'Invalid PIN')
+        } else {
+          setError(data.error || 'Could not join room right now. Please try again.')
+        }
+        setLoading(false)
+        return
+      }
       // Store captain identity in sessionStorage (per-tab, not shared)
       sessionStorage.setItem('captain_roomCode', roomCode)
       sessionStorage.setItem('captain_teamId', data.teamId)

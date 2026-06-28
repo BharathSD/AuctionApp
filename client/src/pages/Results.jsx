@@ -1,13 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { loadAuctionState, loadOnlineLiveSnapshot, clearAuctionState } from '../hooks/useAuctionStorage'
+import { loadBestAvailableAuctionData, clearAuctionState } from '../hooks/useAuctionStorage'
 
 export default function Results() {
   const navigate = useNavigate()
-  const saved = loadAuctionState()
-
-  const liveSnapshot = saved?.roomCode ? loadOnlineLiveSnapshot() : null
-  const liveState = liveSnapshot?.roomCode === saved?.roomCode ? liveSnapshot.state : null
-  const resultData = liveState ? { ...saved, ...liveState } : saved
+  const resultData = loadBestAvailableAuctionData()
 
   if (!resultData) {
     return (

@@ -76,6 +76,18 @@ describe('server auth flows', () => {
     assert.ok(joined.body.captainToken.length >= 20)
   })
 
+  it('rejects duplicate room creation for same roomCode', async () => {
+    const roomCode = nextRoomCode('DUP')
+    const auctionData = makeAuctionData()
+
+    const first = await postJson('/api/auction/create', { roomCode, auctionData })
+    assert.equal(first.status, 200)
+
+    const second = await postJson('/api/auction/create', { roomCode, auctionData })
+    assert.equal(second.status, 409)
+    assert.equal(second.body.error, 'Room already exists')
+  })
+
   it('rejects restore when admin token is missing or invalid', async () => {
     const roomCode = nextRoomCode('R')
     const auctionData = makeAuctionData()

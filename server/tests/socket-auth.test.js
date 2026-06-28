@@ -201,6 +201,27 @@ describe('socket captain auth', () => {
     }
   })
 
+  it('rejects REST rejoin while team already has an active captain session', async () => {
+    const { roomCode, joined } = await setupRoomAndCaptain({ roomPrefix: 'AJ' })
+
+    const socket = await connectSocket()
+    try {
+      const stateUpdatePromise = waitForEvent(socket, 'auction:stateUpdate')
+      socket.emit('captain:join', {
+        roomCode,
+        teamId: joined.body.teamId,
+        captainToken: joined.body.captainToken,
+      })
+      await stateUpdatePromise
+
+      const secondJoin = await postJson(`/api/auction/${roomCode}/join`, { pin: '1111' })
+      assert.equal(secondJoin.status, 409)
+      assert.equal(secondJoin.body.error, 'This team is already connected from another device.')
+    } finally {
+      socket.disconnect()
+    }
+  })
+
   it('allows reconnect within grace period after disconnect', async () => {
     const { roomCode, joined } = await setupRoomAndCaptain({ roomPrefix: 'G' })
 

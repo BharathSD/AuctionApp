@@ -33,6 +33,14 @@ const captainTokens = new Map() // roomCode -> Map<teamId, token>
 const BID_RATE_LIMIT = 3 // max 3 bids per second per team
 const RATE_LIMIT_WINDOW = 1000 // milliseconds
 
+function pruneStaleRateLimitEntries(now) {
+  for (const [key, value] of bidRateLimitMap.entries()) {
+    if (!value || Number(value.resetTime) + RATE_LIMIT_WINDOW < now) {
+      bidRateLimitMap.delete(key)
+    }
+  }
+}
+
 // ── Admin auth helper ──────────────────────────────────────────
 function generateAdminToken() {
   return Math.random().toString(36).slice(2, 12)
@@ -116,6 +124,7 @@ if (process.env.NODE_ENV === 'production') {
 app.post('/api/auction/create', (req, res) => {
   const { roomCode, auctionData } = req.body
   if (!roomCode || !auctionData) return res.status(400).json({ error: 'Missing roomCode or auctionData' })
+  if (engine.getRoom(roomCode)) return res.status(409).json({ error: 'Room already exists' })
   engine.createRoom(roomCode, auctionData)
   
   // Generate admin token for this room
@@ -139,6 +148,12 @@ app.post('/api/auction/:roomCode/join', (req, res) => {
   const roomCode = req.params.roomCode
   const result = engine.joinRoom(roomCode, pin)
   if (result.error) return res.status(401).json(result)
+
+  const conflict = engine.checkCaptainJoin(roomCode, result.team.id)
+  if (conflict === 'already_connected') {
+    return res.status(409).json({ error: 'This team is already connected from another device.' })
+  }
+
   const captainToken = generateCaptainToken()
   const roomTokens = getCaptainTokenMap(roomCode)
   roomTokens.set(result.team.id, captainToken)
@@ -162,6 +177,7 @@ io.on('connection', (socket) => {
   // Swallow transport-level errors (ECONNABORTED, ECONNRESET, etc.)
   socket.on('error', (err) => {
     console.warn('[socket error]', err.message)
+    socket.emit('session:rejected', { reason: err?.message || 'Socket error' })
   })
 
   let currentRoom = null
@@ -231,6 +247,7 @@ io.on('connection', (socket) => {
 
     // Rate limiting: max BID_RATE_LIMIT bids per RATE_LIMIT_WINDOW ms per team
     const now = Date.now()
+    pruneStaleRateLimitEntries(now)
     const rateKey = `${currentRoom}:${currentTeamId}`
     const attempts = bidRateLimitMap.get(rateKey) || { count: 0, resetTime: now }
     if (attempts.resetTime + RATE_LIMIT_WINDOW < now) {

@@ -560,6 +560,42 @@ describe('requeueUnsold', () => {
   })
 })
 
+// ─── autoAssignUnsold ───────────────────────────────────────
+
+describe('autoAssignUnsold', () => {
+  it('does not assign a player to a team that cannot afford base price', () => {
+    const teams = makeTeams(2, 100)
+    teams[0].budget = 50 // cannot afford base 80
+    teams[1].budget = 100
+    setupRoom('AA01', makeConfig(), teams, makePlayers([80]))
+    const room = engine.getRoom('AA01')
+    room.players[0].status = 'unsold'
+
+    engine.autoAssignUnsold('AA01', io)
+
+    const updated = engine.getRoom('AA01')
+    assert.equal(updated.players[0].status, 'sold')
+    assert.equal(updated.players[0].soldTo, 'team2')
+    assert.equal(updated.teams[0].budget, 50)
+  })
+
+  it('keeps player unsold when no team can safely afford assignment', () => {
+    const teams = makeTeams(2, 100)
+    teams[0].budget = 40
+    teams[1].budget = 30
+    setupRoom('AA02', makeConfig(), teams, makePlayers([80]))
+    const room = engine.getRoom('AA02')
+    room.players[0].status = 'unsold'
+
+    engine.autoAssignUnsold('AA02', io)
+
+    const updated = engine.getRoom('AA02')
+    assert.equal(updated.players[0].status, 'unsold')
+    assert.equal(updated.teams[0].budget, 40)
+    assert.equal(updated.teams[1].budget, 30)
+  })
+})
+
 // ─── finishAuction ────────────────────────────────────────────
 
 describe('finishAuction', () => {

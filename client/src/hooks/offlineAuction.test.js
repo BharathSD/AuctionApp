@@ -461,3 +461,65 @@ describe('FINISH', () => {
     expect(next.status).toBe('finished')
   })
 })
+
+// ─── AUTO_ASSIGN ─────────────────────────────────────────────
+
+describe('AUTO_ASSIGN', () => {
+  it('skips teams that cannot afford base price and assigns to an affordable team', () => {
+    const teams = makeTeams(2, 100)
+    teams[0].budget = 50
+    teams[1].budget = 100
+    const players = makePlayers([80])
+    players[0].status = 'unsold'
+
+    const state = {
+      config: makeConfig(),
+      teams,
+      players,
+      queue: [],
+      currentIdx: -1,
+      currentPrice: null,
+      leadingTeamId: null,
+      bids: [],
+      status: 'finished',
+      timerLeft: null,
+      paused: false,
+      secondRound: false,
+      soldHistory: [],
+    }
+
+    const next = reducer(state, { type: 'AUTO_ASSIGN' })
+    expect(next.players[0].status).toBe('sold')
+    expect(next.players[0].soldTo).toBe('team2')
+    expect(next.teams[0].budget).toBe(50)
+  })
+
+  it('keeps player unsold when no team can afford assignment', () => {
+    const teams = makeTeams(2, 100)
+    teams[0].budget = 40
+    teams[1].budget = 30
+    const players = makePlayers([80])
+    players[0].status = 'unsold'
+
+    const state = {
+      config: makeConfig(),
+      teams,
+      players,
+      queue: [],
+      currentIdx: -1,
+      currentPrice: null,
+      leadingTeamId: null,
+      bids: [],
+      status: 'finished',
+      timerLeft: null,
+      paused: false,
+      secondRound: false,
+      soldHistory: [],
+    }
+
+    const next = reducer(state, { type: 'AUTO_ASSIGN' })
+    expect(next.players[0].status).toBe('unsold')
+    expect(next.teams[0].budget).toBe(40)
+    expect(next.teams[1].budget).toBe(30)
+  })
+})

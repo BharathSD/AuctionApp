@@ -4,6 +4,7 @@ import {
   validatePositiveNumeric,
   validateNonNegative,
   validateTeamName,
+  validateTeamPin,
   validatePlayerName,
   validateBasePrice,
   validateBidTierConfig,
@@ -71,6 +72,21 @@ describe('validatePlayerName', () => {
   })
 })
 
+describe('validateTeamPin', () => {
+  it('accepts valid pins', () => {
+    expect(validateTeamPin('1234').valid).toBe(true)
+  })
+
+  it('rejects empty pins', () => {
+    expect(validateTeamPin('').valid).toBe(false)
+    expect(validateTeamPin('   ').valid).toBe(false)
+  })
+
+  it('rejects pins longer than 8 chars', () => {
+    expect(validateTeamPin('123456789').valid).toBe(false)
+  })
+})
+
 describe('validateBasePrice', () => {
   it('accepts prices >= minBidBase', () => {
     expect(validateBasePrice(100, 10).valid).toBe(true)
@@ -134,8 +150,8 @@ describe('validateAuctionStartup', () => {
     timerEnabled: false,
   }
   const teams = [
-    { id: 't1', name: 'Team 1' },
-    { id: 't2', name: 'Team 2' },
+    { id: 't1', name: 'Team 1', pin: '1111' },
+    { id: 't2', name: 'Team 2', pin: '2222' },
   ]
   const players = [
     { id: 'p1', name: 'Player 1', basePrice: 100 },
@@ -166,6 +182,24 @@ describe('validateAuctionStartup', () => {
     const preAllocs = [{ teamId: 't1', playerId: 'p1', price: 500 }]
     const result = validateAuctionStartup(defaultConfig, teams, players, preAllocs)
     expect(result.valid).toBe(true)
+  })
+
+  it('rejects duplicate team names', () => {
+    const dupTeams = [
+      { id: 't1', name: 'Knights', pin: '1111' },
+      { id: 't2', name: 'Knights', pin: '2222' },
+    ]
+    const result = validateAuctionStartup(defaultConfig, dupTeams, players, [])
+    expect(result.valid).toBe(false)
+  })
+
+  it('rejects duplicate team PINs', () => {
+    const dupPins = [
+      { id: 't1', name: 'Team 1', pin: '1111' },
+      { id: 't2', name: 'Team 2', pin: '1111' },
+    ]
+    const result = validateAuctionStartup(defaultConfig, dupPins, players, [])
+    expect(result.valid).toBe(false)
   })
 })
 
