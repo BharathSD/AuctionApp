@@ -185,3 +185,16 @@ describe('server auth flows', () => {
     assert.equal(badTeamErr, 'Invalid team for this room.')
   })
 })
+
+describe('network error filtering', () => {
+  it('treats aborted/reset socket write errors as ignorable', () => {
+    assert.equal(_test.isIgnorableNetworkError({ code: 'ECONNABORTED', message: 'write ECONNABORTED' }), true)
+    assert.equal(_test.isIgnorableNetworkError({ code: 'ECONNRESET', message: 'socket hang up' }), true)
+    assert.equal(_test.isIgnorableNetworkError({ code: 'EPIPE', message: 'write EPIPE' }), true)
+  })
+
+  it('does not hide unrelated application errors', () => {
+    assert.equal(_test.isIgnorableNetworkError(new Error('Room not found')), false)
+    assert.equal(_test.isIgnorableNetworkError({ code: 'ERR_INVALID_ARG_TYPE', message: 'bad arg' }), false)
+  })
+})

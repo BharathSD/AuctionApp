@@ -6,11 +6,20 @@ const path = require('path')
 const crypto = require('crypto')
 const engine = require('./auction-engine')
 
+function isIgnorableNetworkError(err) {
+  const code = err?.code || ''
+  const message = String(err?.message || '')
+  return code === 'ECONNABORTED' || code === 'ECONNRESET' || code === 'EPIPE'
+    || /ECONNABORTED|ECONNRESET|EPIPE/i.test(message)
+}
+
 // Keep the process alive — log unexpected errors instead of crashing
 process.on('uncaughtException', (err) => {
+  if (isIgnorableNetworkError(err)) return
   console.error('[uncaughtException]', err.message)
 })
 process.on('unhandledRejection', (reason) => {
+  if (isIgnorableNetworkError(reason)) return
   console.error('[unhandledRejection]', reason)
 })
 
@@ -347,6 +356,7 @@ module.exports = {
     adminTokens,
     captainTokens,
     bidRateLimitMap,
+    isIgnorableNetworkError,
     resetServerStateForTests,
   },
 }
