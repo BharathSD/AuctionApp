@@ -17,7 +17,7 @@ export default function OfflineAuction() {
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const {
     state, currentPlayer, leadingTeam,
-    startAuction, recordBid, undoBid, markSold, markUnsold, nextPlayer, pause, resume, requeueUnsold, finishAuction, autoAssignUnsold,
+    startAuction, recordBid, undoBid, markSold, reopenSold, soldToUnsold, returnSoldToQueue, markUnsold, nextPlayer, pause, resume, requeueUnsold, finishAuction, autoAssignUnsold,
   } = useOfflineAuction()
 
   if (!saved) {
@@ -42,6 +42,30 @@ export default function OfflineAuction() {
         <div className="text-6xl">🏆</div>
         <h2 className="text-3xl font-bold">Auction Complete!</h2>
         <p className="text-gray-400">{soldCount} of {totalPlayers} players sold</p>
+        <div className="w-full max-w-2xl space-y-3">
+          {teams.map(team => (
+            <div key={team.id} className="bg-gray-900 rounded-xl p-4 text-left">
+              <p className="font-semibold mb-2">{team.name}</p>
+              {team.players.length === 0 ? (
+                <p className="text-sm text-gray-500">No players</p>
+              ) : (
+                <div className="space-y-2">
+                  {[...team.players].reverse().map(player => (
+                    <div key={player.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-gray-300 truncate">{player.name}</span>
+                      <button
+                        onClick={() => { if (window.confirm(`Return ${player.name} to the auction queue? This removes the player from ${team.name} and refunds the sale.`)) returnSoldToQueue(player.id) }}
+                        className="text-cyan-300 border border-cyan-800 rounded px-2 py-1 hover:text-white"
+                      >
+                        ↺ Return to Queue
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
         <div className="flex gap-4">
           {state.players.some(p => p.status === 'unsold') && (
             <>
@@ -151,9 +175,15 @@ export default function OfflineAuction() {
                   <p className="text-xs text-gray-500 text-center uppercase tracking-widest">Click when team bids</p>
                   <div className="grid grid-cols-2 gap-3">
                     {teams.map(team => {
-                      const canBid = team.budget >= (state.bids.length === 0 ? state.currentPrice : state.currentPrice + getIncrement(state.currentPrice, config))
+                      const nextPrice = state.bids.length === 0
+                        ? state.currentPrice
+                        : state.currentPrice + getIncrement(state.currentPrice, config)
+                      const maxPlayers = Number(config.maxPlayersPerTeam) || 0
+                      const rosterFull = maxPlayers > 0 && team.players.length >= maxPlayers
+                      const canBid = team.budget >= nextPrice
                         && !paused
                         && state.leadingTeamId !== team.id
+                        && !rosterFull
                       return (
                         <button
                           key={team.id}
@@ -211,9 +241,21 @@ export default function OfflineAuction() {
               )}
 
               {(status === 'sold' || status === 'unsold') && (
-                <button onClick={nextPlayer} className="btn-primary text-lg px-8 py-3">
-                  Next Player →
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                  {status === 'sold' && (
+                    <div className="flex gap-2">
+                      <button onClick={() => { if (window.confirm('Reopen bidding for this sold player? This will remove the player from the team and restore the winning bid.')) reopenSold() }} className="bg-blue-700 hover:bg-blue-600 text-white rounded-xl py-2 px-4 font-bold text-sm">
+                        ↩ Reopen Bidding
+                      </button>
+                      <button onClick={() => { if (window.confirm('Move this sold player to unsold? This will remove the player from the team and refund the sale.')) soldToUnsold() }} className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-xl py-2 px-4 font-bold text-sm">
+                        ↩ To Unsold
+                      </button>
+                    </div>
+                  )}
+                  <button onClick={nextPlayer} className="btn-primary text-lg px-8 py-3">
+                    Next Player →
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -257,10 +299,23 @@ export default function OfflineAuction() {
                           <p className="text-xs text-gray-600 py-1 italic">No players yet</p>
                         ) : (
                           <div className="space-y-0.5 mt-1">
-                            {team.players.map((p, i) => (
-                              <div key={i} className="flex justify-between text-xs">
+                            {[...team.players].reverse().map((p, i) => (
+                              <div key={i} className="flex items-center justify-between gap-2 text-xs">
                                 <span className="text-gray-300 truncate">{p.name}</span>
-                                <span className="text-yellow-400 font-mono ml-2 shrink-0">{p.soldPrice}</span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-yellow-400 font-mono">{p.soldPrice}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (window.confirm(`Return ${p.name} to the auction queue? This removes the player from ${team.name} and refunds the sale.`)) {
+                                        returnSoldToQueue(p.id)
+                                      }
+                                    }}
+                                    className="text-cyan-300 hover:text-white border border-cyan-900 rounded px-1.5 py-0.5"
+                                  >
+                                    ↺
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

@@ -5,7 +5,7 @@ import { loadAuctionState } from './useAuctionStorage'
 function reducer(state, action) {
   switch (action.type) {
     case 'STATE_UPDATE':
-      return { ...state, ...action.payload, connected: true }
+      return { ...state, ...action.payload, connected: true, sessionError: null }
     case 'BID_ACCEPTED':
       return {
         ...state,
@@ -24,6 +24,8 @@ function reducer(state, action) {
       return { ...state, lastError: null }
     case 'SESSION_ERROR':
       return { ...state, sessionError: action.payload.reason }
+    case 'CLEAR_SESSION_ERROR':
+      return { ...state, sessionError: null }
     case 'CAPTAIN_CONNECTED':
       return { ...state, connectedTeamIds: action.payload.connectedTeamIds }
     case 'CAPTAIN_DISCONNECTED':
@@ -55,6 +57,8 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
   const [state, dispatch] = useReducer(reducer, INITIAL)
 
   useEffect(() => {
+    if (!roomCode) return undefined
+
     const socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] })
     socketRef.current = socket
 
@@ -72,6 +76,10 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     })
 
     socket.on('disconnect', () => dispatch({ type: 'SET_CONNECTED', payload: false }))
+    socket.on('error', (data) => {
+      const reason = data?.message || 'Connection error'
+      dispatch({ type: 'SESSION_ERROR', payload: { reason } })
+    })
 
     socket.on('auction:stateUpdate', (data) => dispatch({ type: 'STATE_UPDATE', payload: data }))
     socket.on('auction:playerStart', (data) => dispatch({ type: 'STATE_UPDATE', payload: data }))
@@ -87,13 +95,19 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     socket.on('captain:connected', (data) => dispatch({ type: 'CAPTAIN_CONNECTED', payload: data }))
     socket.on('captain:disconnected', (data) => dispatch({ type: 'CAPTAIN_DISCONNECTED', payload: data }))
 
-    return () => socket.disconnect()
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
   }, [roomCode, role, teamId])
 
   const adminNextPlayer = useCallback(() => socketRef.current?.emit('admin:nextPlayer'), [])
   const adminUndoBid = useCallback(() => socketRef.current?.emit('admin:undoBid'), [])
   const adminFinish = useCallback(() => socketRef.current?.emit('admin:finish'), [])
   const adminSold = useCallback(() => socketRef.current?.emit('admin:sold'), [])
+  const adminReopenSold = useCallback(() => socketRef.current?.emit('admin:reopenSold'), [])
+  const adminUndoSold = useCallback(() => socketRef.current?.emit('admin:undoSold'), [])
+  const adminReturnSoldToQueue = useCallback((playerId) => socketRef.current?.emit('admin:returnSoldToQueue', { playerId }), [])
   const adminUnsold = useCallback(() => socketRef.current?.emit('admin:unsold'), [])
   const adminRequeueUnsold = useCallback(() => socketRef.current?.emit('admin:requeueUnsold'), [])
   const adminAutoAssignUnsold = useCallback(() => socketRef.current?.emit('admin:autoAssignUnsold'), [])
@@ -102,6 +116,7 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
   const adminResume = useCallback(() => socketRef.current?.emit('admin:resume'), [])
   const captainBid = useCallback(() => socketRef.current?.emit('captain:bid'), [])
   const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), [])
+  const clearSessionError = useCallback(() => dispatch({ type: 'CLEAR_SESSION_ERROR' }), [])
 
   const currentPlayer = state.queue[state.currentIdx] !== undefined
     ? state.players[state.queue[state.currentIdx]]
@@ -116,6 +131,9 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     adminUndoBid,
     adminFinish,
     adminSold,
+    adminReopenSold,
+    adminUndoSold,
+    adminReturnSoldToQueue,
     adminUnsold,
     adminRequeueUnsold,
     adminAutoAssignUnsold,
@@ -124,5 +142,6 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     adminResume,
     captainBid,
     clearError,
+    clearSessionError,
   }
 }

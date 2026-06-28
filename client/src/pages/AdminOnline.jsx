@@ -2,10 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   loadAuctionState,
-  updateAuctionState,
-  saveOnlineLiveSnapshot,
+  syncOnlineAuctionProgress,
   loadOnlineLiveSnapshot,
-  clearOnlineLiveSnapshot,
 } from '../hooks/useAuctionStorage'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 
@@ -21,6 +19,7 @@ export default function AdminOnline() {
   const saved = loadAuctionState()
   const [roomReady, setRoomReady] = useState(false)
   const [roomCode, setRoomCode] = useState(saved?.roomCode || null)
+  const [bootstrapError, setBootstrapError] = useState('')
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [restored, setRestored] = useState(false)
@@ -30,6 +29,7 @@ export default function AdminOnline() {
   useEffect(() => {
     if (!saved || !saved.roomCode) return
     const rc = saved.roomCode
+    setBootstrapError('')
     fetch(`/api/auction/${rc}/state`)
       .then(r => {
         if (r.ok) { setRoomReady(true); return }
@@ -39,42 +39,38 @@ export default function AdminOnline() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomCode: rc, snapshot: liveSnapshot.state, originalSetup: saved, adminToken: saved.adminToken }),
-          }).then(r => r.json()).then(() => { setRestored(true); setRoomReady(true) })
+          }).then(async (resp) => {
+            const data = await resp.json().catch(() => ({}))
+            if (!resp.ok) throw new Error(data.error || 'Restore failed')
+            setRestored(true)
+            setRoomReady(true)
+          })
         }
         return fetch('/api/auction/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomCode: rc, auctionData: saved }),
-        }).then(r => r.json()).then(() => setRoomReady(true))
+        }).then(async (resp) => {
+          const data = await resp.json().catch(() => ({}))
+          if (!resp.ok) throw new Error(data.error || 'Failed to create room')
+          setRoomReady(true)
+        })
       })
-      .catch(() => setRoomReady(true))
+      .catch((err) => {
+        setBootstrapError(err?.message || 'Failed to initialize room')
+      })
   }, [])
+
+  const activeRoomCode = roomReady ? roomCode : null
 
   const {
     state, currentPlayer, leadingTeam,
-    adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminUnsold, adminRequeueUnsold, adminKickTeam, adminPause, adminResume, adminAutoAssignUnsold,
-  } = useOnlineAuction({ roomCode, role: 'admin', teamId: null })
+    adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminReopenSold, adminUndoSold, adminReturnSoldToQueue, adminUnsold, adminRequeueUnsold, adminKickTeam, adminPause, adminResume, adminAutoAssignUnsold,
+  } = useOnlineAuction({ roomCode: activeRoomCode, role: 'admin', teamId: null })
 
-  // Auto-save live state on every meaningful change
+  // Persist online auction progress (snapshot + results payload sync)
   useEffect(() => {
-    if (!roomCode || !state.status || state.status === 'idle') return
-    if (state.status === 'finished') { clearOnlineLiveSnapshot(); return }
-    saveOnlineLiveSnapshot({ roomCode, state, savedAt: Date.now() })
-  }, [state, roomCode])
-
-  // Keep the main saved auction payload in sync with live online progress.
-  // Results/export reads this storage key, so it must reflect latest sold players.
-  useEffect(() => {
-    if (!roomCode || !state.status || state.status === 'idle') return
-    updateAuctionState(current => {
-      if (!current) return current
-      return {
-        ...current,
-        teams: state.teams,
-        players: state.players,
-        config: { ...current.config, ...state.config },
-      }
-    })
+    syncOnlineAuctionProgress({ roomCode, state })
   }, [roomCode, state.status, state.teams, state.players, state.config])
 
   // Flash disconnect alert when a captain drops mid-auction
@@ -114,6 +110,25 @@ export default function AdminOnline() {
     )
   }
 
+  if (!roomReady) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-3">Preparing Auction Room…</h2>
+          {bootstrapError ? (
+            <>
+              <p className="text-red-400 text-sm mb-4">{bootstrapError}</p>
+              <button onClick={() => window.location.reload()} className="btn-primary">Retry</button>
+            </>
+          ) : (
+            <p className="text-gray-400 text-sm">Reconnecting to room <span className="font-mono text-yellow-400">{roomCode}</span></p>
+          )}
+        </div>
+        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
+      </div>
+    )
+  }
+
   const { status, teams, bids, timerLeft, config } = state
   const soldCount = state.players.filter(p => p.status === 'sold').length
   const totalPlayers = state.players.length
@@ -126,6 +141,40 @@ export default function AdminOnline() {
         <div className="text-6xl">🏆</div>
         <h2 className="text-3xl font-bold">Auction Complete!</h2>
         <p className="text-gray-400">{soldCount} of {totalPlayers} players sold</p>
+        {state.canUndoSold && (
+          <div className="flex gap-2">
+            <button onClick={() => { if (window.confirm('Reopen bidding for the last sold player? This will remove the player from the team and restore the winning bid.')) adminReopenSold() }} className="bg-blue-700 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-sm">
+              ↩ Reopen Last Sold
+            </button>
+            <button onClick={() => { if (window.confirm('Move the last sold player to unsold? This will remove the player from the team and refund the sale.')) adminUndoSold() }} className="bg-yellow-700 hover:bg-yellow-600 text-white font-bold px-4 py-2 rounded-xl text-sm">
+              ↩ Last Sold to Unsold
+            </button>
+          </div>
+        )}
+        <div className="w-full max-w-2xl space-y-3">
+          {teams.map(team => (
+            <div key={team.id} className="bg-gray-900 rounded-xl p-4 text-left">
+              <p className="font-semibold mb-2">{team.name}</p>
+              {team.players.length === 0 ? (
+                <p className="text-sm text-gray-500">No players</p>
+              ) : (
+                <div className="space-y-2">
+                  {[...team.players].reverse().map(player => (
+                    <div key={player.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-gray-300 truncate">{player.name}</span>
+                      <button
+                        onClick={() => { if (window.confirm(`Return ${player.name} to the auction queue? This removes the player from ${team.name} and refunds the sale.`)) adminReturnSoldToQueue(player.id) }}
+                        className="text-cyan-300 border border-cyan-800 rounded px-2 py-1 hover:text-white"
+                      >
+                        ↺ Return to Queue
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
         <div className="flex gap-4">
           {state.players.some(p => p.status === 'unsold') && (
             <>
@@ -225,6 +274,20 @@ export default function AdminOnline() {
           </span>
           <button onClick={state.paused ? adminResume : adminPause} className="bg-white text-red-700 text-xs font-bold px-3 py-1 rounded-lg shrink-0">
             {state.paused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+        </div>
+      )}
+
+      {state.sessionError && (
+        <div className="bg-red-900/80 border-b border-red-700 px-4 py-2 flex items-center justify-between gap-4">
+          <span className="text-red-200 text-sm">
+            Admin session error: {state.sessionError}
+          </span>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-white text-red-700 text-xs font-bold px-3 py-1 rounded-lg shrink-0"
+          >
+            Retry
           </button>
         </div>
       )}
@@ -336,6 +399,22 @@ export default function AdminOnline() {
 
               {(status === 'sold' || status === 'unsold') && (
                 <div className="flex flex-col items-center gap-2">
+                  {status === 'sold' && state.canUndoSold && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { if (window.confirm('Reopen bidding for this sold player? This will remove the player from the team and restore the winning bid.')) adminReopenSold() }}
+                        className="bg-blue-700 hover:bg-blue-600 text-white rounded-xl py-2 px-4 font-bold text-sm"
+                      >
+                        ↩ Reopen Bidding
+                      </button>
+                      <button
+                        onClick={() => { if (window.confirm('Move this sold player to unsold? This will remove the player from the team and refund the sale.')) adminUndoSold() }}
+                        className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-xl py-2 px-4 font-bold text-sm"
+                      >
+                        ↩ To Unsold
+                      </button>
+                    </div>
+                  )}
                   <button
                     onClick={adminNextPlayer}
                     disabled={state.connectedTeamIds.length < totalTeams}
@@ -413,10 +492,23 @@ export default function AdminOnline() {
                           <p className="text-xs text-gray-600 py-1 italic">No players yet</p>
                         ) : (
                           <div className="space-y-0.5 mt-1">
-                            {team.players.map((p, i) => (
-                              <div key={i} className="flex justify-between text-xs">
+                            {[...team.players].reverse().map((p, i) => (
+                              <div key={i} className="flex items-center justify-between gap-2 text-xs">
                                 <span className="text-gray-300 truncate">{p.name}</span>
-                                <span className="text-yellow-400 font-mono ml-2 shrink-0">{p.soldPrice}</span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-yellow-400 font-mono">{p.soldPrice}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (window.confirm(`Return ${p.name} to the auction queue? This removes the player from ${team.name} and refunds the sale.`)) {
+                                        adminReturnSoldToQueue(p.id)
+                                      }
+                                    }}
+                                    className="text-cyan-300 hover:text-white border border-cyan-900 rounded px-1.5 py-0.5"
+                                  >
+                                    ↺
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

@@ -79,7 +79,10 @@ export default function ViewerDisplay() {
   const timerColor = timerLeft > 10 ? 'bg-green-500' : timerLeft > 5 ? 'bg-yellow-400' : 'bg-red-500'
 
   // Recently sold players (last 5)
-  const recentSold = players.filter(p => p.status === 'sold').slice(-5).reverse()
+  const recentSold = players
+    .filter(p => p.status === 'sold')
+    .sort((a, b) => (Number(b.soldAt) || 0) - (Number(a.soldAt) || 0))
+    .slice(0, 5)
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col overflow-hidden"

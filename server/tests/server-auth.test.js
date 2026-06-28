@@ -76,6 +76,18 @@ describe('server auth flows', () => {
     assert.ok(joined.body.captainToken.length >= 20)
   })
 
+  it('rejects duplicate room creation for same roomCode', async () => {
+    const roomCode = nextRoomCode('DUP')
+    const auctionData = makeAuctionData()
+
+    const first = await postJson('/api/auction/create', { roomCode, auctionData })
+    assert.equal(first.status, 200)
+
+    const second = await postJson('/api/auction/create', { roomCode, auctionData })
+    assert.equal(second.status, 409)
+    assert.equal(second.body.error, 'Room already exists')
+  })
+
   it('rejects restore when admin token is missing or invalid', async () => {
     const roomCode = nextRoomCode('R')
     const auctionData = makeAuctionData()
@@ -183,5 +195,18 @@ describe('server auth flows', () => {
 
     const badTeamErr = validateCaptainSession(room, roomCode, 'team999', joined.body.captainToken)
     assert.equal(badTeamErr, 'Invalid team for this room.')
+  })
+})
+
+describe('network error filtering', () => {
+  it('treats aborted/reset socket write errors as ignorable', () => {
+    assert.equal(_test.isIgnorableNetworkError({ code: 'ECONNABORTED', message: 'write ECONNABORTED' }), true)
+    assert.equal(_test.isIgnorableNetworkError({ code: 'ECONNRESET', message: 'socket hang up' }), true)
+    assert.equal(_test.isIgnorableNetworkError({ code: 'EPIPE', message: 'write EPIPE' }), true)
+  })
+
+  it('does not hide unrelated application errors', () => {
+    assert.equal(_test.isIgnorableNetworkError(new Error('Room not found')), false)
+    assert.equal(_test.isIgnorableNetworkError({ code: 'ERR_INVALID_ARG_TYPE', message: 'bad arg' }), false)
   })
 })

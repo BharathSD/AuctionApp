@@ -6,11 +6,20 @@ const path = require('path')
 const crypto = require('crypto')
 const engine = require('./auction-engine')
 
+function isIgnorableNetworkError(err) {
+  const code = err?.code || ''
+  const message = String(err?.message || '')
+  return code === 'ECONNABORTED' || code === 'ECONNRESET' || code === 'EPIPE'
+    || /ECONNABORTED|ECONNRESET|EPIPE/i.test(message)
+}
+
 // Keep the process alive — log unexpected errors instead of crashing
 process.on('uncaughtException', (err) => {
+  if (isIgnorableNetworkError(err)) return
   console.error('[uncaughtException]', err.message)
 })
 process.on('unhandledRejection', (reason) => {
+  if (isIgnorableNetworkError(reason)) return
   console.error('[unhandledRejection]', reason)
 })
 
@@ -23,6 +32,14 @@ const bidRateLimitMap = new Map() // `${roomCode}:${teamId}` -> { count, resetTi
 const captainTokens = new Map() // roomCode -> Map<teamId, token>
 const BID_RATE_LIMIT = 3 // max 3 bids per second per team
 const RATE_LIMIT_WINDOW = 1000 // milliseconds
+
+function pruneStaleRateLimitEntries(now) {
+  for (const [key, value] of bidRateLimitMap.entries()) {
+    if (!value || Number(value.resetTime) + RATE_LIMIT_WINDOW < now) {
+      bidRateLimitMap.delete(key)
+    }
+  }
+}
 
 // ── Admin auth helper ──────────────────────────────────────────
 function generateAdminToken() {
@@ -107,6 +124,7 @@ if (process.env.NODE_ENV === 'production') {
 app.post('/api/auction/create', (req, res) => {
   const { roomCode, auctionData } = req.body
   if (!roomCode || !auctionData) return res.status(400).json({ error: 'Missing roomCode or auctionData' })
+  if (engine.getRoom(roomCode)) return res.status(409).json({ error: 'Room already exists' })
   engine.createRoom(roomCode, auctionData)
   
   // Generate admin token for this room
@@ -130,6 +148,12 @@ app.post('/api/auction/:roomCode/join', (req, res) => {
   const roomCode = req.params.roomCode
   const result = engine.joinRoom(roomCode, pin)
   if (result.error) return res.status(401).json(result)
+
+  const conflict = engine.checkCaptainJoin(roomCode, result.team.id)
+  if (conflict === 'already_connected') {
+    return res.status(409).json({ error: 'This team is already connected from another device.' })
+  }
+
   const captainToken = generateCaptainToken()
   const roomTokens = getCaptainTokenMap(roomCode)
   roomTokens.set(result.team.id, captainToken)
@@ -153,6 +177,7 @@ io.on('connection', (socket) => {
   // Swallow transport-level errors (ECONNABORTED, ECONNRESET, etc.)
   socket.on('error', (err) => {
     console.warn('[socket error]', err.message)
+    socket.emit('session:rejected', { reason: err?.message || 'Socket error' })
   })
 
   let currentRoom = null
@@ -222,6 +247,7 @@ io.on('connection', (socket) => {
 
     // Rate limiting: max BID_RATE_LIMIT bids per RATE_LIMIT_WINDOW ms per team
     const now = Date.now()
+    pruneStaleRateLimitEntries(now)
     const rateKey = `${currentRoom}:${currentTeamId}`
     const attempts = bidRateLimitMap.get(rateKey) || { count: 0, resetTime: now }
     if (attempts.resetTime + RATE_LIMIT_WINDOW < now) {
@@ -250,6 +276,24 @@ io.on('connection', (socket) => {
   socket.on('admin:sold', () => {
     if (!isAdmin || !currentRoom) return
     engine.sellPlayer(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: undo last sold player
+  socket.on('admin:undoSold', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.undoSoldPlayer(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: reopen last sold player for bidding
+  socket.on('admin:reopenSold', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.reopenSoldPlayer(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: return any sold player to the queue for later re-auction
+  socket.on('admin:returnSoldToQueue', ({ playerId }) => {
+    if (!isAdmin || !currentRoom || !playerId) return
+    engine.returnSoldPlayerToQueue(currentRoom, playerId, makeIoProxy(currentRoom))
   })
 
   // Admin: mark unsold
@@ -335,6 +379,7 @@ module.exports = {
     adminTokens,
     captainTokens,
     bidRateLimitMap,
+    isIgnorableNetworkError,
     resetServerStateForTests,
   },
 }

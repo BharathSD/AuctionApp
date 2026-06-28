@@ -25,6 +25,13 @@ export function validateTeamName(name) {
   return { valid: true, value: trimmed }
 }
 
+export function validateTeamPin(pin) {
+  const trimmed = String(pin || '').trim()
+  if (!trimmed) return { valid: false, error: 'Team PIN cannot be empty' }
+  if (trimmed.length > 8) return { valid: false, error: 'Team PIN too long (max 8 chars)' }
+  return { valid: true, value: trimmed }
+}
+
 export function validatePlayerName(name) {
   const trimmed = (name || '').trim()
   if (!trimmed) return { valid: false, error: 'Player name cannot be empty' }
@@ -93,6 +100,25 @@ export function validateAuctionStartup(config, teams, players, preAllocations) {
   // numTeams must match actual teams
   if (config.numTeams !== teams.length) {
     return { valid: false, error: `Team count mismatch: expected ${config.numTeams}, have ${teams.length}` }
+  }
+
+  // Team names must be valid and unique
+  const teamNames = new Set()
+  for (const team of teams) {
+    const nameVal = validateTeamName(team.name)
+    if (!nameVal.valid) return { valid: false, error: `Team "${team.name || 'Unknown'}": ${nameVal.error}` }
+    const key = nameVal.value.toLowerCase()
+    if (teamNames.has(key)) return { valid: false, error: `Duplicate team name: "${nameVal.value}"` }
+    teamNames.add(key)
+  }
+
+  // Team PINs must be valid and unique
+  const teamPins = new Set()
+  for (const team of teams) {
+    const pinVal = validateTeamPin(team.pin)
+    if (!pinVal.valid) return { valid: false, error: `Team "${team.name}": ${pinVal.error}` }
+    if (teamPins.has(pinVal.value)) return { valid: false, error: `Duplicate team PIN: "${pinVal.value}"` }
+    teamPins.add(pinVal.value)
   }
   
   // Check each team has valid budget after pre-allocation

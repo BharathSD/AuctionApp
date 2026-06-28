@@ -8,6 +8,9 @@ const A = {
   BID: 'BID',
   UNDO_BID: 'UNDO_BID',
   SOLD: 'SOLD',
+  REOPEN_SOLD: 'REOPEN_SOLD',
+  SOLD_TO_UNSOLD: 'SOLD_TO_UNSOLD',
+  RETURN_SOLD_TO_QUEUE: 'RETURN_SOLD_TO_QUEUE',
   UNSOLD: 'UNSOLD',
   NEXT_PLAYER: 'NEXT_PLAYER',
   TICK: 'TICK',
@@ -36,6 +39,7 @@ function buildInitialState(saved) {
       timerLeft: saved.config.timerEnabled ? saved.config.timerSeconds : null,
       paused: false,
       secondRound: r.secondRound || false,
+      soldHistory: r.soldHistory || [],
     }
   }
   return {
@@ -60,6 +64,7 @@ function buildInitialState(saved) {
     timerLeft: saved.config.timerEnabled ? saved.config.timerSeconds : null,
     paused: false,
     secondRound: false,  // true when re-auctioning unsold players
+    soldHistory: [],
   }
 }
 
@@ -158,6 +163,14 @@ function reducer(state, action) {
     case A.SOLD: {
       if (!state.leadingTeamId) return state
       const playerIdx = state.queue[state.currentIdx]
+      const soldSnapshot = {
+        playerIdx,
+        playerId: state.players[playerIdx].id,
+        teamId: state.leadingTeamId,
+        soldPrice: state.currentPrice,
+        currentIdx: state.currentIdx,
+        playerBefore: { ...state.players[playerIdx] },
+      }
       const teams = state.teams.map(t =>
         t.id === state.leadingTeamId
           ? { ...t, budget: t.budget - state.currentPrice, spent: (t.spent || 0) + state.currentPrice, players: [...t.players, { ...state.players[playerIdx], soldPrice: state.currentPrice }] }
@@ -175,6 +188,137 @@ function reducer(state, action) {
         players,
         status: allFull ? 'finished' : 'sold',
         paused: false,
+        soldHistory: [soldSnapshot, ...state.soldHistory],
+      }
+    }
+
+    case A.REOPEN_SOLD: {
+      if (!state.soldHistory.length) return state
+      const [lastSold, ...remainingHistory] = state.soldHistory
+      const teams = state.teams.map(t => {
+        if (t.id !== lastSold.teamId) return t
+        const roster = [...(t.players || [])]
+        if (roster.length > 0) {
+          const lastIdx = roster.length - 1
+          if (roster[lastIdx]?.id === lastSold.playerId) {
+            roster.pop()
+          } else {
+            const idx = roster.findLastIndex(p => p.id === lastSold.playerId)
+            if (idx >= 0) roster.splice(idx, 1)
+          }
+        }
+        return {
+          ...t,
+          players: roster,
+          budget: t.budget + (Number(lastSold.soldPrice) || 0),
+          spent: Math.max(0, (Number(t.spent) || 0) - (Number(lastSold.soldPrice) || 0)),
+        }
+      })
+
+      const players = state.players.map((p, i) =>
+        i === lastSold.playerIdx
+          ? { ...lastSold.playerBefore, status: 'pending', soldTo: null, soldPrice: null }
+          : p
+      )
+
+      return {
+        ...state,
+        teams,
+        players,
+        currentIdx: lastSold.currentIdx,
+        currentPrice: Number(lastSold.soldPrice) || players[lastSold.playerIdx].basePrice,
+        leadingTeamId: lastSold.teamId,
+        bids: [{ teamId: lastSold.teamId, price: Number(lastSold.soldPrice) || state.currentPrice, ts: Date.now() }],
+        status: 'running',
+        paused: false,
+        timerLeft: state.config.timerEnabled ? state.config.timerSeconds : state.timerLeft,
+        soldHistory: remainingHistory,
+      }
+    }
+
+    case A.SOLD_TO_UNSOLD: {
+      if (!state.soldHistory.length) return state
+      const [lastSold, ...remainingHistory] = state.soldHistory
+      const teams = state.teams.map(t => {
+        if (t.id !== lastSold.teamId) return t
+        const roster = [...(t.players || [])]
+        if (roster.length > 0) {
+          const lastIdx = roster.length - 1
+          if (roster[lastIdx]?.id === lastSold.playerId) {
+            roster.pop()
+          } else {
+            const idx = roster.findLastIndex(p => p.id === lastSold.playerId)
+            if (idx >= 0) roster.splice(idx, 1)
+          }
+        }
+        return {
+          ...t,
+          players: roster,
+          budget: t.budget + (Number(lastSold.soldPrice) || 0),
+          spent: Math.max(0, (Number(t.spent) || 0) - (Number(lastSold.soldPrice) || 0)),
+        }
+      })
+
+      const players = state.players.map((p, i) =>
+        i === lastSold.playerIdx
+          ? { ...lastSold.playerBefore, status: 'unsold', soldTo: null, soldPrice: null }
+          : p
+      )
+
+      return {
+        ...state,
+        teams,
+        players,
+        currentIdx: lastSold.currentIdx,
+        currentPrice: players[lastSold.playerIdx].basePrice,
+        leadingTeamId: null,
+        bids: [],
+        status: 'unsold',
+        paused: false,
+        timerLeft: state.config.timerEnabled ? state.config.timerSeconds : state.timerLeft,
+        soldHistory: remainingHistory,
+      }
+    }
+
+    case A.RETURN_SOLD_TO_QUEUE: {
+      const { playerId } = action
+      const playerIdx = state.players.findIndex(p => p.id === playerId)
+      if (playerIdx < 0) return state
+
+      const player = state.players[playerIdx]
+      if (player.status !== 'sold' || !player.soldTo) return state
+
+      const teams = state.teams.map(t => {
+        if (t.id !== player.soldTo) return t
+        const roster = [...(t.players || [])]
+        const idx = roster.findIndex(p => p.id === playerId)
+        if (idx >= 0) roster.splice(idx, 1)
+        const soldPrice = Number(player.soldPrice) || 0
+        return {
+          ...t,
+          players: roster,
+          budget: t.budget + soldPrice,
+          spent: Math.max(0, (Number(t.spent) || 0) - soldPrice),
+        }
+      })
+
+      const players = state.players.map((p, i) =>
+        i === playerIdx
+          ? { ...p, status: 'pending', soldTo: null, soldPrice: null }
+          : p
+      )
+
+      const queue = state.queue.slice(state.currentIdx + 1).includes(playerIdx)
+        ? state.queue
+        : [...state.queue, playerIdx]
+
+      return {
+        ...state,
+        teams,
+        players,
+        queue,
+        status: state.status === 'finished' ? 'idle' : state.status,
+        soldHistory: state.soldHistory.filter(entry => entry.playerId !== playerId),
       }
     }
 
@@ -235,25 +379,38 @@ function reducer(state, action) {
       let updatedPlayers = state.players.map(p => ({ ...p }))
       
       shuffled.forEach(unsoldPlayer => {
+        const basePrice = Number(unsoldPlayer.basePrice) || 0
         // Find teams with available roster spots, prioritize teams with fewer players
         const availableTeams = updatedTeams
-          .filter(t => maxPlayers <= 0 || t.players.length < maxPlayers)
+          .filter(t => {
+            if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
+            if (Number(t.budget) < basePrice) return false
+
+            if (maxPlayers > 0) {
+              const spotsFilledAfter = t.players.length + 1
+              const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
+              const minNeeded = minCostForRemainingSpots(updatedPlayers, unsoldPlayer.idx, spotsNeededAfter)
+              if (Number(t.budget) - basePrice < minNeeded) return false
+            }
+
+            return true
+          })
           .sort((a, b) => a.players.length - b.players.length)
         
         if (availableTeams.length > 0) {
           const assignedTeam = availableTeams[0]
           // Assign this player to the team
-          const playerWithPrice = { ...unsoldPlayer, soldPrice: unsoldPlayer.basePrice }
+          const playerWithPrice = { ...unsoldPlayer, soldPrice: basePrice }
           assignedTeam.players.push(playerWithPrice)
-          assignedTeam.budget -= unsoldPlayer.basePrice
-          assignedTeam.spent = (assignedTeam.spent || 0) + unsoldPlayer.basePrice
+          assignedTeam.budget -= basePrice
+          assignedTeam.spent = (assignedTeam.spent || 0) + basePrice
           
           // Update player status
           updatedPlayers[unsoldPlayer.idx] = {
             ...unsoldPlayer,
             status: 'sold',
             soldTo: assignedTeam.id,
-            soldPrice: unsoldPlayer.basePrice,
+            soldPrice: basePrice,
           }
         }
       })
@@ -294,9 +451,10 @@ export function useOfflineAuction() {
         bids: state.bids,
         status: state.status,
         secondRound: state.secondRound,
+        soldHistory: state.soldHistory,
       },
     }))
-  }, [state.teams, state.players, state.queue, state.currentIdx, state.currentPrice, state.leadingTeamId, state.bids, state.status, state.secondRound])
+  }, [state.teams, state.players, state.queue, state.currentIdx, state.currentPrice, state.leadingTeamId, state.bids, state.status, state.secondRound, state.soldHistory])
 
   // Timer tick
   useEffect(() => {
@@ -320,6 +478,9 @@ export function useOfflineAuction() {
   const recordBid = useCallback((teamId) => dispatch({ type: A.BID, teamId }), [])
   const undoBid = useCallback(() => dispatch({ type: A.UNDO_BID }), [])
   const markSold = useCallback(() => dispatch({ type: A.SOLD }), [])
+  const reopenSold = useCallback(() => dispatch({ type: A.REOPEN_SOLD }), [])
+  const soldToUnsold = useCallback(() => dispatch({ type: A.SOLD_TO_UNSOLD }), [])
+  const returnSoldToQueue = useCallback((playerId) => dispatch({ type: A.RETURN_SOLD_TO_QUEUE, playerId }), [])
   const markUnsold = useCallback(() => dispatch({ type: A.UNSOLD }), [])
   const nextPlayer = useCallback(() => dispatch({ type: A.NEXT_PLAYER, advance: true }), [])
   const pause = useCallback(() => dispatch({ type: A.PAUSE }), [])
@@ -341,6 +502,9 @@ export function useOfflineAuction() {
     recordBid,
     undoBid,
     markSold,
+    reopenSold,
+    soldToUnsold,
+    returnSoldToQueue,
     markUnsold,
     nextPlayer,
     pause,

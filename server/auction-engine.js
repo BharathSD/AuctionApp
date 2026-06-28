@@ -43,6 +43,7 @@ function makeRoom(config) {
     timerHandle: null,
     secondRound: false,
     paused: false,
+    soldHistory: [],    // stack of sold actions for undo
     connectedCaptains: new Map(), // socketId -> teamId
     // Session tracking: teamId -> { socketId, disconnectedAt (ms) | null }
     captainSessions: new Map(),
@@ -226,12 +227,24 @@ function sellPlayer(roomCode, io) {
   clearTimer(room)
 
   const playerIdx = room.queue[room.currentIdx]
+  const playerBefore = { ...room.players[playerIdx] }
   const team = room.teams.find(t => t.id === room.leadingTeamId)
+  const soldAt = Date.now()
+
+  room.soldHistory.push({
+    playerIdx,
+    playerId: room.players[playerIdx].id,
+    teamId: room.leadingTeamId,
+    soldPrice: room.currentPrice,
+    currentIdx: room.currentIdx,
+    playerBefore,
+  })
+
   team.budget -= room.currentPrice
   team.spent = (team.spent || 0) + room.currentPrice
-  team.players.push({ ...room.players[playerIdx], soldPrice: room.currentPrice })
+  team.players.push({ ...room.players[playerIdx], soldPrice: room.currentPrice, soldAt })
 
-  room.players[playerIdx] = { ...room.players[playerIdx], status: 'sold', soldTo: room.leadingTeamId, soldPrice: room.currentPrice }
+  room.players[playerIdx] = { ...room.players[playerIdx], status: 'sold', soldTo: room.leadingTeamId, soldPrice: room.currentPrice, soldAt }
   room.status = 'sold'
 
   // Auto-finish if all teams have full rosters
@@ -243,6 +256,94 @@ function sellPlayer(roomCode, io) {
   }
 
   io.to(roomCode).emit('auction:sold', publicState(room))
+  return publicState(room)
+}
+
+function undoSoldPlayer(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+  if (!room.soldHistory.length) return { error: 'No sold player to undo' }
+
+  clearTimer(room)
+  const lastSold = room.soldHistory.pop()
+  const team = room.teams.find(t => t.id === lastSold.teamId)
+  if (!team) return { error: 'Winning team not found' }
+
+  // Remove the most recently awarded player from that team roster.
+  if (team.players.length > 0) {
+    const lastIdx = team.players.length - 1
+    if (team.players[lastIdx]?.id === lastSold.playerId) {
+      team.players.pop()
+    } else {
+      const fallbackIdx = team.players.findLastIndex(p => p.id === lastSold.playerId)
+      if (fallbackIdx >= 0) team.players.splice(fallbackIdx, 1)
+    }
+  }
+
+  team.budget += Number(lastSold.soldPrice) || 0
+  team.spent = Math.max(0, (Number(team.spent) || 0) - (Number(lastSold.soldPrice) || 0))
+
+  room.players[lastSold.playerIdx] = {
+    ...lastSold.playerBefore,
+    status: 'unsold',
+    soldTo: null,
+    soldPrice: null,
+    soldAt: null,
+  }
+  room.currentIdx = lastSold.currentIdx
+  room.currentPrice = room.players[lastSold.playerIdx].basePrice
+  room.leadingTeamId = null
+  room.bids = []
+  room.status = 'unsold'
+  room.paused = false
+  room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : room.timerLeft
+
+  io.to(roomCode).emit('auction:unsold', publicState(room))
+  return publicState(room)
+}
+
+function reopenSoldPlayer(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+  if (!room.soldHistory.length) return { error: 'No sold player to reopen' }
+
+  clearTimer(room)
+  const lastSold = room.soldHistory.pop()
+  const team = room.teams.find(t => t.id === lastSold.teamId)
+  if (!team) return { error: 'Winning team not found' }
+
+  // Remove this player from the winner roster and refund budget.
+  if (team.players.length > 0) {
+    const lastIdx = team.players.length - 1
+    if (team.players[lastIdx]?.id === lastSold.playerId) {
+      team.players.pop()
+    } else {
+      const fallbackIdx = team.players.findLastIndex(p => p.id === lastSold.playerId)
+      if (fallbackIdx >= 0) team.players.splice(fallbackIdx, 1)
+    }
+  }
+
+  team.budget += Number(lastSold.soldPrice) || 0
+  team.spent = Math.max(0, (Number(team.spent) || 0) - (Number(lastSold.soldPrice) || 0))
+
+  room.players[lastSold.playerIdx] = {
+    ...lastSold.playerBefore,
+    status: 'pending',
+    soldTo: null,
+    soldPrice: null,
+    soldAt: null,
+  }
+  room.currentIdx = lastSold.currentIdx
+  room.currentPrice = Number(lastSold.soldPrice) || room.players[lastSold.playerIdx].basePrice
+  room.leadingTeamId = lastSold.teamId
+  room.bids = [{ teamId: lastSold.teamId, price: Number(lastSold.soldPrice) || room.currentPrice, ts: Date.now() }]
+  room.status = 'running'
+  room.paused = false
+  room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : room.timerLeft
+
+  if (room.config.timerEnabled) startTimer(roomCode, room, io)
+
+  io.to(roomCode).emit('auction:stateUpdate', publicState(room))
   return publicState(room)
 }
 
@@ -279,6 +380,47 @@ function unsellPlayer(roomCode, io) {
   room.status = 'unsold'
 
   io.to(roomCode).emit('auction:unsold', publicState(room))
+  return publicState(room)
+}
+
+function returnSoldPlayerToQueue(roomCode, playerId, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+
+  const playerIdx = room.players.findIndex(p => p.id === playerId)
+  if (playerIdx < 0) return { error: 'Player not found' }
+
+  const player = room.players[playerIdx]
+  if (player.status !== 'sold' || !player.soldTo) return { error: 'Player is not currently sold' }
+
+  const team = room.teams.find(t => t.id === player.soldTo)
+  if (!team) return { error: 'Winning team not found' }
+
+  const soldPrice = Number(player.soldPrice) || 0
+  const rosterIdx = team.players.findIndex(p => p.id === player.id)
+  if (rosterIdx >= 0) team.players.splice(rosterIdx, 1)
+
+  team.budget += soldPrice
+  team.spent = Math.max(0, (Number(team.spent) || 0) - soldPrice)
+
+  room.players[playerIdx] = {
+    ...player,
+    status: 'pending',
+    soldTo: null,
+    soldPrice: null,
+    soldAt: null,
+  }
+  room.soldHistory = room.soldHistory.filter(entry => entry.playerId !== playerId)
+
+  if (!room.queue.slice(room.currentIdx + 1).includes(playerIdx)) {
+    room.queue.push(playerIdx)
+  }
+
+  if (room.status === 'finished') {
+    room.status = 'idle'
+  }
+
+  io.to(roomCode).emit('auction:stateUpdate', publicState(room))
   return publicState(room)
 }
 
@@ -327,6 +469,7 @@ function restoreRoom(roomCode, snapshot, originalSetup) {
   room.status = snapshot.status
   room.timerLeft = null  // timer does not auto-resume; admin proceeds manually
   room.secondRound = snapshot.secondRound || false
+  room.soldHistory = snapshot.soldHistory || []
 
   rooms.set(roomCode, room)
   return room
@@ -369,26 +512,42 @@ function autoAssignUnsold(roomCode, io) {
   // Assign players to teams with available spots
   shuffled.forEach(playerIdx => {
     const unsoldPlayer = room.players[playerIdx]
+    const basePrice = Number(unsoldPlayer.basePrice) || 0
     
     // Find teams with available roster spots, prioritize teams with fewer players
     const availableTeams = room.teams
-      .filter(t => maxPlayers <= 0 || t.players.length < maxPlayers)
+      .filter(t => {
+        if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
+        if (Number(t.budget) < basePrice) return false
+
+        // Keep budget-safe roster completion guarantees aligned with bid logic.
+        if (maxPlayers > 0) {
+          const spotsFilledAfter = t.players.length + 1
+          const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
+          const minNeeded = minCostForRemainingSpots(room.players, playerIdx, spotsNeededAfter)
+          if (Number(t.budget) - basePrice < minNeeded) return false
+        }
+
+        return true
+      })
       .sort((a, b) => a.players.length - b.players.length)
     
     if (availableTeams.length > 0) {
       const assignedTeam = availableTeams[0]
+      const soldAt = Date.now()
       // Assign this player to the team
-      const playerWithPrice = { ...unsoldPlayer, soldPrice: unsoldPlayer.basePrice }
+      const playerWithPrice = { ...unsoldPlayer, soldPrice: basePrice, soldAt }
       assignedTeam.players.push(playerWithPrice)
-      assignedTeam.budget -= unsoldPlayer.basePrice
-      assignedTeam.spent = (assignedTeam.spent || 0) + unsoldPlayer.basePrice
+      assignedTeam.budget -= basePrice
+      assignedTeam.spent = (assignedTeam.spent || 0) + basePrice
       
       // Update player status
       room.players[playerIdx] = {
         ...unsoldPlayer,
         status: 'sold',
         soldTo: assignedTeam.id,
-        soldPrice: unsoldPlayer.basePrice,
+        soldPrice: basePrice,
+        soldAt,
       }
     }
   })
@@ -431,6 +590,7 @@ function publicState(room) {
     bids: room.bids.slice(0, 50),
     status: room.status,    paused: room.paused,    timerLeft: room.timerLeft,
     secondRound: room.secondRound,
+    canUndoSold: room.soldHistory.length > 0,
     connectedTeamIds: [...room.connectedCaptains.values()],
   }
 }
@@ -461,7 +621,10 @@ module.exports = {
   placeBid,
   undoBid,
   sellPlayer,
+  reopenSoldPlayer,
+  undoSoldPlayer,
   unsellPlayer,
+  returnSoldPlayerToQueue,
   pauseAuction,
   resumeAuction,
   finishAuction,

@@ -288,6 +288,138 @@ describe('sellPlayer', () => {
   })
 })
 
+// ─── undoSoldPlayer ──────────────────────────────────────────
+
+describe('undoSoldPlayer', () => {
+  beforeEach(() => {
+    setupRoom('USP01', makeConfig(), makeTeams(2, 1000), makePlayers([100, 200]))
+    engine.startNextPlayer('USP01', io)
+    engine.placeBid('USP01', 'team1', io)
+    engine.sellPlayer('USP01', io)
+  })
+
+  it('restores team budget/spent and removes player from roster', () => {
+    engine.undoSoldPlayer('USP01', io)
+    const room = engine.getRoom('USP01')
+    assert.equal(room.teams[0].budget, 1000)
+    assert.equal(room.teams[0].spent, 0)
+    assert.equal(room.teams[0].players.length, 0)
+  })
+
+  it('restores sold player to unsold state', () => {
+    engine.undoSoldPlayer('USP01', io)
+    const room = engine.getRoom('USP01')
+    assert.equal(room.players[0].status, 'unsold')
+    assert.equal(room.players[0].soldTo, null)
+    assert.equal(room.players[0].soldPrice, null)
+    assert.equal(room.status, 'unsold')
+    assert.equal(room.leadingTeamId, null)
+    assert.equal(room.currentPrice, 100)
+  })
+
+  it('can undo a sold that had transitioned room to finished', () => {
+    const room = engine.getRoom('USP01')
+    room.teams[0].players = [{ id: 'x1' }, { id: 'x2' }]
+    room.teams[1].players = [{ id: 'y1' }, { id: 'y2' }, { id: 'y3' }]
+
+    setupRoom('USP02', makeConfig(), makeTeams(2, 1000), makePlayers([100]))
+    engine.startNextPlayer('USP02', io)
+    const room2 = engine.getRoom('USP02')
+    room2.teams[0].players = [{ id: 'x1' }, { id: 'x2' }]
+    room2.teams[1].players = [{ id: 'y1' }, { id: 'y2' }, { id: 'y3' }]
+    engine.placeBid('USP02', 'team1', io)
+    engine.sellPlayer('USP02', io)
+    assert.equal(room2.status, 'finished')
+
+    engine.undoSoldPlayer('USP02', io)
+    assert.equal(room2.status, 'unsold')
+    assert.equal(room2.teams[0].players.length, 2)
+    assert.equal(room2.players[0].status, 'unsold')
+  })
+
+  it('returns error when there is no sold player to undo', () => {
+    setupRoom('USP03', makeConfig(), makeTeams(), makePlayers([100]))
+    engine.startNextPlayer('USP03', io)
+    const result = engine.undoSoldPlayer('USP03', io)
+    assert.ok(result.error)
+  })
+})
+
+describe('reopenSoldPlayer', () => {
+  beforeEach(() => {
+    setupRoom('RSP01', makeConfig(), makeTeams(2, 1000), makePlayers([100, 200]))
+    engine.startNextPlayer('RSP01', io)
+    engine.placeBid('RSP01', 'team1', io)
+    engine.sellPlayer('RSP01', io)
+  })
+
+  it('reopens the sold player with previous winner as leader', () => {
+    engine.reopenSoldPlayer('RSP01', io)
+    const room = engine.getRoom('RSP01')
+    assert.equal(room.status, 'running')
+    assert.equal(room.players[0].status, 'pending')
+    assert.equal(room.leadingTeamId, 'team1')
+    assert.equal(room.currentPrice, 100)
+    assert.equal(room.bids.length, 1)
+    assert.equal(room.bids[0].teamId, 'team1')
+  })
+
+  it('refunds winner and removes player from winner roster', () => {
+    engine.reopenSoldPlayer('RSP01', io)
+    const room = engine.getRoom('RSP01')
+    assert.equal(room.teams[0].budget, 1000)
+    assert.equal(room.teams[0].spent, 0)
+    assert.equal(room.teams[0].players.length, 0)
+  })
+
+  it('returns error when there is no sold player to reopen', () => {
+    setupRoom('RSP02', makeConfig(), makeTeams(), makePlayers([100]))
+    engine.startNextPlayer('RSP02', io)
+    const result = engine.reopenSoldPlayer('RSP02', io)
+    assert.ok(result.error)
+  })
+})
+
+describe('returnSoldPlayerToQueue', () => {
+  beforeEach(() => {
+    setupRoom('RTQ01', makeConfig(), makeTeams(2, 1000), makePlayers([100, 200, 300]))
+    engine.startNextPlayer('RTQ01', io)
+    engine.placeBid('RTQ01', 'team1', io)
+    engine.sellPlayer('RTQ01', io)
+    engine.startNextPlayer('RTQ01', io)
+  })
+
+  it('refunds the team, removes player from roster, and appends player back to queue', () => {
+    engine.returnSoldPlayerToQueue('RTQ01', 'p1', io)
+    const room = engine.getRoom('RTQ01')
+    assert.equal(room.teams[0].budget, 1000)
+    assert.equal(room.teams[0].spent, 0)
+    assert.equal(room.teams[0].players.length, 0)
+    assert.equal(room.players[0].status, 'pending')
+    assert.equal(room.queue.at(-1), 0)
+  })
+
+  it('reopens a finished auction by setting status back to idle', () => {
+    setupRoom('RTQ02', makeConfig(), makeTeams(2, 1000), makePlayers([100]))
+    engine.startNextPlayer('RTQ02', io)
+    engine.placeBid('RTQ02', 'team1', io)
+    engine.sellPlayer('RTQ02', io)
+    engine.finishAuction('RTQ02', io)
+
+    engine.returnSoldPlayerToQueue('RTQ02', 'p1', io)
+    const room = engine.getRoom('RTQ02')
+    assert.equal(room.status, 'idle')
+    assert.equal(room.queue.at(-1), 0)
+  })
+
+  it('returns error for an unsold or unknown player', () => {
+    const unsold = engine.returnSoldPlayerToQueue('RTQ01', 'p2', io)
+    assert.ok(unsold.error)
+    const missing = engine.returnSoldPlayerToQueue('RTQ01', 'does-not-exist', io)
+    assert.ok(missing.error)
+  })
+})
+
 // ─── undoBid ──────────────────────────────────────────────────
 
 describe('undoBid', () => {
@@ -425,6 +557,42 @@ describe('requeueUnsold', () => {
     setupRoom('RQ02', makeConfig(), makeTeams(), makePlayers([100]))
     const result = engine.requeueUnsold('RQ02', io)
     assert.ok(result.error)
+  })
+})
+
+// ─── autoAssignUnsold ───────────────────────────────────────
+
+describe('autoAssignUnsold', () => {
+  it('does not assign a player to a team that cannot afford base price', () => {
+    const teams = makeTeams(2, 100)
+    teams[0].budget = 50 // cannot afford base 80
+    teams[1].budget = 100
+    setupRoom('AA01', makeConfig(), teams, makePlayers([80]))
+    const room = engine.getRoom('AA01')
+    room.players[0].status = 'unsold'
+
+    engine.autoAssignUnsold('AA01', io)
+
+    const updated = engine.getRoom('AA01')
+    assert.equal(updated.players[0].status, 'sold')
+    assert.equal(updated.players[0].soldTo, 'team2')
+    assert.equal(updated.teams[0].budget, 50)
+  })
+
+  it('keeps player unsold when no team can safely afford assignment', () => {
+    const teams = makeTeams(2, 100)
+    teams[0].budget = 40
+    teams[1].budget = 30
+    setupRoom('AA02', makeConfig(), teams, makePlayers([80]))
+    const room = engine.getRoom('AA02')
+    room.players[0].status = 'unsold'
+
+    engine.autoAssignUnsold('AA02', io)
+
+    const updated = engine.getRoom('AA02')
+    assert.equal(updated.players[0].status, 'unsold')
+    assert.equal(updated.teams[0].budget, 40)
+    assert.equal(updated.teams[1].budget, 30)
   })
 })
 
