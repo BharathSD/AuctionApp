@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
@@ -42,18 +42,6 @@ export default function AvailablePlayers() {
   const [sortBy, setSortBy] = useState('status') // 'status', 'role', 'price'
   const [filterRole, setFilterRole] = useState('all')
 
-  if (!roomCode) {
-    return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-400 mb-4">No active auction found.</p>
-          <button onClick={() => navigate('/')} className="btn-primary">Go Home</button>
-        </div>
-        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
-      </div>
-    )
-  }
-
   const players = state.players || []
   const teams = state.teams || []
   const teamsMap = new Map(teams.map(t => [t.id, t]))
@@ -90,6 +78,18 @@ export default function AvailablePlayers() {
   const pendingCount = availablePlayers.filter(p => p.status === 'pending').length
   const unsoldCount = availablePlayers.filter(p => p.status === 'unsold').length
   const totalAvailable = availablePlayers.length
+
+  if (!roomCode) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-400 mb-4">No active auction found.</p>
+          <button onClick={() => navigate('/')} className="btn-primary">Go Home</button>
+        </div>
+        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">

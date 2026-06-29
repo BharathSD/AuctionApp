@@ -20,7 +20,7 @@ describe('CaptainJoin UX', () => {
   })
 
   it('shows a clear conflict message when team is already connected elsewhere', async () => {
-    global.fetch.mockResolvedValue({
+    globalThis.fetch.mockResolvedValue({
       ok: false,
       status: 409,
       json: async () => ({ error: 'This team is already connected from another device.' }),

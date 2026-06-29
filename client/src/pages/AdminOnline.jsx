@@ -19,7 +19,7 @@ export default function AdminOnline() {
   const navigate = useNavigate()
   const saved = loadAuctionState()
   const [roomReady, setRoomReady] = useState(false)
-  const [roomCode, setRoomCode] = useState(saved?.roomCode || null)
+  const [roomCode] = useState(saved?.roomCode || null)
   const [bootstrapError, setBootstrapError] = useState('')
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
@@ -30,7 +30,6 @@ export default function AdminOnline() {
   useEffect(() => {
     if (!saved || !saved.roomCode) return
     const rc = saved.roomCode
-    setBootstrapError('')
     fetch(`/api/auction/${rc}/state`)
       .then(r => {
         if (r.ok) { setRoomReady(true); return }
@@ -462,8 +461,16 @@ export default function AdminOnline() {
                 return (
                   <div key={team.id} className={`rounded-lg overflow-hidden ${isLeading ? 'ring-1 ring-blue-500' : ''}`}>
                     {/* Team header row — click to expand */}
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setExpandedTeamId(isExpanded ? null : team.id)
+                        }
+                      }}
                       className={`w-full px-2 pt-2 pb-1 text-left transition-colors ${
                         isLeading ? 'bg-blue-900/60' : 'bg-gray-800 hover:bg-gray-750'
                       }`}
@@ -489,7 +496,7 @@ export default function AdminOnline() {
                         <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
                       <p className="text-xs text-gray-500">{team.players.length} player{team.players.length !== 1 ? 's' : ''}</p>
-                    </button>
+                    </div>
                     {/* Expanded roster */}
                     {isExpanded && (
                       <div className={`px-2 pb-2 text-left ${isLeading ? 'bg-blue-900/40' : 'bg-gray-800'}`}>

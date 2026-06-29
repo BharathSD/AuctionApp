@@ -38,54 +38,18 @@ export default function CaptainBidding() {
   // Show feedback flash on bid rejection
   useEffect(() => {
     if (state.lastError) {
-      setBidFlash('late')
+      setTimeout(() => setBidFlash('late'), 0)
       clearError()
       const t = setTimeout(() => setBidFlash(null), 1500)
       return () => clearTimeout(t)
     }
   }, [state.lastError, clearError])
 
-  // Session kicked or rejected
-  if (state.sessionError) {
-    const likelyDuplicate = /already connected/i.test(state.sessionError)
-    const likelyInvalid = /invalid captain session/i.test(state.sessionError)
-    return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
-        <div className="text-6xl">🚫</div>
-        <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
-        <p className="text-gray-400 max-w-sm">{state.sessionError}</p>
-        {likelyDuplicate && (
-          <p className="text-yellow-300 text-sm max-w-sm">This usually means your team is active on another device or tab. Close that session or ask the auctioneer to kick it, then rejoin.</p>
-        )}
-        {likelyInvalid && (
-          <p className="text-yellow-300 text-sm max-w-sm">Your join session expired. Rejoin with your team PIN to continue bidding.</p>
-        )}
-        <div className="flex gap-3 flex-wrap justify-center">
-          <button
-            onClick={() => {
-              clearSessionError()
-              sessionStorage.removeItem('captain_token')
-              sessionStorage.removeItem('captain_teamId')
-              sessionStorage.removeItem('captain_teamName')
-              navigate(`/join/${roomCode}`)
-            }}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl"
-          >
-            Rejoin with PIN
-          </button>
-          <button
-            onClick={() => { sessionStorage.clear(); navigate('/') }}
-            className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 py-3 rounded-xl"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const myTeam = state.teams.find(t => t.id === teamId)
-  const { status, timerLeft, config, bids } = state
+  const teams = state.teams || []
+  const myTeam = teams.find(t => t.id === teamId)
+  const status = state.status
+  const timerLeft = state.timerLeft
+  const config = state.config || { bidTiers: [], bidIncrement: 0 }
   const allAvailablePlayers = useMemo(
     () => (state.players || []).filter(p => p.status === 'pending' || p.status === 'unsold'),
     [state.players]
@@ -160,6 +124,45 @@ export default function CaptainBidding() {
     captainBid()
     setBidFlash('ok')
     setTimeout(() => setBidFlash(null), 800)
+  }
+
+  // Session kicked or rejected
+  if (state.sessionError) {
+    const likelyDuplicate = /already connected/i.test(state.sessionError)
+    const likelyInvalid = /invalid captain session/i.test(state.sessionError)
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <div className="text-6xl">🚫</div>
+        <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
+        <p className="text-gray-400 max-w-sm">{state.sessionError}</p>
+        {likelyDuplicate && (
+          <p className="text-yellow-300 text-sm max-w-sm">This usually means your team is active on another device or tab. Close that session or ask the auctioneer to kick it, then rejoin.</p>
+        )}
+        {likelyInvalid && (
+          <p className="text-yellow-300 text-sm max-w-sm">Your join session expired. Rejoin with your team PIN to continue bidding.</p>
+        )}
+        <div className="flex gap-3 flex-wrap justify-center">
+          <button
+            onClick={() => {
+              clearSessionError()
+              sessionStorage.removeItem('captain_token')
+              sessionStorage.removeItem('captain_teamId')
+              sessionStorage.removeItem('captain_teamName')
+              navigate(`/join/${roomCode}`)
+            }}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl"
+          >
+            Rejoin with PIN
+          </button>
+          <button
+            onClick={() => { sessionStorage.clear(); navigate('/') }}
+            className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 py-3 rounded-xl"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (!roomCode || !teamId) return null
@@ -347,7 +350,7 @@ export default function CaptainBidding() {
         <div className="flex-1 overflow-y-auto p-4">
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-4">All Teams</p>
           <div className="space-y-3">
-            {state.teams.map(team => {
+              {teams.map(team => {
               const pct = state.config.pointsPerTeam ? Math.round((team.budget / state.config.pointsPerTeam) * 100) : 0
               return (
                 <div key={team.id} className={`bg-gray-800 rounded-xl p-4 ${team.id === teamId ? 'ring-1 ring-blue-500' : ''}`}>

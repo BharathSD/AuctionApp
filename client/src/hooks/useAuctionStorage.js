@@ -33,7 +33,7 @@ export function clearAuctionState() {
 const SNAPSHOT_KEY = 'cricket_auction_online_snapshot'
 
 export function saveOnlineLiveSnapshot(data) {
-  try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(data)) } catch {}
+  try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(data)) } catch (err) { void err }
 }
 
 export function loadOnlineLiveSnapshot() {
