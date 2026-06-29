@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { loadBestAvailableAuctionData, clearAuctionState } from '../hooks/useAuctionStorage'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 export default function Results() {
   const navigate = useNavigate()
@@ -216,9 +217,12 @@ export default function Results() {
                     <div className="divide-y divide-gray-800">
                       {roster.map((p, i) => (
                         <div key={i} className="px-4 py-2.5 flex justify-between items-center">
-                          <div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                            <div className="min-w-0">
                             <p className="text-sm font-medium">{p.name}</p>
                             <p className="text-xs text-gray-500">{p.role}</p>
+                            </div>
                           </div>
                           <p className="text-yellow-400 font-bold text-sm">{p.soldPrice} pts</p>
                         </div>
@@ -238,9 +242,12 @@ export default function Results() {
             <div className="bg-gray-900 rounded-2xl divide-y divide-gray-800">
               {unsoldPlayers.map((p, i) => (
                 <div key={i} className="px-4 py-3 flex justify-between items-center">
-                  <div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                    <div className="min-w-0">
                     <p className="text-sm font-medium">{p.name}</p>
                     <p className="text-xs text-gray-500">{p.role}</p>
+                    </div>
                   </div>
                   <p className="text-gray-500 text-sm">Base: {p.basePrice} pts</p>
                 </div>

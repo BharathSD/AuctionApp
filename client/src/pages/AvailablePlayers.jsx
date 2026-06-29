@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
@@ -187,7 +188,9 @@ export default function AvailablePlayers() {
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   {/* Left: Player Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <PlayerAvatar name={player.name} photoUrl={player.photoUrl} size="md" />
+                    <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-bold text-white truncate">
                         {player.name}
@@ -222,6 +225,7 @@ export default function AvailablePlayers() {
                         )}
                       </div>
                     )}
+                    </div>
                   </div>
 
                   {/* Right: Quick Stats */}

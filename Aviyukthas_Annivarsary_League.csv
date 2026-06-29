@@ -1,79 +1,79 @@
-name,role,basePrice
-Girish Makam,Super Striker,500
-Sreemanth S,All Rounder,300
-Sridhar,All Rounder,300
-R S Sachin,Batsman,200
-Hitesh,All Rounder,300
-Sreekar Tej,All Rounder,300
-Kushal NL,Bowler,200
-Muniraju CN,Bowler,200
-Yuva (Darshan),All Rounder,300
-Suchith Kumar M,Batsman,200
-Soma,Batsman,200
-G venkatesh babu,Bowler,200
-Bharath SD,Bowler,200
-Nagadhanush,Batsman,200
-Shubakar Prabhakar,Super Striker,500
-Ashwin N,All Rounder,300
-Madhu Babu A A,Super Striker,500
-Vishwas V,Batsman,200
-Shabharish Guptha LS,Super Striker,500
-Meghashyam BJ,All Rounder,300
-Shravan sl,Bowler,200
-Jayanth,Super Striker,500
-Naresh Makam,Bowler,200
-Nagesh S,Bowler,200
-Karthik M S,All Rounder,300
-Nagarjun,All Rounder,300
-Arjun,Batsman,200
-Sharath RA,Batsman,200
-Rohit shetty,Super Striker,500
-Sarvesh C S,All Rounder,300
-Gagan BS,All Rounder,300
-Madhukar KM,PLAYER,200
-Balamurali,Batsman,200
-N N PRASAD,Bowler,200
-Suhas Ramakrishna,Bowler,200
-SHASHIDHAR N,Bowler,200
-Rajesh,All Rounder,300
-Rajesh SP,Bowler,200
-Shashank Kanchi,PLAYER,200
-Suresh Kumar(suri),Batsman,200
-Naveen Ramachandra,Batsman,200
-Sujith,Bowler,200
-Nagarjun N,PLAYER,200
-Pradeep p,PLAYER,200
-Danny,All Rounder,300
-Karthik Pd,Super Striker,500
-Kishore Kanchi,All Rounder,300
-Chethan JS,All Rounder,300
-Pavan Kumar,Bowler,200
-Murali Krishna,Bowler,200
-Adithya Sakala,Bowler,200
-Krishnamurthy Mayya,All Rounder,300
-Rajeev BR,All Rounder,300
-Krishna Chaitanya,All Rounder,300
-Vinod kumar Dv,Super Striker,500
-Vinod kumar DS,Super Striker,500
-Gaurav,Bowler,200
-Ritesh,Super Striker,500
-Rajesh M S,Super Striker,500
-Sharan A Makam,All Rounder,300
-K.C Darshan,Bowler,200
-Nischal MN,Batsman,200
-Sreevatsa K B,Bowler,200
-Shashank R,All Rounder,300
-Bharath.K,Super Striker,500
-Kedarnath,All Rounder,300
-Arun Kishor R,Bowler,200
-Ashwin TR,Batsman,200
-Akshay,Super Striker,500
-Yogi,Batsman,200
-Guru Charan,PLAYER,200
-Vishwas,All Rounder,300
-Prashanth,Super Striker,500
-Suhas Naidu,Super Striker,500
-Santhosh,Bowler,200
-Rohit A,All Rounder,300
-Sharath belwadi,Bowler,200
-Prithviraj Harle,All Rounder,300
+"name","role","basePrice","photoUrl"
+"Girish Makam","Super Striker","500","https://picsum.photos/seed/auction-player-1/240/240"
+"Sreemanth S","All Rounder","300","https://picsum.photos/seed/auction-player-2/240/240"
+"Sridhar","All Rounder","300","https://picsum.photos/seed/auction-player-3/240/240"
+"R S Sachin","Batsman","200","https://picsum.photos/seed/auction-player-4/240/240"
+"Hitesh","All Rounder","300","https://picsum.photos/seed/auction-player-5/240/240"
+"Sreekar Tej","All Rounder","300","https://picsum.photos/seed/auction-player-6/240/240"
+"Kushal NL","Bowler","200","https://picsum.photos/seed/auction-player-7/240/240"
+"Muniraju CN","Bowler","200","https://picsum.photos/seed/auction-player-8/240/240"
+"Yuva (Darshan)","All Rounder","300","https://picsum.photos/seed/auction-player-9/240/240"
+"Suchith Kumar M","Batsman","200","https://picsum.photos/seed/auction-player-10/240/240"
+"Soma","Batsman","200","https://picsum.photos/seed/auction-player-11/240/240"
+"G venkatesh babu","Bowler","200","https://picsum.photos/seed/auction-player-12/240/240"
+"Bharath SD","Bowler","200","https://picsum.photos/seed/auction-player-13/240/240"
+"Nagadhanush","Batsman","200","https://picsum.photos/seed/auction-player-14/240/240"
+"Shubakar Prabhakar","Super Striker","500","https://picsum.photos/seed/auction-player-15/240/240"
+"Ashwin N","All Rounder","300","https://picsum.photos/seed/auction-player-16/240/240"
+"Madhu Babu A A","Super Striker","500","https://picsum.photos/seed/auction-player-17/240/240"
+"Vishwas V","Batsman","200","https://picsum.photos/seed/auction-player-18/240/240"
+"Shabharish Guptha LS","Super Striker","500","https://picsum.photos/seed/auction-player-19/240/240"
+"Meghashyam BJ","All Rounder","300","https://picsum.photos/seed/auction-player-20/240/240"
+"Shravan sl","Bowler","200","https://picsum.photos/seed/auction-player-21/240/240"
+"Jayanth","Super Striker","500","https://picsum.photos/seed/auction-player-22/240/240"
+"Naresh Makam","Bowler","200","https://picsum.photos/seed/auction-player-23/240/240"
+"Nagesh S","Bowler","200","https://picsum.photos/seed/auction-player-24/240/240"
+"Karthik M S","All Rounder","300","https://picsum.photos/seed/auction-player-25/240/240"
+"Nagarjun","All Rounder","300","https://picsum.photos/seed/auction-player-26/240/240"
+"Arjun","Batsman","200","https://picsum.photos/seed/auction-player-27/240/240"
+"Sharath RA","Batsman","200","https://picsum.photos/seed/auction-player-28/240/240"
+"Rohit shetty","Super Striker","500","https://picsum.photos/seed/auction-player-29/240/240"
+"Sarvesh C S","All Rounder","300","https://picsum.photos/seed/auction-player-30/240/240"
+"Gagan BS","All Rounder","300","https://picsum.photos/seed/auction-player-31/240/240"
+"Madhukar KM","PLAYER","200","https://picsum.photos/seed/auction-player-32/240/240"
+"Balamurali","Batsman","200","https://picsum.photos/seed/auction-player-33/240/240"
+"N N PRASAD","Bowler","200","https://picsum.photos/seed/auction-player-34/240/240"
+"Suhas Ramakrishna","Bowler","200","https://picsum.photos/seed/auction-player-35/240/240"
+"SHASHIDHAR N","Bowler","200","https://picsum.photos/seed/auction-player-36/240/240"
+"Rajesh","All Rounder","300","https://picsum.photos/seed/auction-player-37/240/240"
+"Rajesh SP","Bowler","200","https://picsum.photos/seed/auction-player-38/240/240"
+"Shashank Kanchi","PLAYER","200","https://picsum.photos/seed/auction-player-39/240/240"
+"Suresh Kumar(suri)","Batsman","200","https://picsum.photos/seed/auction-player-40/240/240"
+"Naveen Ramachandra","Batsman","200","https://picsum.photos/seed/auction-player-41/240/240"
+"Sujith","Bowler","200","https://picsum.photos/seed/auction-player-42/240/240"
+"Nagarjun N","PLAYER","200","https://picsum.photos/seed/auction-player-43/240/240"
+"Pradeep p","PLAYER","200","https://picsum.photos/seed/auction-player-44/240/240"
+"Danny","All Rounder","300","https://picsum.photos/seed/auction-player-45/240/240"
+"Karthik Pd","Super Striker","500","https://picsum.photos/seed/auction-player-46/240/240"
+"Kishore Kanchi","All Rounder","300","https://picsum.photos/seed/auction-player-47/240/240"
+"Chethan JS","All Rounder","300","https://picsum.photos/seed/auction-player-48/240/240"
+"Pavan Kumar","Bowler","200","https://picsum.photos/seed/auction-player-49/240/240"
+"Murali Krishna","Bowler","200","https://picsum.photos/seed/auction-player-50/240/240"
+"Adithya Sakala","Bowler","200","https://picsum.photos/seed/auction-player-51/240/240"
+"Krishnamurthy Mayya","All Rounder","300","https://picsum.photos/seed/auction-player-52/240/240"
+"Rajeev BR","All Rounder","300","https://picsum.photos/seed/auction-player-53/240/240"
+"Krishna Chaitanya","All Rounder","300","https://picsum.photos/seed/auction-player-54/240/240"
+"Vinod kumar Dv","Super Striker","500","https://picsum.photos/seed/auction-player-55/240/240"
+"Vinod kumar DS","Super Striker","500","https://picsum.photos/seed/auction-player-56/240/240"
+"Gaurav","Bowler","200","https://picsum.photos/seed/auction-player-57/240/240"
+"Ritesh","Super Striker","500","https://picsum.photos/seed/auction-player-58/240/240"
+"Rajesh M S","Super Striker","500","https://picsum.photos/seed/auction-player-59/240/240"
+"Sharan A Makam","All Rounder","300","https://picsum.photos/seed/auction-player-60/240/240"
+"K.C Darshan","Bowler","200","https://picsum.photos/seed/auction-player-61/240/240"
+"Nischal MN","Batsman","200","https://picsum.photos/seed/auction-player-62/240/240"
+"Sreevatsa K B","Bowler","200","https://picsum.photos/seed/auction-player-63/240/240"
+"Shashank R","All Rounder","300","https://picsum.photos/seed/auction-player-64/240/240"
+"Bharath.K","Super Striker","500","https://picsum.photos/seed/auction-player-65/240/240"
+"Kedarnath","All Rounder","300","https://picsum.photos/seed/auction-player-66/240/240"
+"Arun Kishor R","Bowler","200","https://picsum.photos/seed/auction-player-67/240/240"
+"Ashwin TR","Batsman","200","https://picsum.photos/seed/auction-player-68/240/240"
+"Akshay","Super Striker","500","https://picsum.photos/seed/auction-player-69/240/240"
+"Yogi","Batsman","200","https://picsum.photos/seed/auction-player-70/240/240"
+"Guru Charan","PLAYER","200","https://picsum.photos/seed/auction-player-71/240/240"
+"Vishwas","All Rounder","300","https://picsum.photos/seed/auction-player-72/240/240"
+"Prashanth","Super Striker","500","https://picsum.photos/seed/auction-player-73/240/240"
+"Suhas Naidu","Super Striker","500","https://picsum.photos/seed/auction-player-74/240/240"
+"Santhosh","Bowler","200","https://picsum.photos/seed/auction-player-75/240/240"
+"Rohit A","All Rounder","300","https://picsum.photos/seed/auction-player-76/240/240"
+"Sharath belwadi","Bowler","200","https://picsum.photos/seed/auction-player-77/240/240"
+"Prithviraj Harle","All Rounder","300","https://picsum.photos/seed/auction-player-78/240/240"

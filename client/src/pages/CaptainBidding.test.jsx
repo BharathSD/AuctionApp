@@ -83,4 +83,33 @@ describe('CaptainBidding UX', () => {
 
     expect(screen.getByText(/reconnecting to server\. bidding will resume automatically once connected\./i)).toBeInTheDocument()
   })
+
+  it('renders current player photo when photoUrl is provided', () => {
+    useOnlineAuction.mockReturnValue({
+      state: {
+        connected: true,
+        status: 'running',
+        paused: false,
+        currentPrice: 120,
+        leadingTeamId: null,
+        timerLeft: 10,
+        bids: [],
+        config: { timerEnabled: false, maxPlayersPerTeam: 11 },
+        teams: [{ id: 'team1', name: 'Team 1', budget: 1000, players: [] }],
+        players: [{ id: 'p1', name: 'Player 1', role: 'Batsman', basePrice: 100, status: 'pending', photoUrl: 'https://example.com/p1.jpg' }],
+        queue: [0],
+        currentIdx: 0,
+        sessionError: null,
+      },
+      clearSessionError: clearSessionErrorMock,
+      clearError: vi.fn(),
+      captainBid: vi.fn(),
+      currentPlayer: { id: 'p1', name: 'Player 1', role: 'Batsman', basePrice: 100, status: 'pending', photoUrl: 'https://example.com/p1.jpg' },
+      leadingTeam: null,
+    })
+
+    render(<CaptainBidding />)
+
+    expect(screen.getByRole('img', { name: /player 1 photo/i })).toBeInTheDocument()
+  })
 })

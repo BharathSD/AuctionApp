@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useOfflineAuction } from '../hooks/useOfflineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
 import { getIncrement } from '../utils/bidTiers'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
@@ -52,7 +53,10 @@ export default function OfflineAuction() {
                 <div className="space-y-2">
                   {[...team.players].reverse().map(player => (
                     <div key={player.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-gray-300 truncate">{player.name}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PlayerAvatar name={player.name} photoUrl={player.photoUrl} size="xs" />
+                        <span className="text-gray-300 truncate">{player.name}</span>
+                      </div>
                       <button
                         onClick={() => { if (window.confirm(`Return ${player.name} to the auction queue? This removes the player from ${team.name} and refunds the sale.`)) returnSoldToQueue(player.id) }}
                         className="text-cyan-300 border border-cyan-800 rounded px-2 py-1 hover:text-white"
@@ -130,6 +134,7 @@ export default function OfflineAuction() {
             <>
               {/* Player card */}
               <div className="bg-gray-800 rounded-3xl p-8 text-center w-full max-w-sm shadow-2xl border border-gray-700">
+                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="xl" className="mx-auto mb-4" />
                 <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 ${ROLE_COLORS[currentPlayer.role] || 'bg-gray-700'}`}>
                   {currentPlayer.role}
                 </div>
@@ -301,7 +306,10 @@ export default function OfflineAuction() {
                           <div className="space-y-0.5 mt-1">
                             {[...team.players].reverse().map((p, i) => (
                               <div key={i} className="flex items-center justify-between gap-2 text-xs">
-                                <span className="text-gray-300 truncate">{p.name}</span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="xs" />
+                                  <span className="text-gray-300 truncate">{p.name}</span>
+                                </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                   <span className="text-yellow-400 font-mono">{p.soldPrice}</span>
                                   <button

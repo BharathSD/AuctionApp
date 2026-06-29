@@ -4,14 +4,15 @@ import Papa from 'papaparse'
 import { saveAuctionConfig } from '../hooks/useAuctionStorage'
 import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
 import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,
-  pointsPerTeam: 1000,
-  bidTiers: [{ upTo: null, increment: 10 }],
+  pointsPerTeam: 10000,
+  bidTiers: [{ upTo: null, increment: 100 }],
   timerEnabled: true,
   timerSeconds: 15,
-  minBidBase: 10,
+  minBidBase: 100,
   maxPlayersPerTeam: 11,
   randomizeOrder: false,
 }
@@ -29,11 +30,23 @@ export default function Setup() {
     }))
   )
   const [players, setPlayers] = useState([])
-  const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '' })
+  const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
   const [csvError, setCsvError] = useState('')
   const [preAllocations, setPreAllocations] = useState([]) // [{playerId, teamId, price}]
   const [retainSearch, setRetainSearch] = useState('')
   const fileRef = useRef()
+
+  const normalizePhotoUrl = (rawValue) => {
+    const value = String(rawValue || '').trim()
+    if (!value) return null
+    try {
+      const parsed = new URL(value)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+      return parsed.toString()
+    } catch {
+      return null
+    }
+  }
 
   /* ---------- bid tier helpers ---------- */
   const tiers = config.bidTiers || DEFAULT_BID_TIERS
@@ -80,8 +93,9 @@ export default function Setup() {
     const priceVal = validateBasePrice(newPlayer.basePrice, config.minBidBase)
     if (!priceVal.valid) { alert(priceVal.error); return }
     
-    setPlayers(prev => [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value }])
-    setNewPlayer({ name: '', role: 'Batsman', basePrice: '' })
+    const photoUrl = normalizePhotoUrl(newPlayer.photoUrl)
+    setPlayers(prev => [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl }])
+    setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
   }
 
   const removePlayer = (id) => setPlayers(prev => prev.filter(p => p.id !== id))
@@ -98,6 +112,7 @@ export default function Setup() {
           const name = row.name || row.Name || row.player || row.Player
           const role = row.role || row.Role || 'Batsman'
           const basePrice = Number(row.basePrice || row.base_price || row['Base Price'] || config.minBidBase)
+          const photoRaw = row.photoUrl || row.photo_url || row.photo || row.image || row.imageUrl || row.avatar || row['Photo URL'] || row['Image URL'] || ''
           
           // Validate player name
           const nameVal = validatePlayerName(name)
@@ -107,9 +122,9 @@ export default function Setup() {
           const priceVal = validateBasePrice(basePrice, config.minBidBase)
           if (!priceVal.valid) { setCsvError(`Row ${i + 1}: ${priceVal.error}`); return null }
           
-          return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value }
+          return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value, photoUrl: normalizePhotoUrl(photoRaw) }
         }).filter(Boolean)
-        if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice'); return }
+        if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice (photoUrl optional)'); return }
         setPlayers(prev => [...prev, ...parsed])
       },
       error: () => setCsvError('Failed to parse CSV.'),
@@ -331,7 +346,7 @@ export default function Setup() {
             {/* CSV Upload */}
             <div className="bg-gray-900 rounded-xl p-4">
               <p className="text-sm font-semibold mb-2 text-gray-300">Import from CSV</p>
-              <p className="text-xs text-gray-500 mb-3">Columns: <code>name, role, basePrice</code></p>
+              <p className="text-xs text-gray-500 mb-3">Columns: <code>name, role, basePrice</code> and optional <code>photoUrl</code></p>
               <input ref={fileRef} type="file" accept=".csv" onChange={handleCSV}
                 className="text-sm text-gray-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-700 file:text-white file:cursor-pointer hover:file:bg-blue-600" />
               {csvError && <p className="text-red-400 text-xs mt-2">{csvError}</p>}
@@ -351,20 +366,28 @@ export default function Setup() {
                   placeholder="Base price" className="input-field w-32" min={1} />
                 <button onClick={addPlayer} className="btn-primary">Add</button>
               </div>
+              <div className="mt-3">
+                <input value={newPlayer.photoUrl} onChange={e => setNewPlayer(p => ({ ...p, photoUrl: e.target.value }))}
+                  placeholder="Photo URL (optional)" className="input-field" />
+              </div>
             </div>
 
             {/* Player list */}
             {players.length > 0 && (
               <div className="bg-gray-900 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-[1fr_120px_100px_40px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+                <div className="grid grid-cols-[1fr_120px_100px_64px_40px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
                   <span>Name</span><span>Role</span><span>Base</span><span></span>
                 </div>
                 <div className="max-h-72 overflow-y-auto divide-y divide-gray-800">
                   {players.map(p => (
-                    <div key={p.id} className="grid grid-cols-[1fr_120px_100px_40px] gap-2 px-4 py-3 items-center text-sm">
-                      <span className="font-medium">{p.name}</span>
+                    <div key={p.id} className="grid grid-cols-[1fr_120px_100px_64px_40px] gap-2 px-4 py-3 items-center text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                        <span className="font-medium truncate">{p.name}</span>
+                      </div>
                       <span className="text-gray-400">{p.role}</span>
                       <span className="text-yellow-400">{p.basePrice} pts</span>
+                      <span className="text-[11px] text-gray-500">{p.photoUrl ? 'Photo' : 'No photo'}</span>
                       <button onClick={() => removePlayer(p.id)} className="text-gray-600 hover:text-red-400 text-lg leading-none">×</button>
                     </div>
                   ))}
@@ -406,7 +429,10 @@ export default function Setup() {
                 return (
                   <div key={p.id} className="bg-gray-800 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium text-sm">{p.name}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                        <span className="font-medium text-sm truncate">{p.name}</span>
+                      </div>
                       <span className="ml-2 text-xs text-gray-400">{p.role} • Base: {p.basePrice}</span>
                     </div>
                     {alloc ? (

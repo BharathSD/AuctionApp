@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 const ROLE_COLORS = {
   Batsman: 'text-blue-400',
@@ -214,6 +215,7 @@ export default function CaptainBidding() {
               {/* Player card */}
               {currentPlayer && (
                 <div className="w-full max-w-xs bg-gray-800 rounded-2xl p-6 text-center">
+                  <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="2xl" className="mx-auto mb-3" />
                   <p className={`text-sm font-semibold mb-1 ${ROLE_COLORS[currentPlayer.role] || 'text-gray-400'}`}>
                     {currentPlayer.role}
                   </p>
@@ -320,9 +322,12 @@ export default function CaptainBidding() {
           <div className="space-y-2">
             {myTeam?.players.map((p, i) => (
               <div key={i} className="bg-gray-800 rounded-xl px-4 py-3 flex justify-between items-center">
-                <div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                  <div className="min-w-0">
                   <p className="font-medium">{p.name}</p>
                   <p className="text-xs text-gray-500">{p.role}</p>
+                  </div>
                 </div>
                 <p className="text-yellow-400 font-bold">{p.soldPrice} pts</p>
               </div>
@@ -471,9 +476,12 @@ export default function CaptainBidding() {
             <div className="space-y-2">
               {availablePlayers.map((p, i) => (
                 <div key={`${p.id || p.name || 'player'}-${i}`} className="bg-gray-800 rounded-xl px-4 py-3 flex justify-between items-center gap-3">
-                  <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                    <div className="min-w-0">
                     <p className="font-medium truncate">{p.name}</p>
                     <p className="text-xs text-gray-500">{p.role}</p>
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-yellow-400 font-bold">{p.basePrice} pts</p>

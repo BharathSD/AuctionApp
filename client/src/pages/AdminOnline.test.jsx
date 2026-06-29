@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 import AdminOnline from './AdminOnline'
+import { useOnlineAuction } from '../hooks/useOnlineAuction'
 
 const navigateMock = vi.fn()
 
@@ -78,5 +79,49 @@ describe('AdminOnline UX', () => {
     const retryBtn = screen.getByRole('button', { name: /retry/i })
     expect(retryBtn).toBeInTheDocument()
     fireEvent.click(retryBtn)
+  })
+
+  it('renders current player photo when photoUrl is provided', async () => {
+    useOnlineAuction.mockReturnValue({
+      state: {
+        connected: true,
+        status: 'running',
+        players: [{ id: 'p1', name: 'Player 1', role: 'Batsman', basePrice: 100, status: 'pending', photoUrl: 'https://example.com/p1.jpg' }],
+        teams: [{ id: 'team1', name: 'Team 1', budget: 1000, players: [] }],
+        queue: [0],
+        currentIdx: 0,
+        bids: [],
+        currentPrice: 100,
+        leadingTeamId: null,
+        timerLeft: 15,
+        config: { numTeams: 1, pointsPerTeam: 1000, timerEnabled: true },
+        connectedTeamIds: ['team1'],
+        secondRound: false,
+        paused: false,
+        canUndoSold: false,
+        sessionError: null,
+      },
+      currentPlayer: { id: 'p1', name: 'Player 1', role: 'Batsman', basePrice: 100, status: 'pending', photoUrl: 'https://example.com/p1.jpg' },
+      leadingTeam: null,
+      adminNextPlayer: vi.fn(),
+      adminUndoBid: vi.fn(),
+      adminFinish: vi.fn(),
+      adminSold: vi.fn(),
+      adminReopenSold: vi.fn(),
+      adminUndoSold: vi.fn(),
+      adminReturnSoldToQueue: vi.fn(),
+      adminUnsold: vi.fn(),
+      adminRequeueUnsold: vi.fn(),
+      adminKickTeam: vi.fn(),
+      adminPause: vi.fn(),
+      adminResume: vi.fn(),
+      adminAutoAssignUnsold: vi.fn(),
+    })
+
+    render(<AdminOnline />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('img', { name: /player 1 photo/i })).toBeInTheDocument()
+    })
   })
 })

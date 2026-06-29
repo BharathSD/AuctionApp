@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-600',
@@ -140,6 +141,8 @@ export default function ViewerDisplay() {
                   status === 'unsold' ? 'bg-gray-800 border-gray-600' :
                   bidFlash ? 'bg-blue-900/50 border-blue-400 scale-[1.02]' : 'bg-gray-800/80 border-gray-700'}`}>
 
+                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" className="mx-auto mb-4" />
+
                 {/* Role badge */}
                 <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 text-white
                   ${ROLE_COLORS[currentPlayer.role] || 'bg-gray-600'}`}>
@@ -236,9 +239,12 @@ export default function ViewerDisplay() {
                   const buyer = teams.find(t => t.id === p.soldTo)
                   return (
                     <div key={i} className="flex justify-between items-center text-xs bg-gray-800 rounded-lg px-2 py-1.5">
-                      <div>
-                        <span className="text-gray-200 font-medium">{p.name}</span>
-                        <span className={`ml-1 ${ROLE_TEXT[p.role] || 'text-gray-400'}`}>({p.role})</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="xs" />
+                        <div className="min-w-0">
+                          <span className="text-gray-200 font-medium">{p.name}</span>
+                          <span className={`ml-1 ${ROLE_TEXT[p.role] || 'text-gray-400'}`}>({p.role})</span>
+                        </div>
                       </div>
                       <div className="text-right shrink-0 ml-2">
                         <span className="text-yellow-400 font-mono">{p.soldPrice}pts</span>
