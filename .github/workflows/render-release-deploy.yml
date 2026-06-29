@@ -1,0 +1,21 @@
+name: Deploy to Render on Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v') }}
+    steps:
+      - name: Validate deploy hook secret
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            echo "RENDER_DEPLOY_HOOK is not set"
+            exit 1
+          fi
+
+      - name: Trigger Render deploy
+        run: curl --fail --silent --show-error -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
