@@ -331,109 +331,107 @@ export default function AdminOnline() {
           )}
 
           {(status === 'running' || status === 'sold' || status === 'unsold') && currentPlayer && (
-            <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col xl:flex-row items-center xl:items-stretch justify-center gap-8">
+            <div className="w-full flex-1 max-w-[112rem] mx-auto flex flex-col xl:flex-row gap-6 xl:items-stretch py-2">
               {/* Player showcase */}
-              <div className="auction-surface rounded-3xl p-8 text-center w-full max-w-md 2xl:max-w-lg shadow-2xl border border-gray-700 flex flex-col justify-center">
-                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="2xl" className="mx-auto mb-4" />
-                <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 mx-auto ${ROLE_COLORS[currentPlayer.role] || 'bg-gray-700'}`}>
+              <div className="auction-surface rounded-3xl p-8 xl:p-10 text-center w-full xl:flex-[3] shadow-2xl border border-gray-700 flex flex-col items-center justify-center gap-4">
+                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" />
+                <div className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold ${ROLE_COLORS[currentPlayer.role] || 'bg-gray-700'}`}>
                   {currentPlayer.role}
                 </div>
-                <h2 className="text-4xl lg:text-5xl font-extrabold mb-2">{currentPlayer.name}</h2>
-                <p className="text-gray-400 text-sm mb-6">Base: {currentPlayer.basePrice} pts</p>
+                <h2 className="text-5xl xl:text-6xl font-extrabold leading-tight">{currentPlayer.name}</h2>
+                <p className="text-gray-400 text-lg">Base: {currentPlayer.basePrice} pts</p>
 
-                <div className="auction-surface-soft rounded-2xl p-5 mb-4">
-                  <p className="text-xs text-gray-500 mb-1 uppercase tracking-widest">Current Bid</p>
-                  <p className="text-7xl lg:text-8xl font-black text-yellow-400 leading-none">{state.currentPrice}</p>
-                  {leadingTeam && <p className="text-2xl text-blue-300 mt-3 font-semibold inline-flex items-center gap-1.5 justify-center"><Icon name="flame" size={20} /> {leadingTeam.name}</p>}
-                  {!leadingTeam && status === 'running' && <p className="text-sm text-gray-500 mt-2">No bids yet</p>}
+                <div className="auction-surface-soft rounded-2xl px-8 py-6 w-full max-w-2xl">
+                  <p className="text-sm text-gray-400 mb-1 uppercase tracking-[0.25em]">Current Bid</p>
+                  <p className="text-8xl xl:text-9xl font-black text-yellow-400 leading-none">{state.currentPrice}</p>
+                  {leadingTeam && <p className="text-4xl text-blue-300 mt-4 font-extrabold inline-flex items-center gap-2 justify-center"><Icon name="flame" size={28} /> {leadingTeam.name}</p>}
+                  {!leadingTeam && status === 'running' && <p className="text-lg text-gray-500 mt-3">No bids yet</p>}
                 </div>
 
                 {config.timerEnabled && status === 'running' && (
-                  <div className="flex justify-center mt-2">
-                    <TimerRing seconds={timerLeft} total={config.timerSeconds} paused={state.paused} size={108} />
-                  </div>
+                  <TimerRing seconds={timerLeft} total={config.timerSeconds} paused={state.paused} size={140} />
                 )}
 
                 {status === 'sold' && (
-                  <div className="mt-4 bg-green-800 rounded-xl px-4 py-2 text-green-200 font-bold text-lg inline-flex items-center justify-center gap-2 w-full">
-                    <Icon name="check" size={20} strokeWidth={2.5} /> SOLD to {leadingTeam?.name}
+                  <div className="bg-green-800 rounded-xl px-6 py-3 text-green-100 font-bold text-2xl inline-flex items-center justify-center gap-2.5 w-full max-w-2xl">
+                    <Icon name="check" size={26} strokeWidth={2.5} /> SOLD to {leadingTeam?.name}
                   </div>
                 )}
                 {status === 'unsold' && (
-                  <div className="mt-4 bg-red-900 rounded-xl px-4 py-2 text-red-200 font-bold text-lg inline-flex items-center justify-center gap-2 w-full">
-                    <Icon name="x" size={20} strokeWidth={2.5} /> UNSOLD
+                  <div className="bg-red-900 rounded-xl px-6 py-3 text-red-100 font-bold text-2xl inline-flex items-center justify-center gap-2.5 w-full max-w-2xl">
+                    <Icon name="x" size={26} strokeWidth={2.5} /> UNSOLD
                   </div>
                 )}
               </div>
 
               {/* Controls column */}
-              <div className="w-full max-w-md xl:max-w-2xl xl:flex-1 flex flex-col justify-center items-center gap-3">
+              <div className="w-full xl:flex-[2] flex flex-col justify-center items-center gap-4">
                 {status === 'running' && !config.timerEnabled && (
                   <div className="flex gap-3 flex-wrap justify-center">
-                    <button onClick={adminSold} disabled={!leadingTeam || state.paused} className="bg-green-700 hover:bg-green-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-6 font-bold inline-flex items-center gap-1.5">
-                      <Icon name="check" size={16} strokeWidth={2.5} /> Sold
+                    <button onClick={adminSold} disabled={!leadingTeam || state.paused} className="bg-green-700 hover:bg-green-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-8 font-bold text-lg inline-flex items-center gap-2">
+                      <Icon name="check" size={20} strokeWidth={2.5} /> Sold
                     </button>
-                    <button onClick={adminUnsold} disabled={state.paused} className="bg-red-800 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-6 font-bold inline-flex items-center gap-1.5">
-                      <Icon name="x" size={16} strokeWidth={2.5} /> Unsold
+                    <button onClick={adminUnsold} disabled={state.paused} className="bg-red-800 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-8 font-bold text-lg inline-flex items-center gap-2">
+                      <Icon name="x" size={20} strokeWidth={2.5} /> Unsold
                     </button>
-                    <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3 px-5 font-bold text-sm inline-flex items-center gap-1.5">
-                      <Icon name="undo" size={15} /> Undo
+                    <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-6 font-bold text-lg inline-flex items-center gap-2">
+                      <Icon name="undo" size={18} /> Undo
                     </button>
                   </div>
                 )}
                 {status === 'running' && config.timerEnabled && (
-                  <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-2 px-5 font-bold text-sm inline-flex items-center gap-1.5">
-                    <Icon name="undo" size={15} /> Undo Last Bid
+                  <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-8 font-bold text-lg inline-flex items-center gap-2">
+                    <Icon name="undo" size={18} /> Undo Last Bid
                   </button>
                 )}
 
                 {status === 'running' && (
                   <button
                     onClick={state.paused ? adminResume : adminPause}
-                    className={`rounded-xl py-2 px-6 font-bold text-sm inline-flex items-center gap-1.5 ${state.paused ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-yellow-300'}`}
+                    className={`rounded-2xl py-3.5 px-8 font-bold text-base inline-flex items-center gap-2 ${state.paused ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-yellow-300'}`}
                   >
-                    {state.paused ? <><Icon name="play" size={15} /> Resume Auction</> : <><Icon name="pause" size={15} /> Pause Auction</>}
+                    {state.paused ? <><Icon name="play" size={18} /> Resume Auction</> : <><Icon name="pause" size={18} /> Pause Auction</>}
                   </button>
                 )}
 
                 {state.paused && status === 'running' && (
-                  <div className="bg-yellow-900/50 border border-yellow-700 rounded-xl px-4 py-2 text-yellow-300 text-sm font-semibold text-center inline-flex items-center justify-center gap-1.5">
-                    <Icon name="pause" size={15} /> Auction Paused — Bidding disabled
+                  <div className="bg-yellow-900/50 border border-yellow-700 rounded-xl px-5 py-3 text-yellow-300 text-base font-semibold text-center inline-flex items-center justify-center gap-2">
+                    <Icon name="pause" size={18} /> Auction Paused — Bidding disabled
                   </div>
                 )}
 
                 {status === 'running' && (
-                  <p className="text-xs text-gray-500 text-center max-w-xs">Captains bid from their own devices. Winner is set automatically {config.timerEnabled ? 'when the timer ends' : 'when you mark Sold'}.</p>
+                  <p className="text-sm text-gray-500 text-center max-w-sm">Captains bid from their own devices. Winner is set automatically {config.timerEnabled ? 'when the timer ends' : 'when you mark Sold'}.</p>
                 )}
 
                 {(status === 'sold' || status === 'unsold') && (
                   <>
                     {status === 'sold' && state.canUndoSold && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-3 flex-wrap justify-center">
                         <button
                           onClick={() => { if (window.confirm('Reopen bidding for this sold player? This will remove the player from the team and restore the winning bid.')) adminReopenSold() }}
-                          className="bg-blue-700 hover:bg-blue-600 text-white rounded-xl py-2 px-4 font-bold text-sm inline-flex items-center gap-1.5"
+                          className="bg-blue-700 hover:bg-blue-600 text-white rounded-2xl py-3 px-6 font-bold text-base inline-flex items-center gap-2"
                         >
-                          <Icon name="reopen" size={15} /> Reopen Bidding
+                          <Icon name="reopen" size={18} /> Reopen Bidding
                         </button>
                         <button
                           onClick={() => { if (window.confirm('Move this sold player to unsold? This will remove the player from the team and refund the sale.')) adminUndoSold() }}
-                          className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-xl py-2 px-4 font-bold text-sm inline-flex items-center gap-1.5"
+                          className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-2xl py-3 px-6 font-bold text-base inline-flex items-center gap-2"
                         >
-                          <Icon name="undo" size={15} /> To Unsold
+                          <Icon name="undo" size={18} /> To Unsold
                         </button>
                       </div>
                     )}
                     <button
                       onClick={adminNextPlayer}
                       disabled={state.connectedTeamIds.length < totalTeams}
-                      className={`btn-primary text-lg px-10 py-4 transition-opacity ${state.connectedTeamIds.length < totalTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`btn-primary text-2xl px-14 py-6 transition-opacity ${state.connectedTeamIds.length < totalTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       Next Player →
                     </button>
                     {state.connectedTeamIds.length < totalTeams && (
-                      <div className="bg-yellow-900/40 border border-yellow-700 rounded-xl px-4 py-2 text-xs w-full max-w-xs">
-                        <p className="text-yellow-300 font-semibold mb-1.5 inline-flex items-center gap-1.5"><Icon name="warning" size={13} /> Captain connection status</p>
+                      <div className="bg-yellow-900/40 border border-yellow-700 rounded-xl px-4 py-3 text-sm w-full max-w-sm">
+                        <p className="text-yellow-300 font-semibold mb-1.5 inline-flex items-center gap-1.5"><Icon name="warning" size={15} /> Captain connection status</p>
                         {teams.map(team => {
                           const online = state.connectedTeamIds.includes(team.id)
                           return (
@@ -457,8 +455,8 @@ export default function AdminOnline() {
         <div className="w-72 lg:w-80 2xl:w-96 auction-surface border-l border-gray-800 flex flex-col" style={{height: 'calc(100vh - 57px)'}}>
           {/* Teams — always fully visible */}
           <div className="p-4 border-b border-gray-800 shrink-0">
-            <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Teams</p>
-            <div className="space-y-1.5">
+            <p className="text-sm text-gray-400 uppercase tracking-widest mb-3">Teams</p>
+            <div className="space-y-2">
               {teams.map(team => {
                 const total = saved.config.pointsPerTeam || 1
                 const spentPct = Math.round(((total - team.budget) / total) * 100)
@@ -478,30 +476,30 @@ export default function AdminOnline() {
                           setExpandedTeamId(isExpanded ? null : team.id)
                         }
                       }}
-                      className={`w-full px-2 pt-2 pb-1 text-left transition-colors ${
+                      className={`w-full px-3 pt-2.5 pb-1.5 text-left transition-colors ${
                         isLeading ? 'bg-blue-900/60' : 'bg-gray-800 hover:bg-gray-750'
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-1">
+                      <div className="flex justify-between items-center mb-1.5">
                         <div className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-600'}`} />
-                          <span className="text-sm font-medium truncate">{team.name}</span>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-600'}`} />
+                          <span className="text-base font-semibold truncate">{team.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-yellow-400 font-bold">{team.budget}<span className="text-gray-500 font-normal"> pts</span></span>
+                          <span className="text-sm text-yellow-400 font-bold">{team.budget}<span className="text-gray-500 font-normal"> pts</span></span>
                           {isOnline && (
                             <button
                               onClick={(e) => { e.stopPropagation(); if (window.confirm(`Kick ${team.name} from the auction?`)) adminKickTeam(team.id) }}
                               title="Kick this captain"
                               aria-label={`Kick ${team.name}`}
                               className="text-red-500 hover:text-red-300 leading-none px-1"
-                            ><Icon name="x" size={13} /></button>
+                            ><Icon name="x" size={14} /></button>
                           )}
                           <span className="text-gray-500 text-xs">{isExpanded ? '▲' : '▼'}</span>
                         </div>
                       </div>
-                      <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1" title={`${spentPct}% of budget used`}>
-                        <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${spentPct}%` }} />
+                      <div className="w-full bg-gray-700 rounded-full h-2 mb-1" title={`${spentPct}% of budget used`}>
+                        <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${spentPct}%` }} />
                       </div>
                       <p className="text-xs text-gray-500">{team.players.length} player{team.players.length !== 1 ? 's' : ''}</p>
                     </div>
@@ -548,13 +546,13 @@ export default function AdminOnline() {
           {/* Bid log — takes remaining space, always scrollable */}
           <div className="flex-1 p-4 overflow-y-auto min-h-0">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-gray-500 uppercase tracking-widest">Live Bid Feed</p>
-              {bids.length > 0 && <span className="text-[10px] text-gray-500">{bids.length} bid{bids.length !== 1 ? 's' : ''}</span>}
+              <p className="text-sm text-gray-400 uppercase tracking-widest">Live Bid Feed</p>
+              {bids.length > 0 && <span className="text-xs text-gray-500">{bids.length} bid{bids.length !== 1 ? 's' : ''}</span>}
             </div>
             {currentPlayer && (
-              <p className="text-xs text-blue-400 font-medium mb-3 truncate">{currentPlayer.name}</p>
+              <p className="text-sm text-blue-400 font-medium mb-3 truncate">{currentPlayer.name}</p>
             )}
-            {bids.length === 0 && <p className="text-xs text-gray-600">No bids yet — waiting for the first bid.</p>}
+            {bids.length === 0 && <p className="text-sm text-gray-600">No bids yet — waiting for the first bid.</p>}
             <div className="space-y-1.5">
               {bids.slice(0, 30).map((b, i) => {
                 const team = teams.find(t => t.id === b.teamId)
@@ -562,13 +560,13 @@ export default function AdminOnline() {
                 const inc = prevPrice != null ? b.price - prevPrice : null
                 const isLatest = i === 0
                 return (
-                  <div key={i} className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs ${isLatest ? 'bg-blue-900/40 ring-1 ring-blue-700/60' : 'bg-gray-800/40'}`}>
+                  <div key={i} className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm ${isLatest ? 'bg-blue-900/40 ring-1 ring-blue-700/60' : 'bg-gray-800/40'}`}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {isLatest && <Icon name="flame" size={12} className="text-blue-300 shrink-0" />}
-                      <span className={`truncate ${isLatest ? 'text-blue-100 font-semibold' : 'text-gray-400'}`}>{team?.name}</span>
+                      {isLatest && <Icon name="flame" size={14} className="text-blue-300 shrink-0" />}
+                      <span className={`truncate ${isLatest ? 'text-blue-100 font-semibold' : 'text-gray-300'}`}>{team?.name}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {inc != null && inc > 0 && <span className="text-emerald-400/80 font-mono text-[10px]">+{inc}</span>}
+                      {inc != null && inc > 0 && <span className="text-emerald-400/80 font-mono text-xs">+{inc}</span>}
                       <span className={`font-mono font-semibold ${isLatest ? 'text-yellow-300' : 'text-yellow-400/80'}`}>{b.price}</span>
                     </div>
                   </div>
