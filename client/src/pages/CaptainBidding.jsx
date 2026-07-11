@@ -190,10 +190,10 @@ export default function CaptainBidding() {
 
       {/* Tabs */}
       <div className="auction-topbar flex border-b border-gray-800">
-        <button onClick={() => setActiveTab('bid')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>🏏 Bid</button>
-        <button onClick={() => setActiveTab('roster')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>👕 My Roster</button>
-        <button onClick={() => setActiveTab('teams')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📊 Teams</button>
-        <button onClick={() => setActiveTab('available')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📋 Available</button>
+        <button aria-selected={activeTab === 'bid'} onClick={() => setActiveTab('bid')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white' : 'text-gray-500'}`}>🏏 Bid</button>
+        <button aria-selected={activeTab === 'roster'} onClick={() => setActiveTab('roster')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white' : 'text-gray-500'}`}>👕 My Roster</button>
+        <button aria-selected={activeTab === 'teams'} onClick={() => setActiveTab('teams')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white' : 'text-gray-500'}`}>📊 Teams</button>
+        <button aria-selected={activeTab === 'available'} onClick={() => setActiveTab('available')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white' : 'text-gray-500'}`}>📋 Available</button>
       </div>
 
       {/* ── BID TAB ── */}

@@ -36,24 +36,24 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 flex flex-col items-center justify-center p-6">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="text-6xl mb-4">🏏</div>
-        <h1 className="text-5xl font-extrabold text-white tracking-tight mb-3">
-          Cricket Auction
-        </h1>
-        <p className="text-blue-200 text-lg max-w-md">
-          Run a live player auction for your cricket league — online or offline.
-        </p>
-      </div>
+    <div className="app-shell flex flex-col items-center justify-center p-6 text-white">
+      <div className="app-page w-full max-w-5xl">
+        <div className="premium-hero text-center px-6 py-10 md:py-14 mb-8">
+          <p className="hero-kicker mb-3">Tournament Ops Suite</p>
+          <h1 className="hero-heading text-white mb-4">
+            Cricket Auction Control Room
+          </h1>
+          <p className="hero-subtext text-lg">
+            Professional live-auction experience for leagues that need speed, clarity, and drama on every bid.
+          </p>
+        </div>
 
       {/* Resume in-progress offline auction */}
       {offlineInProgress && (
-        <div className="w-full max-w-2xl mb-6 bg-yellow-900/60 border border-yellow-600 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+        <div className="status-banner w-full mb-6 px-5 py-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-yellow-200 font-semibold text-sm">⚡ Offline auction in progress</p>
-            <p className="text-yellow-400 text-xs mt-0.5">
+            <p className="text-yellow-100 font-semibold text-sm">⚡ Offline auction in progress</p>
+            <p className="text-yellow-200 text-xs mt-0.5">
               {saved._runtime.status === 'sold' || saved._runtime.status === 'running'
                 ? `Player ${saved._runtime.currentIdx + 1} of ${saved._runtime.queue?.length ?? '?'} — ${saved._runtime.status}`
                 : saved._runtime.status}
@@ -62,13 +62,13 @@ export default function Landing() {
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => navigate('/auction/offline')}
-              className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold text-sm px-4 py-2 rounded-xl"
+              className="btn-primary text-sm px-4 py-2"
             >
               Resume →
             </button>
             <button
               onClick={() => { if (window.confirm('Discard the in-progress auction and start fresh?')) { clearAuctionState(); window.location.reload() } }}
-              className="text-yellow-500 hover:text-white text-xs border border-yellow-700 px-3 py-2 rounded-xl"
+              className="btn-secondary text-xs px-3 py-2"
             >
               Discard
             </button>
@@ -77,39 +77,39 @@ export default function Landing() {
       )}
 
       {/* Mode cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         <button
           onClick={() => navigate('/setup/offline')}
-          className="group bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl p-8 text-left transition-all duration-200 hover:scale-105 cursor-pointer"
+          className="feature-tile group p-8 text-left transition-all duration-200 hover:scale-[1.015] cursor-pointer"
         >
           <div className="text-4xl mb-4">📺</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Offline Mode</h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
+          <h2 className="text-3xl font-bold text-white mb-2">Offline Mode</h2>
+          <p className="text-blue-100 text-sm leading-relaxed">
             Everyone is in the same room. Auctioneer controls a single screen
             or projector. No internet required. Captains bid verbally.
           </p>
-          <div className="mt-6 inline-flex items-center gap-2 text-blue-300 font-semibold text-sm group-hover:text-white transition-colors">
+          <div className="mt-6 inline-flex items-center gap-2 text-cyan-200 font-semibold text-sm group-hover:text-white transition-colors">
             Set up offline auction →
           </div>
         </button>
 
         <button
           onClick={() => navigate('/setup/online')}
-          className="group bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl p-8 text-left transition-all duration-200 hover:scale-105 cursor-pointer"
+          className="feature-tile group p-8 text-left transition-all duration-200 hover:scale-[1.015] cursor-pointer"
         >
           <div className="text-4xl mb-4">📱</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Online Mode</h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
+          <h2 className="text-3xl font-bold text-white mb-2">Online Mode</h2>
+          <p className="text-blue-100 text-sm leading-relaxed">
             Captains bid from their own phones or laptops in real-time.
             Works across the internet. Auctioneer controls via an admin screen.
           </p>
-          <div className="mt-6 inline-flex items-center gap-2 text-blue-300 font-semibold text-sm group-hover:text-white transition-colors">
+          <div className="mt-6 inline-flex items-center gap-2 text-cyan-200 font-semibold text-sm group-hover:text-white transition-colors">
             Set up online auction →
           </div>
         </button>
       </div>
 
-      <p className="text-blue-400 text-xs mt-10">
+      <p className="text-blue-300 text-xs mt-10 text-center">
         Cricket Auction App — Built for your league
       </p>
 
@@ -117,10 +117,11 @@ export default function Landing() {
       <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleResumeFile} />
       <button
         onClick={() => fileRef.current?.click()}
-        className="mt-6 px-6 py-3 bg-blue-700 hover:bg-blue-600 text-white font-semibold text-base rounded-xl border border-blue-500 transition-colors shadow-md"
+        className="btn-secondary mt-6 px-6 py-3 text-base"
       >
         💾 Resume saved auction from snapshot file →
       </button>
+      </div>
     </div>
   )
 }

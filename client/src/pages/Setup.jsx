@@ -208,7 +208,8 @@ export default function Setup() {
             <button
               key={s}
               onClick={() => setStep(s)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${step === s ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              aria-selected={step === s}
+              className={`tab-chip flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${step === s ? 'text-white' : 'text-gray-400 hover:text-white'}`}
             >
               {label}
             </button>
