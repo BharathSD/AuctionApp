@@ -532,6 +532,187 @@ code {
   color: transparent;
 }
 
+/* ------- Editorial landing (marketplace-style) ------- */
+.landing-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--ui-border);
+  background: rgba(6, 16, 30, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+.pill-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #bfe9ff;
+  background: rgba(62, 182, 255, 0.1);
+  border: 1px solid rgba(62, 182, 255, 0.34);
+  width: fit-content;
+}
+
+.live-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #ff5c7a;
+  animation: live-pulse 1.6s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 92, 122, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(255, 92, 122, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 92, 122, 0); }
+}
+
+.feature-ticker {
+  overflow: hidden;
+  border-bottom: 1px solid var(--ui-border);
+  background: rgba(6, 16, 30, 0.55);
+  white-space: nowrap;
+}
+
+.feature-ticker-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 0.65rem 0;
+  animation: ticker-scroll 34s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #93a8c6;
+}
+
+.ticker-dot {
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 999px;
+  background: var(--ui-brand);
+}
+
+.display-heading {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: clamp(2.8rem, 7vw, 5.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.display-muted {
+  color: #46618a;
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8399b8;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.stat-value {
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  color: #7ce0ff;
+}
+
+.showcase-card {
+  background: linear-gradient(160deg, rgba(17, 36, 61, 0.94) 0%, rgba(10, 21, 38, 0.96) 100%);
+  border: 1px solid var(--ui-border);
+  border-radius: 1.4rem;
+  padding: 1.5rem;
+  box-shadow: 0 40px 70px -44px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.showcase-card .tag {
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8fa6c4;
+  font-weight: 700;
+}
+
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: rgba(20, 38, 63, 0.6);
+  border: 1px solid rgba(111, 151, 196, 0.2);
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.mode-row:hover {
+  transform: translateY(-2px);
+  border-color: rgba(77, 213, 163, 0.5);
+  background: rgba(26, 48, 78, 0.7);
+}
+
+.mode-row-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(140deg, #3eb6ff 0%, #2f87f5 55%, #4dd5a3 100%);
+  color: #071120;
+  flex-shrink: 0;
+}
+
+.mode-row-arrow {
+  color: #7ce0ff;
+  font-size: 1.25rem;
+  transition: transform 0.16s ease;
+}
+
+.mode-row:hover .mode-row-arrow {
+  transform: translateX(3px);
+}
+
+.cap-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 0.7rem;
+  background: rgba(9, 22, 38, 0.7);
+  border: 1px solid rgba(111, 151, 196, 0.2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #c2d4ec;
+}
+
+.cap-chip svg { color: var(--ui-brand); }
+
 .scroll-fade {
   scrollbar-width: thin;
   scrollbar-color: rgba(109, 162, 219, 0.7) rgba(5, 15, 26, 0.5);
