@@ -9,7 +9,10 @@ const ROLE_COLORS = {
   Batsman: 'text-blue-400',
   Bowler: 'text-green-400',
   'All-rounder': 'text-purple-400',
+  'All Rounder': 'text-purple-400',
   'Wicket-keeper': 'text-orange-400',
+  'Super Striker': 'text-rose-400',
+  PLAYER: 'text-slate-300',
 }
 
 export default function CaptainBidding() {

@@ -8,14 +8,20 @@ const ROLE_COLORS = {
   Batsman: 'bg-blue-600',
   Bowler: 'bg-green-600',
   'All-rounder': 'bg-purple-600',
+  'All Rounder': 'bg-purple-600',
   'Wicket-keeper': 'bg-orange-500',
+  'Super Striker': 'bg-rose-500',
+  PLAYER: 'bg-slate-600',
 }
 
 const ROLE_TEXT = {
   Batsman: 'text-blue-300',
   Bowler: 'text-green-300',
   'All-rounder': 'text-purple-300',
+  'All Rounder': 'text-purple-300',
   'Wicket-keeper': 'text-orange-300',
+  'Super Striker': 'text-rose-300',
+  PLAYER: 'text-slate-300',
 }
 
 function reducer(state, action) {

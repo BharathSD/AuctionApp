@@ -12,7 +12,10 @@ const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
   Bowler: 'bg-green-700',
   'All-rounder': 'bg-purple-700',
+  'All Rounder': 'bg-purple-700',
   'Wicket-keeper': 'bg-orange-700',
+  'Super Striker': 'bg-rose-600',
+  PLAYER: 'bg-slate-600',
 }
 
 export default function OfflineAuction() {
