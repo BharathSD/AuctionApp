@@ -4,6 +4,7 @@ import { useOfflineAuction } from '../hooks/useOfflineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
 import { getIncrement } from '../utils/bidTiers'
 import PlayerAvatar from '../components/PlayerAvatar'
+import PlayerSpotlight from '../components/PlayerSpotlight'
 import Icon from '../components/Icon'
 import TimerRing from '../components/TimerRing'
 
@@ -135,7 +136,7 @@ export default function OfflineAuction() {
             <div className="w-full flex-1 max-w-[112rem] mx-auto flex flex-col xl:flex-row gap-6 xl:items-stretch py-2">
               {/* Player showcase */}
               <div className="auction-surface rounded-3xl p-8 xl:p-10 text-center w-full xl:flex-[3] shadow-2xl border border-gray-700 flex flex-col items-center justify-center gap-4">
-                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" />
+                <PlayerSpotlight key={currentPlayer.id} name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} />
                 <div className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold ${ROLE_COLORS[currentPlayer.role] || 'bg-gray-700'}`}>
                   {currentPlayer.role}
                 </div>
