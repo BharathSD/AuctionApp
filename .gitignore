@@ -7,6 +7,9 @@ server/node_modules/
 client/dist/
 client/.vite/
 
+# Server crash-recovery snapshots
+server/.data/
+
 # Node.js standalone binary (large, not needed in repo)
 node-v24.16.0-win-x64/
 *.zip

@@ -5,6 +5,7 @@ const cors = require('cors')
 const path = require('path')
 const crypto = require('crypto')
 const engine = require('./auction-engine')
+const persistence = require('./persistence')
 
 function isIgnorableNetworkError(err) {
   const code = err?.code || ''
@@ -411,6 +412,28 @@ if (process.env.NODE_ENV === 'production') {
 // ── Start ─────────────────────────────────────────────────────
 if (require.main === module) {
   const PORT = process.env.PORT || 3001
+
+  // Crash recovery: restore any persisted rooms/tokens from disk.
+  const restored = persistence.restoreState({ adminTokens, captainTokens })
+  if (restored > 0) console.log(`Restored ${restored} auction room(s) from disk`)
+
+  // Periodically snapshot live state so a crash/restart doesn't lose an auction.
+  const SAVE_INTERVAL_MS = 5000
+  const saveTimer = setInterval(() => persistence.saveState({ adminTokens, captainTokens }), SAVE_INTERVAL_MS)
+  if (typeof saveTimer.unref === 'function') saveTimer.unref()
+
+  // Best-effort save on shutdown.
+  let shuttingDown = false
+  const shutdown = (signal) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    persistence.saveState({ adminTokens, captainTokens })
+    console.log(`Received ${signal}, saved state and shutting down.`)
+    process.exit(0)
+  }
+  process.on('SIGINT', () => shutdown('SIGINT'))
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+
   httpServer.listen(PORT, () => {
     console.log(`Auction server running on port ${PORT}`)
   })

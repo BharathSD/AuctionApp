@@ -594,6 +594,35 @@ describe('autoAssignUnsold', () => {
     assert.equal(updated.teams[0].budget, 40)
     assert.equal(updated.teams[1].budget, 30)
   })
+
+  it('fills spots even when a team cannot afford the whole roster', () => {
+    // maxPlayers 3, budget 100, three unsold at base 80 → affords only ONE
+    const teams = makeTeams(1, 100)
+    setupRoom('AA03', makeConfig({ maxPlayersPerTeam: 3 }), teams, makePlayers([80, 80, 80]))
+    const room = engine.getRoom('AA03')
+    room.players.forEach(p => { p.status = 'unsold' })
+
+    engine.autoAssignUnsold('AA03', io)
+
+    const updated = engine.getRoom('AA03')
+    assert.equal(updated.players.filter(p => p.status === 'sold').length, 1)
+    assert.equal(updated.teams[0].players.length, 1)
+    assert.equal(updated.teams[0].budget, 20)
+  })
+
+  it('assigns each unsold player at most once (no duplicates)', () => {
+    const teams = makeTeams(2, 1000)
+    setupRoom('AA04', makeConfig({ maxPlayersPerTeam: 5 }), teams, makePlayers([200, 200, 200, 200]))
+    const room = engine.getRoom('AA04')
+    room.players.forEach(p => { p.status = 'unsold' })
+
+    engine.autoAssignUnsold('AA04', io)
+
+    const updated = engine.getRoom('AA04')
+    const ids = updated.teams.flatMap(t => t.players.map(p => p.id))
+    assert.equal(ids.length, 4)
+    assert.equal(new Set(ids).size, 4)
+  })
 })
 
 // ─── finishAuction ────────────────────────────────────────────
@@ -604,6 +633,27 @@ describe('finishAuction', () => {
     engine.startNextPlayer('FA01', io)
     engine.finishAuction('FA01', io)
     assert.equal(engine.getRoom('FA01').status, 'finished')
+  })
+
+  it('marks every not-sold player (queued or on the block) as unsold', () => {
+    setupRoom('FA02', makeConfig(), makeTeams(2, 1000), makePlayers([100, 200, 300]))
+    engine.startNextPlayer('FA02', io) // player 0 on the block; 1 & 2 queued
+    engine.finishAuction('FA02', io)
+    const room = engine.getRoom('FA02')
+    assert.equal(room.players[0].status, 'unsold')
+    assert.equal(room.players[1].status, 'unsold')
+    assert.equal(room.players[2].status, 'unsold')
+  })
+
+  it('leaves already-sold players untouched when finishing', () => {
+    setupRoom('FA03', makeConfig(), makeTeams(2, 1000), makePlayers([100, 200]))
+    engine.startNextPlayer('FA03', io)
+    engine.placeBid('FA03', 'team1', io)
+    engine.sellPlayer('FA03', io) // player 0 sold
+    engine.finishAuction('FA03', io)
+    const room = engine.getRoom('FA03')
+    assert.equal(room.players[0].status, 'sold')
+    assert.equal(room.players[1].status, 'unsold')
   })
 })
 

@@ -575,6 +575,50 @@ function clearTimer(room) {
   }
 }
 
+// ── Persistence helpers (durable state only — no runtime handles/sockets) ──
+function serializeRoom(room) {
+  return {
+    config: room.config,
+    teams: room.teams,
+    players: room.players,
+    queue: room.queue,
+    currentIdx: room.currentIdx,
+    currentPrice: room.currentPrice,
+    leadingTeamId: room.leadingTeamId,
+    bids: room.bids,
+    status: room.status,
+    timerLeft: room.timerLeft,
+    secondRound: room.secondRound,
+    paused: room.paused,
+    soldHistory: room.soldHistory,
+  }
+}
+
+// Rebuild a room from serialized durable state. Runtime fields (timer handle,
+// socket/session maps) are reset. A room that was mid-round is left paused so
+// the countdown doesn't run headless — the auctioneer resumes to continue.
+function hydrateRoom(roomCode, s) {
+  const room = makeRoom(s.config)
+  room.teams = s.teams || []
+  room.players = s.players || []
+  room.queue = s.queue || []
+  room.currentIdx = s.currentIdx ?? -1
+  room.currentPrice = s.currentPrice ?? null
+  room.leadingTeamId = s.leadingTeamId ?? null
+  room.bids = s.bids || []
+  room.status = s.status || 'idle'
+  room.timerLeft = s.timerLeft ?? null
+  room.secondRound = s.secondRound || false
+  room.soldHistory = s.soldHistory || []
+  room.paused = s.status === 'running' ? true : !!s.paused
+  rooms.set(roomCode, room)
+  return room
+}
+
+function getAllRooms() {
+  return rooms
+}
+
 function publicState(room) {
   return {
     config: room.config,
@@ -628,6 +672,9 @@ module.exports = {
   requeueUnsold,
   autoAssignUnsold,
   restoreRoom,
+  serializeRoom,
+  hydrateRoom,
+  getAllRooms,
   publicState,
   viewerState,
 }
