@@ -131,7 +131,7 @@ export default function CaptainBidding() {
     const likelyDuplicate = /already connected/i.test(state.sessionError)
     const likelyInvalid = /invalid captain session/i.test(state.sessionError)
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
+      <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
         <div className="text-6xl">🚫</div>
         <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
         <p className="text-gray-400 max-w-sm">{state.sessionError}</p>
@@ -168,9 +168,9 @@ export default function CaptainBidding() {
   if (!roomCode || !teamId) return null
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col" style={{ minHeight: '100dvh' }}>
+    <div className="app-shell text-white flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="font-bold text-sm">{teamName}</p>
           <p className="text-xs text-gray-500">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
@@ -189,7 +189,7 @@ export default function CaptainBidding() {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-gray-900 border-b border-gray-800">
+      <div className="auction-topbar flex border-b border-gray-800">
         <button onClick={() => setActiveTab('bid')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>🏏 Bid</button>
         <button onClick={() => setActiveTab('roster')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>👕 My Roster</button>
         <button onClick={() => setActiveTab('teams')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📊 Teams</button>
@@ -217,7 +217,7 @@ export default function CaptainBidding() {
             <>
               {/* Player card */}
               {currentPlayer && (
-                <div className="w-full max-w-xs bg-gray-800 rounded-2xl p-6 text-center">
+                <div className="w-full max-w-xs auction-surface rounded-2xl p-6 text-center">
                   <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="2xl" className="mx-auto mb-3" />
                   <p className={`text-sm font-semibold mb-1 ${ROLE_COLORS[currentPlayer.role] || 'text-gray-400'}`}>
                     {currentPlayer.role}
@@ -238,7 +238,7 @@ export default function CaptainBidding() {
 
               {/* Budget info */}
               {myTeam && status === 'running' && (
-                <div className="w-full max-w-xs bg-gray-800 rounded-2xl px-5 py-3 text-sm">
+                <div className="w-full max-w-xs auction-surface-soft rounded-2xl px-5 py-3 text-sm">
                   <div className="flex justify-between mb-1">
                     <span className="text-gray-400">Available budget</span>
                     <span className="font-bold text-white">{myTeam.budget} pts</span>
@@ -372,12 +372,12 @@ export default function CaptainBidding() {
       {/* ── AVAILABLE TAB ── */}
       {activeTab === 'available' && (
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="bg-gray-900 rounded-xl p-4 mb-4 flex items-center justify-between text-sm">
+          <div className="auction-surface rounded-xl p-4 mb-4 flex items-center justify-between text-sm">
             <p className="text-gray-400">Pending: <span className="text-yellow-400 font-bold">{pendingCount}</span> | Unsold: <span className="text-red-400 font-bold">{unsoldCount}</span></p>
             <p className="text-gray-500">Total: <span className="text-white font-bold">{allAvailablePlayers.length}</span></p>
           </div>
 
-          <div className="bg-gray-900 rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="auction-surface rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-xs text-gray-500 block mb-1">Search</label>
               <input

@@ -86,11 +86,10 @@ export default function ViewerDisplay() {
     .slice(0, 5)
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col overflow-hidden"
-      style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="app-shell text-white flex flex-col overflow-hidden">
 
       {/* ── Top bar ── */}
-      <div className="bg-gray-900 border-b border-gray-800 px-6 py-2 flex items-center justify-between">
+      <div className="auction-topbar border-b border-gray-800 px-6 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl font-extrabold tracking-tight">🏏 Cricket Auction</span>
           {secondRound && (
@@ -138,8 +137,8 @@ export default function ViewerDisplay() {
               {/* Player card */}
               <div className={`rounded-3xl p-8 text-center w-full max-w-lg shadow-2xl border transition-all duration-300
                 ${status === 'sold' ? 'bg-green-900/40 border-green-600' :
-                  status === 'unsold' ? 'bg-gray-800 border-gray-600' :
-                  bidFlash ? 'bg-blue-900/50 border-blue-400 scale-[1.02]' : 'bg-gray-800/80 border-gray-700'}`}>
+                  status === 'unsold' ? 'auction-surface border-gray-600' :
+                  bidFlash ? 'bg-blue-900/50 border-blue-400 scale-[1.02]' : 'auction-surface border-gray-700'}`}>
 
                 <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" className="mx-auto mb-4" />
 
@@ -190,7 +189,7 @@ export default function ViewerDisplay() {
                     <span>Timer</span>
                     <span className={timerLeft <= 5 ? 'text-red-400 font-bold animate-pulse' : ''}>{timerLeft}s</span>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-3">
+                  <div className="w-full auction-surface-soft rounded-full h-3">
                     <div className={`h-3 rounded-full transition-all duration-1000 ${timerColor}`}
                       style={{ width: `${timerPct}%` }} />
                   </div>
@@ -201,7 +200,7 @@ export default function ViewerDisplay() {
         </div>
 
         {/* ── Right: teams scoreboard ── */}
-        <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col">
+        <div className="w-72 auction-surface border-l border-gray-800 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Teams</h2>
           </div>
@@ -212,7 +211,7 @@ export default function ViewerDisplay() {
                 <div key={team.id}
                   className={`rounded-xl p-3 border transition-all ${isLeading
                     ? 'bg-blue-900/50 border-blue-600'
-                    : 'bg-gray-800 border-gray-700'}`}>
+                    : 'auction-surface-soft border-gray-700'}`}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-semibold text-sm truncate">{team.name}</span>
                     {isLeading && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">🔥 Leading</span>}
@@ -238,7 +237,7 @@ export default function ViewerDisplay() {
                 {recentSold.map((p, i) => {
                   const buyer = teams.find(t => t.id === p.soldTo)
                   return (
-                    <div key={i} className="flex justify-between items-center text-xs bg-gray-800 rounded-lg px-2 py-1.5">
+                    <div key={i} className="flex justify-between items-center text-xs auction-surface-soft rounded-lg px-2 py-1.5">
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="xs" />
                         <div className="min-w-0">

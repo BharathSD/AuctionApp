@@ -81,20 +81,19 @@ export default function AvailablePlayers() {
 
   if (!roomCode) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+      <div className="app-shell text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 mb-4">No active auction found.</p>
           <button onClick={() => navigate('/')} className="btn-primary">Go Home</button>
         </div>
-        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="app-shell text-white flex flex-col">
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 sticky top-0 z-40">
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -141,7 +140,7 @@ export default function AvailablePlayers() {
       </div>
 
       {/* Filters & Sort */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex flex-wrap gap-4 items-center">
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex flex-wrap gap-4 items-center">
         <div>
           <label className="text-xs text-gray-500 block mb-1">Filter by Role:</label>
           <select
@@ -184,7 +183,7 @@ export default function AvailablePlayers() {
             {availablePlayers.map((player) => (
               <div
                 key={player.id}
-                className="bg-gray-800 rounded-lg border border-gray-700 hover:border-gray-600 p-4 transition-colors"
+                className="auction-surface-soft rounded-lg border border-gray-700 hover:border-gray-500 p-4 transition-colors"
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   {/* Left: Player Info */}
@@ -230,7 +229,7 @@ export default function AvailablePlayers() {
 
                   {/* Right: Quick Stats */}
                   <div className="flex flex-col items-end gap-2 text-right">
-                    <div className="bg-gray-900 rounded px-2 py-1">
+                    <div className="auction-surface rounded px-2 py-1">
                       <div className="text-xs text-gray-500">Base</div>
                       <div className="text-lg font-bold text-yellow-400">{player.basePrice}</div>
                     </div>
@@ -247,20 +246,6 @@ export default function AvailablePlayers() {
         )}
       </div>
 
-      <style>{`
-        .btn-primary {
-          background: #2563eb;
-          color: white;
-          padding: 0.5rem 1.25rem;
-          border-radius: 0.75rem;
-          font-weight: 600;
-          cursor: pointer;
-          border: none;
-        }
-        .btn-primary:hover {
-          background: #1d4ed8;
-        }
-      `}</style>
     </div>
   )
 }

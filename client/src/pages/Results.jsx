@@ -8,12 +8,11 @@ export default function Results() {
 
   if (!resultData) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+      <div className="app-shell text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 mb-4">No auction data found.</p>
           <button onClick={() => navigate('/')} className="btn-primary">Go Home</button>
         </div>
-        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
       </div>
     )
   }
@@ -171,8 +170,8 @@ export default function Results() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="app-shell text-white">
+      <div className="app-page max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="text-5xl mb-3">🏆</div>
@@ -198,7 +197,7 @@ export default function Results() {
               const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
               const pct = Math.round((team.budget / config.pointsPerTeam) * 100)
               return (
-                <div key={team.id} className="bg-gray-900 rounded-2xl overflow-hidden">
+                <div key={team.id} className="auction-surface rounded-2xl overflow-hidden">
                   <div className="px-4 py-3 bg-gray-800 flex justify-between items-center">
                     <h3 className="font-bold">{team.name}</h3>
                     <div className="text-right">
@@ -239,7 +238,7 @@ export default function Results() {
         {unsoldPlayers.length > 0 && (
           <div className="mb-10">
             <h2 className="text-xl font-bold mb-4">Unsold Players</h2>
-            <div className="bg-gray-900 rounded-2xl divide-y divide-gray-800">
+            <div className="auction-surface rounded-2xl divide-y divide-gray-800">
               {unsoldPlayers.map((p, i) => (
                 <div key={i} className="px-4 py-3 flex justify-between items-center">
                   <div className="flex items-center gap-2 min-w-0">
@@ -266,20 +265,13 @@ export default function Results() {
           </button>
         </div>
       </div>
-
-      <style>{`
-        .btn-primary { background: #2563eb; color: white; padding: 0.5rem 1.5rem; border-radius: 0.75rem; font-weight: 600; cursor: pointer; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #374151; color: white; padding: 0.5rem 1.5rem; border-radius: 0.75rem; font-weight: 600; cursor: pointer; }
-        .btn-secondary:hover { background: #4b5563; }
-      `}</style>
     </div>
   )
 }
 
 function StatCard({ label, value, color = 'text-white' }) {
   return (
-    <div className="bg-gray-900 rounded-xl p-4">
+    <div className="auction-surface rounded-xl p-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>

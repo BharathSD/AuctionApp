@@ -23,7 +23,7 @@ export default function OfflineAuction() {
 
   if (!saved) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+      <div className="app-shell text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 mb-4">No auction configured.</p>
           <button onClick={() => navigate('/setup/offline')} className="btn-primary">Set up auction</button>
@@ -39,13 +39,13 @@ export default function OfflineAuction() {
 
   if (status === 'finished') {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 p-6">
+      <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6">
         <div className="text-6xl">🏆</div>
         <h2 className="text-3xl font-bold">Auction Complete!</h2>
         <p className="text-gray-400">{soldCount} of {totalPlayers} players sold</p>
         <div className="w-full max-w-2xl space-y-3">
           {teams.map(team => (
-            <div key={team.id} className="bg-gray-900 rounded-xl p-4 text-left">
+            <div key={team.id} className="auction-surface rounded-xl p-4 text-left">
               <p className="font-semibold mb-2">{team.name}</p>
               {team.players.length === 0 ? (
                 <p className="text-sm text-gray-500">No players</p>
@@ -88,9 +88,9 @@ export default function OfflineAuction() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col" style={{ minHeight: '100dvh' }}>
+    <div className="app-shell text-white flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Top bar */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+      <div className="auction-topbar border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="font-bold text-lg">🏏 Auction</span>
           <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">OFFLINE</span>
@@ -133,7 +133,7 @@ export default function OfflineAuction() {
           {(status === 'running' || status === 'sold' || status === 'unsold') && currentPlayer && (
             <>
               {/* Player card */}
-              <div className="bg-gray-800 rounded-3xl p-8 text-center w-full max-w-sm shadow-2xl border border-gray-700">
+              <div className="auction-surface rounded-3xl p-8 text-center w-full max-w-sm shadow-2xl border border-gray-700">
                 <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="xl" className="mx-auto mb-4" />
                 <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 ${ROLE_COLORS[currentPlayer.role] || 'bg-gray-700'}`}>
                   {currentPlayer.role}
@@ -142,7 +142,7 @@ export default function OfflineAuction() {
                 <p className="text-gray-400 text-sm mb-6">Base: {currentPlayer.basePrice} pts</p>
 
                 {/* Current bid */}
-                <div className="bg-gray-900 rounded-2xl p-4 mb-4">
+                <div className="auction-surface-soft rounded-2xl p-4 mb-4">
                   <p className="text-xs text-gray-500 mb-1">Current Bid</p>
                   <p className="text-5xl font-black text-yellow-400">{state.currentPrice}</p>
                   {leadingTeam && (
@@ -267,7 +267,7 @@ export default function OfflineAuction() {
         </div>
 
         {/* ── Right panel: Teams & Bid log ── */}
-        <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col" style={{height: 'calc(100vh - 57px)'}}>
+        <div className="w-72 auction-surface border-l border-gray-800 flex flex-col" style={{height: 'calc(100vh - 57px)'}}>
           {/* Teams — always fully visible */}
           <div className="p-4 border-b border-gray-800 shrink-0">
             <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Teams</p>
@@ -358,11 +358,6 @@ export default function OfflineAuction() {
         </div>
       </div>
 
-      <style>{`
-        .btn-primary { background: #2563eb; color: white; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #374151; color: white; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
-      `}</style>
     </div>
   )
 }
