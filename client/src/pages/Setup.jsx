@@ -198,13 +198,13 @@ export default function Setup() {
         <div className="flex items-center gap-3 mb-8">
           <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm">← Back</button>
           <h1 className="text-2xl font-bold">
-            {mode === 'offline' ? '📺 Offline Auction Setup' : '📱 Online Auction Setup'}
+            {mode === 'offline' ? 'Offline Auction Setup' : 'Online Auction Setup'}
           </h1>
         </div>
 
         {/* Step tabs */}
         <div className="flex gap-1 mb-8 auction-surface rounded-xl p-1">
-          {[['config','⚙️ Config'], ['teams','👕 Teams'], ['players','🏃 Players'], ['preallocate','📌 Retain'], ['review','✅ Review']].map(([s, label]) => (
+          {[['config','Configuration'], ['teams','Teams'], ['players','Players'], ['preallocate','Retentions'], ['review','Review']].map(([s, label]) => (
             <button
               key={s}
               onClick={() => setStep(s)}
@@ -512,7 +512,7 @@ export default function Setup() {
             <div className="flex justify-between">
               <button onClick={() => setStep('players')} className="btn-secondary">← Back</button>
               <button onClick={handleStart} className="btn-primary text-lg px-8 py-3">
-                🚀 Start Auction
+                Start Auction
               </button>
             </div>
           </div>

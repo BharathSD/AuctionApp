@@ -46,7 +46,6 @@ export default function CaptainJoin() {
     <div className="app-shell flex items-center justify-center p-6 text-white">
       <div className="premium-hero w-full max-w-md text-center p-8 md:p-9">
         <p className="hero-kicker mb-2">Captain Access</p>
-        <div className="text-5xl mb-4">🏏</div>
         <h1 className="hero-heading text-white mb-2" style={{ fontSize: 'clamp(2rem, 7vw, 3rem)' }}>Join Auction</h1>
         <p className="text-blue-100 text-sm mb-6">
           Room: <span className="font-mono font-bold text-yellow-400">{roomCode}</span>

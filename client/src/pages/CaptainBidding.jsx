@@ -190,10 +190,10 @@ export default function CaptainBidding() {
 
       {/* Tabs */}
       <div className="auction-topbar flex border-b border-gray-800">
-        <button aria-selected={activeTab === 'bid'} onClick={() => setActiveTab('bid')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white' : 'text-gray-500'}`}>🏏 Bid</button>
-        <button aria-selected={activeTab === 'roster'} onClick={() => setActiveTab('roster')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white' : 'text-gray-500'}`}>👕 My Roster</button>
-        <button aria-selected={activeTab === 'teams'} onClick={() => setActiveTab('teams')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white' : 'text-gray-500'}`}>📊 Teams</button>
-        <button aria-selected={activeTab === 'available'} onClick={() => setActiveTab('available')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white' : 'text-gray-500'}`}>📋 Available</button>
+        <button aria-selected={activeTab === 'bid'} onClick={() => setActiveTab('bid')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white' : 'text-gray-500'}`}>Bidding</button>
+        <button aria-selected={activeTab === 'roster'} onClick={() => setActiveTab('roster')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white' : 'text-gray-500'}`}>My Roster</button>
+        <button aria-selected={activeTab === 'teams'} onClick={() => setActiveTab('teams')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white' : 'text-gray-500'}`}>Teams</button>
+        <button aria-selected={activeTab === 'available'} onClick={() => setActiveTab('available')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white' : 'text-gray-500'}`}>Available</button>
       </div>
 
       {/* ── BID TAB ── */}
@@ -207,7 +207,6 @@ export default function CaptainBidding() {
 
           {status === 'finished' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <div className="text-5xl">🏆</div>
               <p className="text-xl font-bold">Auction Complete!</p>
               <button onClick={() => setActiveTab('roster')} className="text-blue-400 underline text-sm">View your roster</button>
             </div>
@@ -231,7 +230,7 @@ export default function CaptainBidding() {
               <div className="text-center">
                 <p className="text-xs text-gray-500 mb-1">Current Bid</p>
                 <p className="text-6xl font-black text-yellow-400">{state.currentPrice}</p>
-                {isLeading && <p className="text-green-400 font-bold mt-2 text-sm">🔥 You're leading!</p>}
+                {isLeading && <p className="text-green-400 font-bold mt-2 text-sm">You are leading</p>}
                 {!isLeading && leadingTeam && <p className="text-gray-400 text-sm mt-2">{leadingTeam.name} is leading</p>}
                 {!leadingTeam && status === 'running' && <p className="text-gray-500 text-sm mt-2">No bids yet — be first!</p>}
               </div>
@@ -305,7 +304,7 @@ export default function CaptainBidding() {
                 >
                   {bidFlash === 'ok' ? '✓ Bid placed!' :
                    bidFlash === 'late' ? 'Too late!' :
-                   isLeading ? '🔥 You\'re leading!' :
+                   isLeading ? 'You are leading' :
                    config.maxPlayersPerTeam && myTeam?.players?.length >= config.maxPlayersPerTeam ? '🚫 Roster Full' :
                    !canAffordRemaining ? '💸 Can\'t fill roster' :
                    canBid ? `BID ${nextBidPrice} pts` :

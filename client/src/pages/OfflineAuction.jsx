@@ -40,7 +40,6 @@ export default function OfflineAuction() {
   if (status === 'finished') {
     return (
       <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6">
-        <div className="text-6xl">🏆</div>
         <h2 className="text-3xl font-bold">Auction Complete!</h2>
         <p className="text-gray-400">{soldCount} of {totalPlayers} players sold</p>
         <div className="w-full max-w-2xl space-y-3">
@@ -92,7 +91,7 @@ export default function OfflineAuction() {
       {/* Top bar */}
       <div className="auction-topbar border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-lg">🏏 Auction</span>
+          <span className="font-bold text-lg">Auction Console</span>
           <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">OFFLINE</span>
           {state.secondRound && (
             <span className="text-xs bg-orange-700 text-orange-100 px-2 py-1 rounded font-semibold">🔁 Unsold Round</span>
@@ -125,7 +124,7 @@ export default function OfflineAuction() {
             <div className="text-center">
               <p className="text-gray-400 mb-6 text-lg">Ready to start the auction</p>
               <button onClick={startAuction} className="btn-primary text-xl px-10 py-4">
-                🚀 Start Auction
+                Start Auction
               </button>
             </div>
           )}
@@ -146,7 +145,7 @@ export default function OfflineAuction() {
                   <p className="text-xs text-gray-500 mb-1">Current Bid</p>
                   <p className="text-5xl font-black text-yellow-400">{state.currentPrice}</p>
                   {leadingTeam && (
-                    <p className="text-4xl font-extrabold text-blue-300 mt-2">🔥 {leadingTeam.name}</p>
+                    <p className="text-4xl font-extrabold text-blue-300 mt-2">{leadingTeam.name}</p>
                   )}
                   {!leadingTeam && status === 'running' && (
                     <p className="text-sm text-gray-500 mt-2">No bids yet</p>
@@ -208,7 +207,7 @@ export default function OfflineAuction() {
                           {rosterFull ? (
                             <span className="block text-xs font-normal mt-1">🚫 Roster Full</span>
                           ) : state.leadingTeamId === team.id ? (
-                            <span className="block text-xs font-normal mt-1">🔥 Leading</span>
+                            <span className="block text-xs font-normal mt-1">Leading</span>
                           ) : (
                             <>
                               <span className="block text-xs font-normal mt-1 text-gray-400">{team.budget} pts left</span>

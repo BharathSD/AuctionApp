@@ -82,7 +82,7 @@ export default function Landing() {
           onClick={() => navigate('/setup/offline')}
           className="feature-tile group p-8 text-left transition-all duration-200 hover:scale-[1.015] cursor-pointer"
         >
-          <div className="text-4xl mb-4">📺</div>
+          <p className="hero-kicker mb-3">Single-Console</p>
           <h2 className="text-3xl font-bold text-white mb-2">Offline Mode</h2>
           <p className="text-blue-100 text-sm leading-relaxed">
             Everyone is in the same room. Auctioneer controls a single screen
@@ -97,7 +97,7 @@ export default function Landing() {
           onClick={() => navigate('/setup/online')}
           className="feature-tile group p-8 text-left transition-all duration-200 hover:scale-[1.015] cursor-pointer"
         >
-          <div className="text-4xl mb-4">📱</div>
+          <p className="hero-kicker mb-3">Multi-Device</p>
           <h2 className="text-3xl font-bold text-white mb-2">Online Mode</h2>
           <p className="text-blue-100 text-sm leading-relaxed">
             Captains bid from their own phones or laptops in real-time.

@@ -136,7 +136,6 @@ export default function AdminOnline() {
   if (status === 'finished') {
     return (
       <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6">
-        <div className="text-6xl">🏆</div>
         <h2 className="text-3xl font-bold">Auction Complete!</h2>
         <p className="text-gray-400">{soldCount} of {totalPlayers} players sold</p>
         {state.canUndoSold && (
@@ -198,7 +197,7 @@ export default function AdminOnline() {
       {/* Top bar */}
       <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-lg">🏏 Admin</span>
+          <span className="font-bold text-lg">Admin Console</span>
           <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">ONLINE</span>
           <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
             {state.connected ? '● Live' : '○ Connecting…'}

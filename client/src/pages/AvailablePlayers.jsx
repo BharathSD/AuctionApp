@@ -102,7 +102,7 @@ export default function AvailablePlayers() {
             >
               ←
             </button>
-            <span className="font-bold text-lg">📋 Available Players</span>
+            <span className="font-bold text-lg">Available Players</span>
             <span className={`text-xs px-2 py-1 rounded ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
               {connected ? '● Live' : '○ Offline'}
             </span>
@@ -198,7 +198,7 @@ export default function AvailablePlayers() {
                         {player.role}
                       </span>
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${STATUS_COLORS[player.status] || 'bg-gray-700'}`}>
-                        {player.status === 'pending' ? '⏳ Pending' : '❌ Unsold'}
+                        {player.status === 'pending' ? 'Pending' : 'Unsold'}
                       </span>
                     </div>
 

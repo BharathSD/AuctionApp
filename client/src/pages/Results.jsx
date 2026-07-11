@@ -174,7 +174,6 @@ export default function Results() {
       <div className="app-page max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="text-5xl mb-3">🏆</div>
           <h1 className="text-3xl font-extrabold mb-1">Auction Results</h1>
           <p className="text-gray-400 text-sm">
             {soldPlayers.length} of {players.length} players sold · {mode === 'offline' ? 'Offline' : 'Online'} auction
@@ -261,7 +260,7 @@ export default function Results() {
             📥 Export XLSX
           </button>
           <button onClick={handleNewAuction} className="btn-primary">
-            🏏 New Auction
+            Start New Auction
           </button>
         </div>
       </div>

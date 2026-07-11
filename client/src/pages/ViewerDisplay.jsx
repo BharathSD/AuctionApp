@@ -112,7 +112,7 @@ export default function ViewerDisplay() {
             title="View available players (pending & unsold)"
             className="text-cyan-300 hover:text-white text-xs border border-cyan-700 px-2.5 py-1 rounded-md"
           >
-            📋 Available
+            Available
           </button>
           <span className={`text-xs px-2.5 py-1 rounded-md font-semibold ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
             {connected ? '● LIVE' : '○ Connecting…'}
@@ -127,7 +127,6 @@ export default function ViewerDisplay() {
 
           {status === 'idle' && (
             <div className="text-center">
-              <div className="text-8xl mb-6">🏏</div>
               <p className="text-3xl font-bold text-gray-300">Auction Starting Soon</p>
               <p className="text-gray-500 mt-2">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
             </div>
@@ -135,7 +134,6 @@ export default function ViewerDisplay() {
 
           {status === 'finished' && (
             <div className="text-center">
-              <div className="text-8xl mb-6">🏆</div>
               <p className="text-4xl font-extrabold text-yellow-400">Auction Complete!</p>
               <p className="text-gray-400 mt-3 text-xl">{soldCount} of {totalPlayers} players sold</p>
             </div>
@@ -195,7 +193,7 @@ export default function ViewerDisplay() {
                     <span className="text-3xl text-gray-400 ml-2">pts</span>
                   </p>
                   {leadingTeam ? (
-                    <p className="text-blue-300 text-xl font-semibold mt-1">🔥 {leadingTeam.name} is leading</p>
+                    <p className="text-blue-300 text-xl font-semibold mt-1">{leadingTeam.name} is leading</p>
                   ) : (
                     <p className="text-gray-500 text-lg mt-1">No bids yet</p>
                   )}
@@ -234,7 +232,7 @@ export default function ViewerDisplay() {
                     : 'auction-surface-soft border-gray-700'}`}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-semibold text-sm truncate text-gray-100">{team.name}</span>
-                    {isLeading && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">🔥 Leading</span>}
+                    {isLeading && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">Leading</span>}
                   </div>
                   {/* Budget bar (% only — no exact numbers) */}
                   <div className="w-full bg-gray-700/80 rounded-full h-2 mb-1.5">
