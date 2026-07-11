@@ -250,18 +250,18 @@ export default function OfflineAuction() {
                 )}
 
                 {(status === 'sold' || status === 'unsold') && (
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
                     {status === 'sold' && (
-                      <div className="flex gap-3 flex-wrap justify-center">
-                        <button onClick={() => { if (window.confirm('Reopen bidding for this sold player? This will remove the player from the team and restore the winning bid.')) reopenSold() }} className="bg-blue-700 hover:bg-blue-600 text-white rounded-2xl py-3 px-6 font-bold text-base inline-flex items-center gap-2">
-                          <Icon name="reopen" size={18} /> Reopen Bidding
+                      <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => { if (window.confirm('Reopen bidding for this sold player? This will remove the player from the team and restore the winning bid.')) reopenSold() }} className="bg-blue-700 hover:bg-blue-600 text-white rounded-xl py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2">
+                          <Icon name="reopen" size={16} /> Reopen
                         </button>
-                        <button onClick={() => { if (window.confirm('Move this sold player to unsold? This will remove the player from the team and refund the sale.')) soldToUnsold() }} className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-2xl py-3 px-6 font-bold text-base inline-flex items-center gap-2">
-                          <Icon name="undo" size={18} /> To Unsold
+                        <button onClick={() => { if (window.confirm('Move this sold player to unsold? This will remove the player from the team and refund the sale.')) soldToUnsold() }} className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-xl py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2">
+                          <Icon name="undo" size={16} /> To Unsold
                         </button>
                       </div>
                     )}
-                    <button onClick={nextPlayer} className="btn-primary text-2xl px-14 py-6">
+                    <button onClick={nextPlayer} className="btn-primary w-full py-4 text-lg">
                       Next Player →
                     </button>
                   </div>

@@ -371,20 +371,20 @@ export default function AdminOnline() {
               {/* Controls column */}
               <div className="w-full xl:flex-[2] flex flex-col justify-center items-center gap-4">
                 {status === 'running' && !config.timerEnabled && (
-                  <div className="flex gap-3 flex-wrap justify-center">
-                    <button onClick={adminSold} disabled={!leadingTeam || state.paused} className="bg-green-700 hover:bg-green-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-8 font-bold text-lg inline-flex items-center gap-2">
-                      <Icon name="check" size={20} strokeWidth={2.5} /> Sold
+                  <div className="w-full max-w-sm grid grid-cols-2 gap-3">
+                    <button onClick={adminSold} disabled={!leadingTeam || state.paused} className="bg-green-700 hover:bg-green-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3.5 font-bold text-base inline-flex items-center justify-center gap-2">
+                      <Icon name="check" size={18} strokeWidth={2.5} /> Sold
                     </button>
-                    <button onClick={adminUnsold} disabled={state.paused} className="bg-red-800 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-8 font-bold text-lg inline-flex items-center gap-2">
-                      <Icon name="x" size={20} strokeWidth={2.5} /> Unsold
+                    <button onClick={adminUnsold} disabled={state.paused} className="bg-red-800 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3.5 font-bold text-base inline-flex items-center justify-center gap-2">
+                      <Icon name="x" size={18} strokeWidth={2.5} /> Unsold
                     </button>
-                    <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-6 font-bold text-lg inline-flex items-center gap-2">
+                    <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="col-span-2 bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3.5 font-bold text-base inline-flex items-center justify-center gap-2">
                       <Icon name="undo" size={18} /> Undo
                     </button>
                   </div>
                 )}
                 {status === 'running' && config.timerEnabled && (
-                  <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-2xl py-4 px-8 font-bold text-lg inline-flex items-center gap-2">
+                  <button onClick={adminUndoBid} disabled={!bids.length || state.paused} className="w-full max-w-sm bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl py-3.5 font-bold text-base inline-flex items-center justify-center gap-2">
                     <Icon name="undo" size={18} /> Undo Last Bid
                   </button>
                 )}
@@ -392,14 +392,14 @@ export default function AdminOnline() {
                 {status === 'running' && (
                   <button
                     onClick={state.paused ? adminResume : adminPause}
-                    className={`rounded-2xl py-3.5 px-8 font-bold text-base inline-flex items-center gap-2 ${state.paused ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-yellow-300'}`}
+                    className={`w-full max-w-sm rounded-xl py-3.5 font-bold text-base inline-flex items-center justify-center gap-2 ${state.paused ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-yellow-300'}`}
                   >
                     {state.paused ? <><Icon name="play" size={18} /> Resume Auction</> : <><Icon name="pause" size={18} /> Pause Auction</>}
                   </button>
                 )}
 
                 {state.paused && status === 'running' && (
-                  <div className="bg-yellow-900/50 border border-yellow-700 rounded-xl px-5 py-3 text-yellow-300 text-base font-semibold text-center inline-flex items-center justify-center gap-2">
+                  <div className="w-full max-w-sm bg-yellow-900/50 border border-yellow-700 rounded-xl px-5 py-3 text-yellow-300 text-base font-semibold text-center inline-flex items-center justify-center gap-2">
                     <Icon name="pause" size={18} /> Auction Paused — Bidding disabled
                   </div>
                 )}
@@ -409,32 +409,32 @@ export default function AdminOnline() {
                 )}
 
                 {(status === 'sold' || status === 'unsold') && (
-                  <>
+                  <div className="w-full max-w-sm flex flex-col gap-3">
                     {status === 'sold' && state.canUndoSold && (
-                      <div className="flex gap-3 flex-wrap justify-center">
+                      <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => { if (window.confirm('Reopen bidding for this sold player? This will remove the player from the team and restore the winning bid.')) adminReopenSold() }}
-                          className="bg-blue-700 hover:bg-blue-600 text-white rounded-2xl py-3 px-6 font-bold text-base inline-flex items-center gap-2"
+                          className="bg-blue-700 hover:bg-blue-600 text-white rounded-xl py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
                         >
-                          <Icon name="reopen" size={18} /> Reopen Bidding
+                          <Icon name="reopen" size={16} /> Reopen
                         </button>
                         <button
                           onClick={() => { if (window.confirm('Move this sold player to unsold? This will remove the player from the team and refund the sale.')) adminUndoSold() }}
-                          className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-2xl py-3 px-6 font-bold text-base inline-flex items-center gap-2"
+                          className="bg-yellow-700 hover:bg-yellow-600 text-white rounded-xl py-3.5 font-bold text-sm inline-flex items-center justify-center gap-2"
                         >
-                          <Icon name="undo" size={18} /> To Unsold
+                          <Icon name="undo" size={16} /> To Unsold
                         </button>
                       </div>
                     )}
                     <button
                       onClick={adminNextPlayer}
                       disabled={state.connectedTeamIds.length < totalTeams}
-                      className={`btn-primary text-2xl px-14 py-6 transition-opacity ${state.connectedTeamIds.length < totalTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`btn-primary w-full py-4 text-lg transition-opacity ${state.connectedTeamIds.length < totalTeams ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       Next Player →
                     </button>
                     {state.connectedTeamIds.length < totalTeams && (
-                      <div className="bg-yellow-900/40 border border-yellow-700 rounded-xl px-4 py-3 text-sm w-full max-w-sm">
+                      <div className="bg-yellow-900/40 border border-yellow-700 rounded-xl px-4 py-3 text-sm w-full">
                         <p className="text-yellow-300 font-semibold mb-1.5 inline-flex items-center gap-1.5"><Icon name="warning" size={15} /> Captain connection status</p>
                         {teams.map(team => {
                           const online = state.connectedTeamIds.includes(team.id)
@@ -448,7 +448,7 @@ export default function AdminOnline() {
                         })}
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
