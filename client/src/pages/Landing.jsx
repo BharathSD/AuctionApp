@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadAuctionState, saveAuctionConfig, saveOnlineLiveSnapshot, clearAuctionState } from '../hooks/useAuctionStorage'
+import BrandMark from '../components/BrandMark'
+import Icon from '../components/Icon'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -37,13 +39,16 @@ export default function Landing() {
 
   return (
     <div className="app-shell flex flex-col items-center justify-center p-6 text-white">
-      <div className="app-page w-full max-w-5xl">
-        <div className="premium-hero text-center px-6 py-10 md:py-14 mb-8">
-          <p className="hero-kicker mb-3">Tournament Ops Suite</p>
-          <h1 className="hero-heading text-white mb-4">
+      <div className="app-page w-full max-w-6xl">
+        <div className="premium-hero text-center px-6 py-8 md:py-10 mb-8">
+          <div className="flex justify-center mb-4">
+            <BrandMark size={52} withWordmark wordmark="Auction OS" />
+          </div>
+          <p className="hero-kicker mb-2">Tournament Ops Suite</p>
+          <h1 className="hero-heading text-white mb-3">
             Cricket Auction Control Room
           </h1>
-          <p className="hero-subtext text-lg">
+          <p className="hero-subtext">
             Professional live-auction experience for leagues that need speed, clarity, and drama on every bid.
           </p>
         </div>
@@ -52,7 +57,7 @@ export default function Landing() {
       {offlineInProgress && (
         <div className="status-banner w-full mb-6 px-5 py-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-yellow-100 font-semibold text-sm">⚡ Offline auction in progress</p>
+            <p className="text-yellow-100 font-semibold text-sm flex items-center gap-1.5"><Icon name="bolt" size={15} /> Offline auction in progress</p>
             <p className="text-yellow-200 text-xs mt-0.5">
               {saved._runtime.status === 'sold' || saved._runtime.status === 'running'
                 ? `Player ${saved._runtime.currentIdx + 1} of ${saved._runtime.queue?.length ?? '?'} — ${saved._runtime.status}`
@@ -117,9 +122,9 @@ export default function Landing() {
       <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleResumeFile} />
       <button
         onClick={() => fileRef.current?.click()}
-        className="btn-secondary mt-6 px-6 py-3 text-base"
+        className="btn-secondary mt-6 px-6 py-3 text-base inline-flex items-center gap-2"
       >
-        💾 Resume saved auction from snapshot file →
+        <Icon name="upload" size={16} /> Resume saved auction from snapshot file →
       </button>
       </div>
     </div>

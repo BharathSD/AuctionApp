@@ -65,11 +65,10 @@ body {
 }
 
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -131,7 +130,7 @@ code {
 }
 
 .app-page {
-  width: min(1120px, 100% - 2rem);
+  width: min(1280px, 100% - 2rem);
   margin-inline: auto;
 }
 
@@ -462,6 +461,75 @@ code {
   background: linear-gradient(130deg, #3eb6ff 0%, #2f87f5 100%);
   border-color: rgba(205, 236, 255, 0.4);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Setup form — left-align labels/fields (override global #root centering) */
+.setup-form {
+  text-align: left;
+}
+
+/* High-contrast team bid buttons for the live auction console */
+.team-bid-btn {
+  background: linear-gradient(160deg, rgba(32, 58, 92, 0.95) 0%, rgba(20, 40, 66, 0.95) 100%);
+  border: 1px solid rgba(120, 170, 224, 0.4);
+  color: #eaf3ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 20px -16px rgba(0, 0, 0, 0.9);
+}
+
+.team-bid-btn:hover:not(:disabled) {
+  background: linear-gradient(160deg, #3eb6ff 0%, #2f87f5 100%);
+  border-color: rgba(200, 233, 255, 0.55);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.team-bid-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.team-bid-btn:disabled {
+  cursor: not-allowed;
+}
+
+.team-bid-btn.is-leading {
+  background: linear-gradient(160deg, rgba(62, 182, 255, 0.28) 0%, rgba(47, 135, 245, 0.22) 100%);
+  border-color: rgba(120, 200, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.5), 0 0 22px -6px rgba(62, 182, 255, 0.7);
+  color: #d6ecff;
+}
+
+.team-bid-btn.is-full {
+  background: rgba(60, 20, 30, 0.55);
+  border-color: rgba(251, 113, 133, 0.5);
+  color: #ffc2cd;
+}
+
+.team-bid-btn.is-blocked {
+  background: rgba(18, 32, 52, 0.6);
+  border-color: rgba(111, 151, 196, 0.18);
+  color: #7f97b3;
+}
+
+/* Brand mark lockup */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand-mark svg {
+  filter: drop-shadow(0 6px 14px rgba(62, 182, 255, 0.35));
+}
+
+.brand-wordmark {
+  font-family: var(--heading);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(100deg, #f2f9ff 0%, #93e8ff 55%, #4dd5a3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .scroll-fade {

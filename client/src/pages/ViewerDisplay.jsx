@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-600',
@@ -95,7 +96,7 @@ export default function ViewerDisplay() {
         <div className="flex items-center gap-4 min-w-0">
           <span className="broadcast-title truncate">Cricket Auction Live Board</span>
           {secondRound && (
-            <span className="text-xs bg-orange-700 text-orange-100 px-2 py-0.5 rounded font-semibold">🔁 UNSOLD ROUND</span>
+            <span className="text-xs bg-orange-700 text-orange-100 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1"><Icon name="refresh" size={12} /> UNSOLD ROUND</span>
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-300 flex-wrap justify-end">

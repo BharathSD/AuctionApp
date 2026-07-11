@@ -5,6 +5,7 @@ import { saveAuctionConfig } from '../hooks/useAuctionStorage'
 import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
 import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,
@@ -193,7 +194,7 @@ export default function Setup() {
   /* ---------- render ---------- */
   return (
     <div className="app-shell text-white">
-      <div className="app-page max-w-3xl mx-auto p-6">
+      <div className="app-page setup-form max-w-3xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm">← Back</button>
@@ -219,16 +220,28 @@ export default function Setup() {
         {/* --- Step: Config --- */}
         {step === 'config' && (
           <div className="space-y-6">
-            <Field label="Number of Teams">
-              <input type="number" min={2} max={16} value={config.numTeams}
-                onChange={e => handleConfigChange('numTeams', e.target.value)}
-                className="input-field" />
-            </Field>
-            <Field label="Points per Team (budget)">
-              <input type="number" min={100} value={config.pointsPerTeam}
-                onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
-                className="input-field" />
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+              <Field label="Number of Teams">
+                <input type="number" min={2} max={16} value={config.numTeams}
+                  onChange={e => handleConfigChange('numTeams', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+              <Field label="Points per Team (budget)">
+                <input type="number" min={100} value={config.pointsPerTeam}
+                  onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+              <Field label="Minimum Base Bid">
+                <input type="number" min={1} value={config.minBidBase}
+                  onChange={e => handleConfigChange('minBidBase', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+              <Field label="Max Players per Team">
+                <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
+                  onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+            </div>
             <Field label="Bid Increment Tiers">
               <div className="space-y-2">
                 {tiers.map((tier, idx) => (
@@ -243,7 +256,7 @@ export default function Setup() {
                       <input
                         type="number" min={1} value={tier.upTo ?? ''}
                         onChange={e => updateTier(idx, 'upTo', e.target.value)}
-                        className="input-field w-20 text-center text-sm py-1"
+                        className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
                         placeholder="Up to"
                       />
                     )}
@@ -251,12 +264,12 @@ export default function Setup() {
                     <input
                       type="number" min={1} value={tier.increment}
                       onChange={e => updateTier(idx, 'increment', e.target.value)}
-                      className="input-field w-20 text-center text-sm py-1"
+                      className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
                       placeholder="Inc"
                     />
                     <span className="text-xs text-gray-500">pts</span>
                     {tiers.length > 1 && (
-                      <button onClick={() => removeTier(idx)} className="text-red-400 hover:text-red-300 text-sm px-1">✕</button>
+                      <button onClick={() => removeTier(idx)} aria-label="Remove tier" className="text-red-400 hover:text-red-300 px-1"><Icon name="x" size={14} /></button>
                     )}
                   </div>
                 ))}
@@ -266,37 +279,29 @@ export default function Setup() {
                 >+ Add tier</button>
               </div>
             </Field>
-            <Field label="Minimum Base Bid">
-              <input type="number" min={1} value={config.minBidBase}
-                onChange={e => handleConfigChange('minBidBase', e.target.value)}
-                className="input-field" />
-            </Field>
-            <Field label="Max Players per Team">
-              <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
-                onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
-                className="input-field" />
-            </Field>
-            <Field label="Player Order">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={config.randomizeOrder}
-                  onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
-                  className="w-5 h-5 rounded" />
-                <span className="text-sm text-gray-300">Randomize player auction order</span>
-              </label>
-            </Field>
-            <Field label="Timer Mode">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={config.timerEnabled}
-                  onChange={e => handleConfigChange('timerEnabled', e.target.checked)}
-                  className="w-5 h-5 rounded" />
-                <span className="text-sm text-gray-300">Enable countdown timer per bid</span>
-              </label>
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+              <Field label="Player Order">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={config.randomizeOrder}
+                    onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
+                    className="w-5 h-5 rounded" />
+                  <span className="text-sm text-gray-300">Randomize player auction order</span>
+                </label>
+              </Field>
+              <Field label="Timer Mode">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={config.timerEnabled}
+                    onChange={e => handleConfigChange('timerEnabled', e.target.checked)}
+                    className="w-5 h-5 rounded" />
+                  <span className="text-sm text-gray-300">Enable countdown timer per bid</span>
+                </label>
+              </Field>
+            </div>
             {config.timerEnabled && (
               <Field label="Timer Duration (seconds)">
                 <input type="number" min={5} max={120} value={config.timerSeconds}
                   onChange={e => handleConfigChange('timerSeconds', e.target.value)}
-                  className="input-field" />
+                  className="input-field max-w-[220px]" />
               </Field>
             )}
             <div className="flex justify-end">

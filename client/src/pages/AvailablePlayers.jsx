@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
@@ -174,7 +175,7 @@ export default function AvailablePlayers() {
         {totalAvailable === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <div className="text-center">
-              <p className="text-lg mb-2">✓ All players have been auctioned!</p>
+              <p className="text-lg mb-2 inline-flex items-center gap-2"><Icon name="check" size={20} strokeWidth={2.5} className="text-green-400" /> All players have been auctioned!</p>
               <p className="text-sm">No pending or unsold players remaining.</p>
             </div>
           </div>

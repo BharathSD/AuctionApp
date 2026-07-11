@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { loadBestAvailableAuctionData, clearAuctionState } from '../hooks/useAuctionStorage'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 export default function Results() {
   const navigate = useNavigate()
@@ -171,7 +172,7 @@ export default function Results() {
 
   return (
     <div className="app-shell text-white">
-      <div className="app-page max-w-4xl mx-auto p-6">
+      <div className="app-page max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-extrabold mb-1">Auction Results</h1>
@@ -194,7 +195,9 @@ export default function Results() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {teams.map(team => {
               const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
-              const pct = Math.round((team.budget / config.pointsPerTeam) * 100)
+              const totalBudget = config.pointsPerTeam || 1
+              const spent = roster.reduce((s, p) => s + (p.soldPrice || 0), 0)
+              const usedPct = Math.min(100, Math.round((spent / totalBudget) * 100))
               return (
                 <div key={team.id} className="auction-surface rounded-2xl overflow-hidden">
                   <div className="px-4 py-3 bg-gray-800 flex justify-between items-center">
@@ -204,9 +207,16 @@ export default function Results() {
                       <p className="text-yellow-400 font-bold">{team.budget} pts</p>
                     </div>
                   </div>
-                  <div className="px-4 py-1">
-                    <div className="w-full bg-gray-700 rounded-full h-1.5 my-2">
-                      <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                  <div className="px-4 pt-2 pb-1">
+                    <div className="flex justify-between text-[11px] text-gray-500 mb-1">
+                      <span>{spent} pts spent</span>
+                      <span>{usedPct}% of budget used</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${usedPct >= 90 ? 'bg-red-400' : usedPct >= 60 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                        style={{ width: `${usedPct}%` }}
+                      />
                     </div>
                   </div>
                   {roster.length === 0 ? (
@@ -257,7 +267,7 @@ export default function Results() {
         {/* Actions */}
         <div className="flex flex-wrap gap-4 justify-center">
           <button onClick={exportXLSX} className="btn-secondary flex items-center gap-2">
-            📥 Export XLSX
+            <Icon name="download" size={16} /> Export XLSX
           </button>
           <button onClick={handleNewAuction} className="btn-primary">
             Start New Auction

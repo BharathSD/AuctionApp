@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const ROLE_COLORS = {
   Batsman: 'text-blue-400',
@@ -132,7 +133,7 @@ export default function CaptainBidding() {
     const likelyInvalid = /invalid captain session/i.test(state.sessionError)
     return (
       <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
-        <div className="text-6xl">🚫</div>
+        <Icon name="ban" size={64} className="text-red-400" />
         <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
         <p className="text-gray-400 max-w-sm">{state.sessionError}</p>
         {likelyDuplicate && (
@@ -272,12 +273,12 @@ export default function CaptainBidding() {
 
               {/* Status outcomes */}
               {status === 'sold' && (
-                <div className={`rounded-xl px-6 py-3 font-bold text-lg ${isLeading || state.leadingTeamId === teamId ? 'bg-green-800 text-green-200' : 'bg-gray-800 text-gray-300'}`}>
-                  {state.leadingTeamId === teamId ? '🎉 You won this player!' : `✅ Sold to ${leadingTeam?.name}`}
+                <div className={`rounded-xl px-6 py-3 font-bold text-lg inline-flex items-center justify-center gap-2 ${isLeading || state.leadingTeamId === teamId ? 'bg-green-800 text-green-200' : 'bg-gray-800 text-gray-300'}`}>
+                  {state.leadingTeamId === teamId ? <><Icon name="trophy" size={20} /> You won this player!</> : <><Icon name="check" size={18} strokeWidth={2.5} /> Sold to {leadingTeam?.name}</>}
                 </div>
               )}
               {status === 'unsold' && (
-                <div className="bg-red-900 rounded-xl px-6 py-3 text-red-200 font-bold text-lg">❌ Unsold</div>
+                <div className="bg-red-900 rounded-xl px-6 py-3 text-red-200 font-bold text-lg inline-flex items-center justify-center gap-2"><Icon name="x" size={18} strokeWidth={2.5} /> Unsold</div>
               )}
 
               {/* BID BUTTON */}
@@ -287,8 +288,8 @@ export default function CaptainBidding() {
                 </div>
               )}
               {status === 'running' && state.paused && (
-                <div className="w-full max-w-xs rounded-2xl py-5 text-center bg-yellow-900/50 border border-yellow-700 text-yellow-300 font-bold text-lg">
-                  ⏸ Auction Paused
+                <div className="w-full max-w-xs rounded-2xl py-5 text-center bg-yellow-900/50 border border-yellow-700 text-yellow-300 font-bold text-lg inline-flex items-center justify-center gap-2">
+                  <Icon name="pause" size={18} /> Auction Paused
                 </div>
               )}
               {status === 'running' && !state.paused && (
@@ -302,11 +303,11 @@ export default function CaptainBidding() {
                     'bg-gray-800 text-gray-600 cursor-not-allowed'
                   }`}
                 >
-                  {bidFlash === 'ok' ? '✓ Bid placed!' :
+                  {bidFlash === 'ok' ? <span className="inline-flex items-center gap-2"><Icon name="check" size={22} strokeWidth={3} /> Bid placed!</span> :
                    bidFlash === 'late' ? 'Too late!' :
                    isLeading ? 'You are leading' :
-                   config.maxPlayersPerTeam && myTeam?.players?.length >= config.maxPlayersPerTeam ? '🚫 Roster Full' :
-                   !canAffordRemaining ? '💸 Can\'t fill roster' :
+                   config.maxPlayersPerTeam && myTeam?.players?.length >= config.maxPlayersPerTeam ? <span className="inline-flex items-center gap-2"><Icon name="ban" size={20} /> Roster Full</span> :
+                   !canAffordRemaining ? <span className="inline-flex items-center gap-2"><Icon name="warning" size={20} /> Can't fill roster</span> :
                    canBid ? `BID ${nextBidPrice} pts` :
                    myTeam && myTeam.budget < nextBidPrice ? 'Budget too low' : 'Waiting…'}
                 </button>
@@ -350,17 +351,21 @@ export default function CaptainBidding() {
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-4">All Teams</p>
           <div className="space-y-3">
               {teams.map(team => {
-              const pct = state.config.pointsPerTeam ? Math.round((team.budget / state.config.pointsPerTeam) * 100) : 0
+              const total = state.config.pointsPerTeam || 1
+              const spentPct = Math.min(100, Math.round(((total - team.budget) / total) * 100))
               return (
                 <div key={team.id} className={`bg-gray-800 rounded-xl p-4 ${team.id === teamId ? 'ring-1 ring-blue-500' : ''}`}>
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">{team.name} {team.id === teamId ? '(you)' : ''}</span>
                     <span className="text-yellow-400 font-bold">{team.budget} pts</span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2 mb-1">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${pct}%` }} />
+                  <div className="w-full bg-gray-700 rounded-full h-2 mb-1" title={`${spentPct}% of budget used`}>
+                    <div
+                      className={`h-2 rounded-full transition-all ${spentPct >= 90 ? 'bg-red-400' : spentPct >= 60 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                      style={{ width: `${spentPct}%` }}
+                    />
                   </div>
-                  <p className="text-xs text-gray-500">{team.players.length} players</p>
+                  <p className="text-xs text-gray-500">{team.players.length} players · {spentPct}% used</p>
                 </div>
               )
             })}
