@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "windows": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/precheck-build-test.ps1",
+        "command": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/precheck-build-test.ps1",
+        "timeout": 15
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "windows": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/enforce-build-test.ps1",
+        "command": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/enforce-build-test.ps1",
+        "timeout": 1200
+      }
+    ]
+  }
+}
