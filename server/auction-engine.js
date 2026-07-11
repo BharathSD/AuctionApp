@@ -446,6 +446,9 @@ function finishAuction(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
   clearTimer(room)
+  // Every player not sold (still queued/pending or on the block) becomes 'unsold'
+  // so they're consistently counted as unsold and available for auto-assign / re-auction.
+  room.players = room.players.map(p => p.status === 'sold' ? p : { ...p, status: 'unsold' })
   room.status = 'finished'
   io.to(roomCode).emit('auction:finished', publicState(room))
   return publicState(room)
@@ -514,20 +517,14 @@ function autoAssignUnsold(roomCode, io) {
     const unsoldPlayer = room.players[playerIdx]
     const basePrice = Number(unsoldPlayer.basePrice) || 0
     
-    // Find teams with available roster spots, prioritize teams with fewer players
+    // Find teams that can take this player (roster not full + can afford the
+    // base price), preferring teams with fewer players so rosters fill evenly.
+    // No full-roster-completion guard here — auto-assign fills as many spots as
+    // each team's budget allows, even when it can't complete the whole roster.
     const availableTeams = room.teams
       .filter(t => {
         if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
         if (Number(t.budget) < basePrice) return false
-
-        // Keep budget-safe roster completion guarantees aligned with bid logic.
-        if (maxPlayers > 0) {
-          const spotsFilledAfter = t.players.length + 1
-          const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
-          const minNeeded = minCostForRemainingSpots(room.players, playerIdx, spotsNeededAfter)
-          if (Number(t.budget) - basePrice < minNeeded) return false
-        }
-
         return true
       })
       .sort((a, b) => a.players.length - b.players.length)

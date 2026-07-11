@@ -462,6 +462,41 @@ describe('FINISH', () => {
   })
 })
 
+// ─── FINISH ──────────────────────────────────────────────────
+
+describe('FINISH', () => {
+  it('marks every not-sold player (queued or on the block) as unsold', () => {
+    const players = makePlayers([200, 300, 400])
+    players[0].status = 'sold'
+    players[0].soldTo = 'team1'
+    players[0].soldPrice = 200
+    players[1].status = 'pending' // still queued
+    players[2].status = 'pending' // on the block / never reached
+
+    const state = {
+      config: makeConfig(),
+      teams: makeTeams(2),
+      players,
+      queue: [1, 2],
+      currentIdx: 1,
+      currentPrice: 300,
+      leadingTeamId: null,
+      bids: [],
+      status: 'running',
+      timerLeft: null,
+      paused: false,
+      secondRound: false,
+      soldHistory: [],
+    }
+
+    const next = reducer(state, { type: 'FINISH' })
+    expect(next.status).toBe('finished')
+    expect(next.players[0].status).toBe('sold') // sold stays sold
+    expect(next.players[1].status).toBe('unsold')
+    expect(next.players[2].status).toBe('unsold')
+  })
+})
+
 // ─── AUTO_ASSIGN ─────────────────────────────────────────────
 
 describe('AUTO_ASSIGN', () => {
@@ -521,5 +556,66 @@ describe('AUTO_ASSIGN', () => {
     expect(next.players[0].status).toBe('unsold')
     expect(next.teams[0].budget).toBe(40)
     expect(next.teams[1].budget).toBe(30)
+  })
+
+  it('fills spots even when a team cannot afford the whole roster (regression)', () => {
+    // maxPlayers 3, budget 100, three unsold players at base 80 each.
+    // The team can only afford ONE (80 → 20 left). Previously a roster-completion
+    // guard rejected every assignment, leaving the team empty.
+    const teams = makeTeams(1, 100)
+    const players = makePlayers([80, 80, 80])
+    players.forEach(p => { p.status = 'unsold' })
+
+    const state = {
+      config: makeConfig({ maxPlayersPerTeam: 3 }),
+      teams,
+      players,
+      queue: [],
+      currentIdx: -1,
+      currentPrice: null,
+      leadingTeamId: null,
+      bids: [],
+      status: 'finished',
+      timerLeft: null,
+      paused: false,
+      secondRound: false,
+      soldHistory: [],
+    }
+
+    const next = reducer(state, { type: 'AUTO_ASSIGN' })
+    expect(next.teams[0].players.length).toBe(1)
+    expect(next.players.filter(p => p.status === 'sold').length).toBe(1)
+    expect(next.teams[0].budget).toBe(20)
+  })
+
+  it('is pure — does not mutate input team rosters, assigns each player once', () => {
+    const teams = makeTeams(2, 1000)
+    const players = makePlayers([200, 200, 200, 200])
+    players.forEach(p => { p.status = 'unsold' })
+
+    const state = {
+      config: makeConfig({ maxPlayersPerTeam: 5 }),
+      teams,
+      players,
+      queue: [],
+      currentIdx: -1,
+      currentPrice: null,
+      leadingTeamId: null,
+      bids: [],
+      status: 'finished',
+      timerLeft: null,
+      paused: false,
+      secondRound: false,
+      soldHistory: [],
+    }
+
+    const next = reducer(state, { type: 'AUTO_ASSIGN' })
+    // input state must be untouched (no shared-array mutation)
+    expect(teams[0].players.length).toBe(0)
+    expect(teams[1].players.length).toBe(0)
+    // every unsold player assigned exactly once — no duplicates
+    const assigned = next.teams.flatMap(t => t.players.map(p => p.id))
+    expect(assigned.length).toBe(4)
+    expect(new Set(assigned).size).toBe(4)
   })
 })

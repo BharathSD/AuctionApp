@@ -114,7 +114,7 @@ export default function OfflineAuction() {
           )}
           {status !== 'idle' && status !== 'finished' && (
             <button
-              onClick={() => { if (window.confirm('End the auction now? Remaining players will be skipped.')) finishAuction() }}
+              onClick={() => { if (window.confirm('End the auction now? Any players not yet sold will be marked unsold (you can still auto-assign or re-auction them).')) finishAuction() }}
               className="text-red-400 hover:text-red-300 text-xs border border-red-800 px-2 py-1 rounded inline-flex items-center gap-1"
             >
               <Icon name="stop" size={12} /> Finish
