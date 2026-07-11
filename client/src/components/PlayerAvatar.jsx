@@ -43,7 +43,6 @@ export default function PlayerAvatar({ name, photoUrl, size = 'md', className = 
         alt={name ? `${name} photo` : 'Player photo'}
         className={`${circleClasses} object-cover ${className}`}
         loading="lazy"
-        referrerPolicy="no-referrer"
         onError={() => setImageFailed(true)}
       />
     )

@@ -34,8 +34,7 @@ export default function PlayerSpotlight({ name, photoUrl, tag = 'On the block' }
         alt={name ? `${name} photo` : 'Player photo'}
         onError={() => setFailed(true)}
         loading="lazy"
-        referrerPolicy="no-referrer"
-        className="w-full h-80 object-cover rounded-2xl border border-white/10 shadow-2xl"
+        className="w-full h-80 object-cover rounded-2xl border border-white/10 shadow-2xl bg-gray-800"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 rounded-b-2xl bg-gradient-to-t from-black/70 to-transparent" />
     </div>
