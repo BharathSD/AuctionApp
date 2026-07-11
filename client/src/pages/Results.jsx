@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { loadBestAvailableAuctionData, clearAuctionState } from '../hooks/useAuctionStorage'
 import PlayerAvatar from '../components/PlayerAvatar'
 import Icon from '../components/Icon'
+import BrandMark from '../components/BrandMark'
 
 export default function Results() {
   const navigate = useNavigate()
@@ -174,9 +175,14 @@ export default function Results() {
     <div className="app-shell text-white">
       <div className="app-page max-w-6xl mx-auto p-6">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-extrabold mb-1">Auction Results</h1>
-          <p className="text-gray-400 text-sm">
+        <div className="mb-10 text-left">
+          <div className="flex items-center justify-between mb-6">
+            <BrandMark size={28} withWordmark wordmark="Auction OS" />
+            <span className="pill-static"><Icon name="trophy" size={13} /> Final results</span>
+          </div>
+          <p className="hero-kicker mb-2">Tournament complete</p>
+          <h1 className="page-title">Auction Results</h1>
+          <p className="text-gray-400 text-sm mt-3">
             {soldPlayers.length} of {players.length} players sold · {mode === 'offline' ? 'Offline' : 'Online'} auction
           </p>
         </div>

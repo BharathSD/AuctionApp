@@ -6,6 +6,7 @@ import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
 import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
 import PlayerAvatar from '../components/PlayerAvatar'
 import Icon from '../components/Icon'
+import BrandMark from '../components/BrandMark'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,
@@ -196,9 +197,13 @@ export default function Setup() {
     <div className="app-shell text-white">
       <div className="app-page setup-form max-w-3xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm">← Back</button>
-          <h1 className="text-2xl font-bold">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm inline-flex items-center gap-1.5">← Back to home</button>
+            <BrandMark size={28} withWordmark wordmark="Auction OS" />
+          </div>
+          <p className="hero-kicker mb-2">{mode === 'offline' ? 'Single-console setup' : 'Multi-device setup'}</p>
+          <h1 className="page-title">
             {mode === 'offline' ? 'Offline Auction Setup' : 'Online Auction Setup'}
           </h1>
         </div>

@@ -713,6 +713,33 @@ code {
 
 .cap-chip svg { color: var(--ui-brand); }
 
+/* Editorial section heading used on Setup / Results */
+.page-title {
+  font-family: var(--heading);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--text-h);
+}
+
+.pill-static {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #bfe9ff;
+  background: rgba(62, 182, 255, 0.1);
+  border: 1px solid rgba(62, 182, 255, 0.34);
+}
+
+.pill-static svg { color: var(--ui-brand); }
+
 .scroll-fade {
   scrollbar-width: thin;
   scrollbar-color: rgba(109, 162, 219, 0.7) rgba(5, 15, 26, 0.5);
