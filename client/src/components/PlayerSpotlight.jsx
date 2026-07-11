@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import PlayerAvatar from './PlayerAvatar'
+import { proxiedImg } from '../utils/img'
 
 function isSafePhotoUrl(url) {
   if (!url) return false
@@ -30,7 +31,7 @@ export default function PlayerSpotlight({ name, photoUrl, tag = 'On the block' }
         <span className="live-dot" /> Live
       </span>
       <img
-        src={String(photoUrl).trim()}
+        src={proxiedImg(String(photoUrl).trim())}
         alt={name ? `${name} photo` : 'Player photo'}
         onError={() => setFailed(true)}
         loading="lazy"
