@@ -356,49 +356,6 @@ io.on('connection', (socket) => {
   })
 })
 
-// ── Image proxy (loads external player photos reliably, avoids CDN/ORB issues) ──
-function isBlockedImageHost(host) {
-  const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '')
-  return (
-    h === 'localhost' || h === '0.0.0.0' || h === '::1' ||
-    h.endsWith('.local') ||
-    /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) ||
-    /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
-  )
-}
-
-app.get('/api/img-proxy', async (req, res) => {
-  const url = req.query.url
-  if (!url || typeof url !== 'string') return res.status(400).send('missing url')
-  let parsed
-  try { parsed = new URL(url) } catch { return res.status(400).send('bad url') }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return res.status(400).send('bad protocol')
-  if (isBlockedImageHost(parsed.hostname)) return res.status(403).send('blocked host')
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 8000)
-  try {
-    const upstream = await fetch(parsed.toString(), {
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: { 'User-Agent': 'AuctionApp-ImageProxy/1.0', Accept: 'image/*' },
-    })
-    if (!upstream.ok) return res.status(502).send('upstream error')
-    const contentType = upstream.headers.get('content-type') || ''
-    if (!contentType.startsWith('image/')) return res.status(415).send('not an image')
-    const buf = Buffer.from(await upstream.arrayBuffer())
-    if (buf.length > 8 * 1024 * 1024) return res.status(413).send('image too large')
-    res.set('Content-Type', contentType)
-    res.set('Cache-Control', 'public, max-age=86400')
-    res.set('Cross-Origin-Resource-Policy', 'same-origin')
-    return res.send(buf)
-  } catch {
-    return res.status(502).send('fetch failed')
-  } finally {
-    clearTimeout(timeout)
-  }
-})
-
 // ── SPA catch-all (must be after API routes) ─────────────────
 if (process.env.NODE_ENV === 'production') {
   app.get('/{*path}', (req, res) => {
