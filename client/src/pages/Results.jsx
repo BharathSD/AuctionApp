@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { loadBestAvailableAuctionData, clearAuctionState } from '../hooks/useAuctionStorage'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
+import BrandMark from '../components/BrandMark'
 
 export default function Results() {
   const navigate = useNavigate()
@@ -8,12 +10,11 @@ export default function Results() {
 
   if (!resultData) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+      <div className="app-shell text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 mb-4">No auction data found.</p>
           <button onClick={() => navigate('/')} className="btn-primary">Go Home</button>
         </div>
-        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
       </div>
     )
   }
@@ -21,6 +22,13 @@ export default function Results() {
   const { teams = [], players = [], config = {}, mode } = resultData
   const soldPlayers = players.filter(p => p.status === 'sold')
   const unsoldPlayers = players.filter(p => p.status !== 'sold')
+  const teamNameById = new Map(teams.map(t => [t.id, t.name]))
+
+  const snapshotBids = Array.isArray(resultData.bids)
+    ? resultData.bids
+    : Array.isArray(resultData?._runtime?.bids)
+      ? resultData._runtime.bids
+      : []
 
   const exportXLSX = async () => {
     const ExcelJS = (await import('exceljs')).default
@@ -154,6 +162,70 @@ export default function Results() {
     })
     totalRow.getCell(1).alignment = { horizontal: 'left' }
 
+    // ── Sheet 3: Bid log / audit trail ───────────────────────
+    const bidSheet = wb.addWorksheet('Bid Log')
+    bidSheet.columns = [
+      { key: 'time', width: 24 },
+      { key: 'event', width: 14 },
+      { key: 'player', width: 28 },
+      { key: 'team', width: 22 },
+      { key: 'price', width: 14 },
+      { key: 'source', width: 18 },
+    ]
+
+    const bidHeader = bidSheet.addRow(['Time', 'Event', 'Player', 'Team', 'Price', 'Source'])
+    bidHeader.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+
+    const formatTime = (ts) => {
+      if (!ts) return ''
+      const d = new Date(ts)
+      return Number.isNaN(d.getTime()) ? '' : d.toLocaleString()
+    }
+
+    // Snapshot bid list is usually newest-first for the currently active player.
+    ;[...snapshotBids].reverse().forEach(b => {
+      bidSheet.addRow([
+        formatTime(b.ts),
+        'BID',
+        b.playerName || '',
+        teamNameById.get(b.teamId) || b.teamId || '',
+        b.price ?? '',
+        'live snapshot',
+      ])
+    })
+
+    // Sold entries are always available in final results and act as durable audit rows.
+    soldPlayers.forEach(p => {
+      bidSheet.addRow([
+        formatTime(p.soldAt),
+        'SOLD',
+        p.name,
+        teamNameById.get(p.soldTo) || p.soldTo || '',
+        p.soldPrice ?? '',
+        'final roster',
+      ])
+    })
+
+    if (bidSheet.rowCount === 1) {
+      bidSheet.addRow(['', 'INFO', 'No bid/audit events available in current snapshot.', '', '', ''])
+    }
+
+    bidSheet.eachRow((row, idx) => {
+      if (idx === 1) return
+      row.getCell(2).alignment = { horizontal: 'center' }
+      row.getCell(5).alignment = { horizontal: 'right' }
+      const event = String(row.getCell(2).value || '')
+      if (event === 'SOLD') {
+        row.getCell(2).font = { bold: true, color: { argb: 'FF22C55E' } }
+      } else if (event === 'BID') {
+        row.getCell(2).font = { bold: true, color: { argb: 'FF60A5FA' } }
+      }
+    })
+
     // ── Write and download ───────────────────────────────────
     const buffer = await wb.xlsx.writeBuffer()
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
@@ -171,13 +243,17 @@ export default function Results() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="app-shell text-white">
+      <div className="app-page max-w-6xl mx-auto p-6">
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="text-5xl mb-3">🏆</div>
-          <h1 className="text-3xl font-extrabold mb-1">Auction Results</h1>
-          <p className="text-gray-400 text-sm">
+        <div className="mb-10 text-left">
+          <div className="flex items-center justify-between mb-6">
+            <BrandMark size={28} withWordmark wordmark="Auction OS" />
+            <span className="pill-static"><Icon name="trophy" size={13} /> Final results</span>
+          </div>
+          <p className="hero-kicker mb-2">Tournament complete</p>
+          <h1 className="page-title">Auction Results</h1>
+          <p className="text-gray-400 text-sm mt-3">
             {soldPlayers.length} of {players.length} players sold · {mode === 'offline' ? 'Offline' : 'Online'} auction
           </p>
         </div>
@@ -196,9 +272,11 @@ export default function Results() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {teams.map(team => {
               const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
-              const pct = Math.round((team.budget / config.pointsPerTeam) * 100)
+              const totalBudget = config.pointsPerTeam || 1
+              const spent = roster.reduce((s, p) => s + (p.soldPrice || 0), 0)
+              const usedPct = Math.min(100, Math.round((spent / totalBudget) * 100))
               return (
-                <div key={team.id} className="bg-gray-900 rounded-2xl overflow-hidden">
+                <div key={team.id} className="auction-surface rounded-2xl overflow-hidden">
                   <div className="px-4 py-3 bg-gray-800 flex justify-between items-center">
                     <h3 className="font-bold">{team.name}</h3>
                     <div className="text-right">
@@ -206,9 +284,16 @@ export default function Results() {
                       <p className="text-yellow-400 font-bold">{team.budget} pts</p>
                     </div>
                   </div>
-                  <div className="px-4 py-1">
-                    <div className="w-full bg-gray-700 rounded-full h-1.5 my-2">
-                      <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                  <div className="px-4 pt-2 pb-1">
+                    <div className="flex justify-between text-[11px] text-gray-500 mb-1">
+                      <span>{spent} pts spent</span>
+                      <span>{usedPct}% of budget used</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${usedPct >= 90 ? 'bg-red-400' : usedPct >= 60 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                        style={{ width: `${usedPct}%` }}
+                      />
                     </div>
                   </div>
                   {roster.length === 0 ? (
@@ -239,7 +324,7 @@ export default function Results() {
         {unsoldPlayers.length > 0 && (
           <div className="mb-10">
             <h2 className="text-xl font-bold mb-4">Unsold Players</h2>
-            <div className="bg-gray-900 rounded-2xl divide-y divide-gray-800">
+            <div className="auction-surface rounded-2xl divide-y divide-gray-800">
               {unsoldPlayers.map((p, i) => (
                 <div key={i} className="px-4 py-3 flex justify-between items-center">
                   <div className="flex items-center gap-2 min-w-0">
@@ -259,27 +344,20 @@ export default function Results() {
         {/* Actions */}
         <div className="flex flex-wrap gap-4 justify-center">
           <button onClick={exportXLSX} className="btn-secondary flex items-center gap-2">
-            📥 Export XLSX
+            <Icon name="download" size={16} /> Export XLSX
           </button>
           <button onClick={handleNewAuction} className="btn-primary">
-            🏏 New Auction
+            Start New Auction
           </button>
         </div>
       </div>
-
-      <style>{`
-        .btn-primary { background: #2563eb; color: white; padding: 0.5rem 1.5rem; border-radius: 0.75rem; font-weight: 600; cursor: pointer; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #374151; color: white; padding: 0.5rem 1.5rem; border-radius: 0.75rem; font-weight: 600; cursor: pointer; }
-        .btn-secondary:hover { background: #4b5563; }
-      `}</style>
     </div>
   )
 }
 
 function StatCard({ label, value, color = 'text-white' }) {
   return (
-    <div className="bg-gray-900 rounded-xl p-4">
+    <div className="auction-surface rounded-xl p-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>

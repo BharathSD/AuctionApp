@@ -2,19 +2,26 @@ import { useEffect, useReducer, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-600',
   Bowler: 'bg-green-600',
   'All-rounder': 'bg-purple-600',
+  'All Rounder': 'bg-purple-600',
   'Wicket-keeper': 'bg-orange-500',
+  'Super Striker': 'bg-rose-500',
+  PLAYER: 'bg-slate-600',
 }
 
 const ROLE_TEXT = {
   Batsman: 'text-blue-300',
   Bowler: 'text-green-300',
   'All-rounder': 'text-purple-300',
+  'All Rounder': 'text-purple-300',
   'Wicket-keeper': 'text-orange-300',
+  'Super Striker': 'text-rose-300',
+  PLAYER: 'text-slate-300',
 }
 
 function reducer(state, action) {
@@ -74,10 +81,21 @@ export default function ViewerDisplay() {
   const leadingTeam = teams.find(t => t.id === leadingTeamId) || null
   const soldCount = players.filter(p => p.status === 'sold').length
   const totalPlayers = players.length
+  const currentNumber = currentIdx >= 0 ? currentIdx + 1 : 0
+  const progressPct = totalPlayers > 0 ? Math.round((soldCount / totalPlayers) * 100) : 0
 
   const timerPct = config.timerEnabled && config.timerSeconds
     ? Math.max(0, (timerLeft / config.timerSeconds) * 100) : 100
   const timerColor = timerLeft > 10 ? 'bg-green-500' : timerLeft > 5 ? 'bg-yellow-400' : 'bg-red-500'
+  const liveAnnouncement = status === 'running'
+    ? `${currentPlayer?.name || 'Player'} at ${currentPrice || 0} points${leadingTeam ? `, ${leadingTeam.name} leading` : ''}`
+    : status === 'sold'
+      ? `${currentPlayer?.name || 'Player'} sold to ${leadingTeam?.name || 'team'} for ${currentPrice || 0} points`
+      : status === 'unsold'
+        ? `${currentPlayer?.name || 'Player'} marked unsold`
+        : status === 'finished'
+          ? `Auction finished. ${soldCount} of ${totalPlayers} players sold.`
+          : 'Waiting for auction to start.'
 
   // Recently sold players (last 5)
   const recentSold = players
@@ -86,40 +104,48 @@ export default function ViewerDisplay() {
     .slice(0, 5)
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col overflow-hidden"
-      style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="app-shell text-white flex flex-col overflow-hidden">
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {liveAnnouncement}
+      </div>
 
       {/* ── Top bar ── */}
-      <div className="bg-gray-900 border-b border-gray-800 px-6 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-xl font-extrabold tracking-tight">🏏 Cricket Auction</span>
+      <div className="auction-topbar border-b border-gray-800 px-3 md:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <span className="broadcast-title truncate">Cricket Auction Live Board</span>
           {secondRound && (
-            <span className="text-xs bg-orange-700 text-orange-100 px-2 py-0.5 rounded font-semibold">🔁 UNSOLD ROUND</span>
+            <span className="text-xs bg-orange-700 text-orange-100 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1"><Icon name="refresh" size={12} /> UNSOLD ROUND</span>
           )}
         </div>
-        <div className="flex items-center gap-4 text-sm text-gray-400">
-          <span>{soldCount} / {totalPlayers} players sold</span>
+        <div className="flex items-center gap-2 text-sm text-gray-300 flex-wrap justify-end">
+          <span className="score-chip text-xs md:text-sm">
+            <span className="text-gray-500">Sold</span>
+            <strong className="text-white">{soldCount}/{totalPlayers}</strong>
+          </span>
+          <span className="score-chip text-xs md:text-sm">
+            <span className="text-gray-500">Progress</span>
+            <strong className="text-cyan-300">{progressPct}%</strong>
+          </span>
           <button
             onClick={() => window.open(`/available/${roomCode}`, '_blank')}
             title="View available players (pending & unsold)"
-            className="text-cyan-400 hover:text-white text-xs border border-cyan-800 px-2 py-0.5 rounded"
+            className="text-cyan-300 hover:text-white text-xs border border-cyan-700 px-2.5 py-1 rounded-md"
           >
-            📋 Available
+            Available
           </button>
-          <span className={`text-xs px-2 py-0.5 rounded ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+          <span className={`text-xs px-2.5 py-1 rounded-md font-semibold ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
             {connected ? '● LIVE' : '○ Connecting…'}
           </span>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
 
         {/* ── Left: current player + bid ── */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 gap-6 min-h-0">
 
           {status === 'idle' && (
             <div className="text-center">
-              <div className="text-8xl mb-6">🏏</div>
               <p className="text-3xl font-bold text-gray-300">Auction Starting Soon</p>
               <p className="text-gray-500 mt-2">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
             </div>
@@ -127,7 +153,6 @@ export default function ViewerDisplay() {
 
           {status === 'finished' && (
             <div className="text-center">
-              <div className="text-8xl mb-6">🏆</div>
               <p className="text-4xl font-extrabold text-yellow-400">Auction Complete!</p>
               <p className="text-gray-400 mt-3 text-xl">{soldCount} of {totalPlayers} players sold</p>
             </div>
@@ -135,13 +160,24 @@ export default function ViewerDisplay() {
 
           {(status === 'running' || status === 'sold' || status === 'unsold') && currentPlayer && (
             <>
-              {/* Player card */}
-              <div className={`rounded-3xl p-8 text-center w-full max-w-lg shadow-2xl border transition-all duration-300
-                ${status === 'sold' ? 'bg-green-900/40 border-green-600' :
-                  status === 'unsold' ? 'bg-gray-800 border-gray-600' :
-                  bidFlash ? 'bg-blue-900/50 border-blue-400 scale-[1.02]' : 'bg-gray-800/80 border-gray-700'}`}>
+              <div className="w-full max-w-3xl flex items-center justify-between gap-4 text-sm text-gray-300">
+                <span className="score-chip">
+                  <span className="text-gray-500">Now Auctioning</span>
+                  <strong className="text-white">#{currentNumber}</strong>
+                </span>
+                <span className="score-chip">
+                  <span className="text-gray-500">Room</span>
+                  <strong className="font-mono text-yellow-300">{roomCode}</strong>
+                </span>
+              </div>
 
-                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" className="mx-auto mb-4" />
+              {/* Player card */}
+              <div className={`broadcast-hero rounded-3xl p-8 text-center w-full max-w-3xl shadow-2xl border transition-all duration-300
+                ${status === 'sold' ? 'bg-green-900/40 border-green-600' :
+                  status === 'unsold' ? 'auction-surface border-gray-600' :
+                  bidFlash ? 'bg-blue-900/50 border-blue-400 scale-[1.02]' : 'auction-surface border-gray-700'}`}>
+
+                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" className="mx-auto mb-4 ring-2 ring-cyan-300/40" />
 
                 {/* Role badge */}
                 <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 text-white
@@ -149,8 +185,8 @@ export default function ViewerDisplay() {
                   {currentPlayer.role?.toUpperCase()}
                 </span>
 
-                <h1 className="text-5xl font-extrabold tracking-tight mb-2">{currentPlayer.name}</h1>
-                <p className="text-gray-400 text-lg">Base Price: <span className="text-yellow-300 font-bold">{currentPlayer.basePrice} pts</span></p>
+                <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-2">{currentPlayer.name}</h1>
+                <p className="text-gray-300 text-lg">Base Price: <span className="text-yellow-300 font-bold">{currentPlayer.basePrice} pts</span></p>
 
                 {status === 'sold' && (
                   <div className="mt-4 bg-green-800/60 rounded-2xl px-6 py-3">
@@ -169,14 +205,14 @@ export default function ViewerDisplay() {
 
               {/* Current bid */}
               {status === 'running' && (
-                <div className={`text-center transition-all duration-200 ${bidFlash ? 'scale-110' : ''}`}>
+                <div className={`bid-stage text-center transition-all duration-200 ${bidFlash ? 'bid-stage-live' : ''}`}>
                   <p className="text-gray-400 text-sm uppercase tracking-widest mb-1">Current Bid</p>
                   <p className={`text-7xl font-extrabold tabular-nums ${bidFlash ? 'text-yellow-300' : 'text-white'}`}>
                     {currentPrice}
                     <span className="text-3xl text-gray-400 ml-2">pts</span>
                   </p>
                   {leadingTeam ? (
-                    <p className="text-blue-300 text-xl font-semibold mt-1">🔥 {leadingTeam.name} is leading</p>
+                    <p className="text-blue-300 text-xl font-semibold mt-1">{leadingTeam.name} is leading</p>
                   ) : (
                     <p className="text-gray-500 text-lg mt-1">No bids yet</p>
                   )}
@@ -185,12 +221,12 @@ export default function ViewerDisplay() {
 
               {/* Timer bar */}
               {status === 'running' && config.timerEnabled && timerLeft !== null && (
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-3xl">
                   <div className="flex justify-between text-sm text-gray-400 mb-1">
                     <span>Timer</span>
                     <span className={timerLeft <= 5 ? 'text-red-400 font-bold animate-pulse' : ''}>{timerLeft}s</span>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-3">
+                  <div className="w-full auction-surface-soft rounded-full h-3.5">
                     <div className={`h-3 rounded-full transition-all duration-1000 ${timerColor}`}
                       style={{ width: `${timerPct}%` }} />
                   </div>
@@ -201,25 +237,25 @@ export default function ViewerDisplay() {
         </div>
 
         {/* ── Right: teams scoreboard ── */}
-        <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col">
+        <div className="w-full lg:w-80 xl:w-96 auction-surface border-t lg:border-t-0 lg:border-l border-gray-800 flex flex-col max-h-[46vh] lg:max-h-none">
           <div className="px-4 py-3 border-b border-gray-800">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Teams</h2>
+            <h2 className="section-title text-sm text-gray-300">Teams</h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2" role="list" aria-label="Team status board">
             {teams.map(team => {
               const isLeading = team.id === leadingTeamId
               return (
-                <div key={team.id}
+                <div key={team.id} role="listitem"
                   className={`rounded-xl p-3 border transition-all ${isLeading
                     ? 'bg-blue-900/50 border-blue-600'
-                    : 'bg-gray-800 border-gray-700'}`}>
+                    : 'auction-surface-soft border-gray-700'}`}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-semibold text-sm truncate">{team.name}</span>
-                    {isLeading && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">🔥 Leading</span>}
+                    <span className="font-semibold text-sm truncate text-gray-100">{team.name}</span>
+                    {isLeading && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">Leading</span>}
                   </div>
                   {/* Budget bar (% only — no exact numbers) */}
-                  <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1.5">
-                    <div className={`h-1.5 rounded-full transition-all ${isLeading ? 'bg-blue-400' : 'bg-emerald-500'}`}
+                  <div className="w-full bg-gray-700/80 rounded-full h-2 mb-1.5">
+                    <div className={`h-2 rounded-full transition-all ${isLeading ? 'bg-blue-400' : 'bg-emerald-500'}`}
                       style={{ width: `${team.budgetPct ?? 100}%` }} />
                   </div>
                   <p className="text-xs text-gray-500">{team.playerCount ?? team.players?.length ?? 0} player{(team.playerCount ?? team.players?.length ?? 0) !== 1 ? 's' : ''} • {team.budgetPct ?? 100}% budget left</p>
@@ -234,11 +270,11 @@ export default function ViewerDisplay() {
               <div className="px-4 py-2 border-t border-gray-800">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recently Sold</h2>
               </div>
-              <div className="px-3 pb-3 space-y-1">
+              <div className="px-3 pb-3 space-y-1" role="list" aria-label="Recently sold players">
                 {recentSold.map((p, i) => {
                   const buyer = teams.find(t => t.id === p.soldTo)
                   return (
-                    <div key={i} className="flex justify-between items-center text-xs bg-gray-800 rounded-lg px-2 py-1.5">
+                    <div key={i} role="listitem" className="flex justify-between items-center text-xs auction-surface-soft rounded-lg px-2 py-1.5">
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="xs" />
                         <div className="min-w-0">

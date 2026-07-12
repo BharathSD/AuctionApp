@@ -1,6 +1,14 @@
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadAuctionState, saveAuctionConfig, saveOnlineLiveSnapshot, clearAuctionState } from '../hooks/useAuctionStorage'
+import BrandMark from '../components/BrandMark'
+import Icon from '../components/Icon'
+
+const TICKER = [
+  'Real-time bidding', 'CSV player import', 'Retentions & pre-allocation',
+  'Live broadcast board', 'XLSX results export', 'Offline & online modes',
+  'Custom bid tiers', 'Auto-assign unsold',
+]
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -36,91 +44,114 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 flex flex-col items-center justify-center p-6">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="text-6xl mb-4">🏏</div>
-        <h1 className="text-5xl font-extrabold text-white tracking-tight mb-3">
-          Cricket Auction
-        </h1>
-        <p className="text-blue-200 text-lg max-w-md">
-          Run a live player auction for your cricket league — online or offline.
-        </p>
-      </div>
+    <div className="app-shell min-h-screen text-white flex flex-col">
+      {/* Top bar */}
+      <header className="landing-topbar">
+        <BrandMark size={34} withWordmark wordmark="Auction OS" />
+        <span className="pill-live"><span className="live-dot" /> Live tournament ops</span>
+      </header>
 
-      {/* Resume in-progress offline auction */}
-      {offlineInProgress && (
-        <div className="w-full max-w-2xl mb-6 bg-yellow-900/60 border border-yellow-600 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-yellow-200 font-semibold text-sm">⚡ Offline auction in progress</p>
-            <p className="text-yellow-400 text-xs mt-0.5">
-              {saved._runtime.status === 'sold' || saved._runtime.status === 'running'
-                ? `Player ${saved._runtime.currentIdx + 1} of ${saved._runtime.queue?.length ?? '?'} — ${saved._runtime.status}`
-                : saved._runtime.status}
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={() => navigate('/auction/offline')}
-              className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold text-sm px-4 py-2 rounded-xl"
-            >
-              Resume →
-            </button>
-            <button
-              onClick={() => { if (window.confirm('Discard the in-progress auction and start fresh?')) { clearAuctionState(); window.location.reload() } }}
-              className="text-yellow-500 hover:text-white text-xs border border-yellow-700 px-3 py-2 rounded-xl"
-            >
-              Discard
-            </button>
-          </div>
+      {/* Feature ticker */}
+      <div className="feature-ticker">
+        <div className="feature-ticker-track">
+          {[...TICKER, ...TICKER].map((t, i) => (
+            <span key={i} className="ticker-item"><span className="ticker-dot" />{t}</span>
+          ))}
         </div>
-      )}
-
-      {/* Mode cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-        <button
-          onClick={() => navigate('/setup/offline')}
-          className="group bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl p-8 text-left transition-all duration-200 hover:scale-105 cursor-pointer"
-        >
-          <div className="text-4xl mb-4">📺</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Offline Mode</h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
-            Everyone is in the same room. Auctioneer controls a single screen
-            or projector. No internet required. Captains bid verbally.
-          </p>
-          <div className="mt-6 inline-flex items-center gap-2 text-blue-300 font-semibold text-sm group-hover:text-white transition-colors">
-            Set up offline auction →
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate('/setup/online')}
-          className="group bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl p-8 text-left transition-all duration-200 hover:scale-105 cursor-pointer"
-        >
-          <div className="text-4xl mb-4">📱</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Online Mode</h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
-            Captains bid from their own phones or laptops in real-time.
-            Works across the internet. Auctioneer controls via an admin screen.
-          </p>
-          <div className="mt-6 inline-flex items-center gap-2 text-blue-300 font-semibold text-sm group-hover:text-white transition-colors">
-            Set up online auction →
-          </div>
-        </button>
       </div>
 
-      <p className="text-blue-400 text-xs mt-10">
-        Cricket Auction App — Built for your league
-      </p>
+      <div className="app-page w-full max-w-6xl px-6 py-10 md:py-14 flex-1">
+        {/* Resume in-progress offline auction */}
+        {offlineInProgress && (
+          <div className="status-banner w-full mb-8 px-5 py-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-yellow-100 font-semibold text-sm flex items-center gap-1.5"><Icon name="bolt" size={15} /> Offline auction in progress</p>
+              <p className="text-yellow-200 text-xs mt-0.5">
+                {saved._runtime.status === 'sold' || saved._runtime.status === 'running'
+                  ? `Player ${saved._runtime.currentIdx + 1} of ${saved._runtime.queue?.length ?? '?'} — ${saved._runtime.status}`
+                  : saved._runtime.status}
+              </p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button onClick={() => navigate('/auction/offline')} className="btn-primary text-sm px-4 py-2">Resume →</button>
+              <button
+                onClick={() => { if (window.confirm('Discard the in-progress auction and start fresh?')) { clearAuctionState(); window.location.reload() } }}
+                className="btn-secondary text-xs px-3 py-2"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
 
-      {/* Resume from snapshot */}
-      <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleResumeFile} />
-      <button
-        onClick={() => fileRef.current?.click()}
-        className="mt-6 px-6 py-3 bg-blue-700 hover:bg-blue-600 text-white font-semibold text-base rounded-xl border border-blue-500 transition-colors shadow-md"
-      >
-        💾 Resume saved auction from snapshot file →
-      </button>
+        {/* Editorial hero */}
+        <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center">
+          {/* Left */}
+          <div className="text-left">
+            <span className="pill-live"><span className="live-dot" /> Marquee auction · Tournament ops</span>
+            <h1 className="display-heading mt-6">
+              <span className="block text-white">Cricket Auction</span>
+              <span className="block display-muted">Control Room</span>
+            </h1>
+            <p className="hero-subtext text-left mx-0 mt-6">
+              Run your league like a live broadcast — fast setup, dramatic bidding, and instant, shareable results. Offline in one room, or online across everyone's devices.
+            </p>
+
+            <div className="flex flex-wrap gap-x-10 gap-y-5 mt-9">
+              <div><p className="stat-label">Modes</p><p className="stat-value">Offline + Online</p></div>
+              <div><p className="stat-label">Teams</p><p className="stat-value">Up to 16</p></div>
+              <div><p className="stat-label">Bidding</p><p className="stat-value">Real-time</p></div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 mt-9">
+              <button onClick={() => navigate('/setup/offline')} className="btn-primary text-base px-7 py-3.5">Start offline auction →</button>
+              <button onClick={() => navigate('/setup/online')} className="btn-secondary text-base px-7 py-3.5">Set up online →</button>
+            </div>
+          </div>
+
+          {/* Right: mode showcase card */}
+          <div className="showcase-card">
+            <div className="flex items-center justify-between mb-5">
+              <span className="tag">Choose your mode</span>
+              <span className="pill-live"><span className="live-dot" /> Live</span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button onClick={() => navigate('/setup/offline')} className="mode-row group">
+                <div className="mode-row-icon"><Icon name="tv" size={20} /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-lg">Offline Mode</p>
+                  <p className="text-sm text-blue-100/70">One screen or projector. Captains bid verbally. No internet needed.</p>
+                </div>
+                <span className="mode-row-arrow">→</span>
+              </button>
+              <button onClick={() => navigate('/setup/online')} className="mode-row group">
+                <div className="mode-row-icon"><Icon name="bolt" size={20} /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-lg">Online Mode</p>
+                  <p className="text-sm text-blue-100/70">Captains bid from their phones in real-time, across the internet.</p>
+                </div>
+                <span className="mode-row-arrow">→</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5 mt-5">
+              <div className="cap-chip"><Icon name="bolt" size={16} /> Real-time</div>
+              <div className="cap-chip"><Icon name="tv" size={16} /> Broadcast</div>
+              <div className="cap-chip"><Icon name="download" size={16} /> XLSX export</div>
+            </div>
+
+            <div className="mt-5 pt-5 border-t border-white/5">
+              <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleResumeFile} />
+              <button onClick={() => fileRef.current?.click()} className="text-sm text-cyan-200/80 hover:text-white inline-flex items-center gap-2">
+                <Icon name="upload" size={15} /> Resume a saved auction from a snapshot file →
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <p className="text-blue-300/60 text-xs mt-12">Cricket Auction App — Built for your league</p>
+      </div>
     </div>
   )
 }

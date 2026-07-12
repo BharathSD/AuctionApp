@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { proxiedImg } from '../utils/img'
 
 function getInitials(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean)
@@ -39,11 +40,10 @@ export default function PlayerAvatar({ name, photoUrl, size = 'md', className = 
   if (canRenderImage) {
     return (
       <img
-        src={String(photoUrl).trim()}
+        src={proxiedImg(String(photoUrl).trim())}
         alt={name ? `${name} photo` : 'Player photo'}
         className={`${circleClasses} object-cover ${className}`}
         loading="lazy"
-        referrerPolicy="no-referrer"
         onError={() => setImageFailed(true)}
       />
     )

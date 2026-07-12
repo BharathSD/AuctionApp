@@ -43,37 +43,39 @@ export default function CaptainJoin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 flex items-center justify-center p-6">
-      <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-8 w-full max-w-sm text-white text-center">
-        <div className="text-5xl mb-4">🏏</div>
-        <h1 className="text-2xl font-bold mb-1">Join Auction</h1>
-        <p className="text-blue-200 text-sm mb-6">
+    <div className="app-shell flex items-center justify-center p-6 text-white">
+      <div className="premium-hero w-full max-w-md text-center p-8 md:p-9">
+        <p className="hero-kicker mb-2">Captain Access</p>
+        <h1 className="hero-heading text-white mb-2" style={{ fontSize: 'clamp(2rem, 7vw, 3rem)' }}>Join Auction</h1>
+        <p className="text-blue-100 text-sm mb-6">
           Room: <span className="font-mono font-bold text-yellow-400">{roomCode}</span>
         </p>
 
         <div className="text-left mb-4">
-          <label className="block text-sm text-blue-200 mb-2">Your team PIN</label>
+          <label className="block text-sm text-blue-100 mb-2 font-semibold">Your team PIN</label>
           <input
             type="text"
             value={pin}
             onChange={e => setPin(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleJoin()}
             placeholder="Enter PIN"
-            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-blue-300 text-center text-xl font-mono tracking-widest outline-none focus:border-blue-400"
+            className="input-field w-full text-center text-xl font-mono tracking-widest"
             maxLength={8}
             autoFocus
           />
         </div>
 
-        {error && <p className="text-red-300 text-sm mb-4">{error}</p>}
+        {error && <p className="text-red-200 text-sm mb-4 font-medium">{error}</p>}
 
         <button
           onClick={handleJoin}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg transition-colors"
+          className="btn-primary w-full py-3 text-lg disabled:opacity-50"
         >
           {loading ? 'Joining…' : 'Join Auction'}
         </button>
+
+        <p className="text-xs text-blue-200/80 mt-4">Secure captain session. One active device per team.</p>
       </div>
     </div>
   )

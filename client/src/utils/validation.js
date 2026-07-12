@@ -159,3 +159,46 @@ export function validateConfigValues(config) {
   
   return { valid: true }
 }
+
+/**
+ * Non-blocking quality warnings for an imported/assembled player roster.
+ * These never reject data — they only surface things a host may want to fix
+ * (duplicate names, placeholder/blank roles) before starting the auction.
+ * @param {Array<{name?: string, role?: string}>} players
+ * @returns {string[]} human-readable warning messages (empty if all clean)
+ */
+export function getPlayerImportWarnings(players) {
+  const warnings = []
+  if (!Array.isArray(players) || !players.length) return warnings
+
+  // Duplicate names (case-insensitive)
+  const seen = new Map()
+  const dupNames = new Set()
+  for (const p of players) {
+    const display = String(p?.name || '').trim()
+    if (!display) continue
+    const key = display.toLowerCase()
+    if (seen.has(key)) dupNames.add(seen.get(key))
+    else seen.set(key, display)
+  }
+  if (dupNames.size) {
+    const sample = [...dupNames].slice(0, 3).join(', ')
+    const more = dupNames.size > 3 ? '…' : ''
+    warnings.push(
+      `${dupNames.size} duplicate name${dupNames.size > 1 ? 's' : ''} (${sample}${more}) — imported as separate players; rename if they are different people.`
+    )
+  }
+
+  // Placeholder or blank roles
+  const genericRoles = players.filter(p => {
+    const r = String(p?.role || '').trim().toLowerCase()
+    return !r || r === 'player'
+  }).length
+  if (genericRoles) {
+    warnings.push(
+      `${genericRoles} player${genericRoles > 1 ? 's' : ''} have a generic or blank role — set a real role for clearer team sheets.`
+    )
+  }
+
+  return warnings
+}

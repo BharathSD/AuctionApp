@@ -446,6 +446,9 @@ function finishAuction(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
   clearTimer(room)
+  // Every player not sold (still queued/pending or on the block) becomes 'unsold'
+  // so they're consistently counted as unsold and available for auto-assign / re-auction.
+  room.players = room.players.map(p => p.status === 'sold' ? p : { ...p, status: 'unsold' })
   room.status = 'finished'
   io.to(roomCode).emit('auction:finished', publicState(room))
   return publicState(room)
@@ -484,7 +487,13 @@ function requeueUnsold(roomCode, io) {
 
   room.players.forEach((p, i) => { if (p.status === 'unsold') room.players[i] = { ...p, status: 'pending' } })
   const remainingQueue = room.queue.slice(room.currentIdx + 1)
-  room.queue = [...remainingQueue, ...unsoldIdxs]
+  // Keep remaining queue order, then append unsold players not already queued.
+  // This avoids duplicate queue entries after finish -> re-auction flows.
+  const mergedQueue = [...remainingQueue]
+  unsoldIdxs.forEach((idx) => {
+    if (!mergedQueue.includes(idx)) mergedQueue.push(idx)
+  })
+  room.queue = mergedQueue
   room.currentIdx = -1
   room.status = 'idle'
 
@@ -514,20 +523,14 @@ function autoAssignUnsold(roomCode, io) {
     const unsoldPlayer = room.players[playerIdx]
     const basePrice = Number(unsoldPlayer.basePrice) || 0
     
-    // Find teams with available roster spots, prioritize teams with fewer players
+    // Find teams that can take this player (roster not full + can afford the
+    // base price), preferring teams with fewer players so rosters fill evenly.
+    // No full-roster-completion guard here — auto-assign fills as many spots as
+    // each team's budget allows, even when it can't complete the whole roster.
     const availableTeams = room.teams
       .filter(t => {
         if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
         if (Number(t.budget) < basePrice) return false
-
-        // Keep budget-safe roster completion guarantees aligned with bid logic.
-        if (maxPlayers > 0) {
-          const spotsFilledAfter = t.players.length + 1
-          const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
-          const minNeeded = minCostForRemainingSpots(room.players, playerIdx, spotsNeededAfter)
-          if (Number(t.budget) - basePrice < minNeeded) return false
-        }
-
         return true
       })
       .sort((a, b) => a.players.length - b.players.length)
@@ -576,6 +579,50 @@ function clearTimer(room) {
     clearInterval(room.timerHandle)
     room.timerHandle = null
   }
+}
+
+// ── Persistence helpers (durable state only — no runtime handles/sockets) ──
+function serializeRoom(room) {
+  return {
+    config: room.config,
+    teams: room.teams,
+    players: room.players,
+    queue: room.queue,
+    currentIdx: room.currentIdx,
+    currentPrice: room.currentPrice,
+    leadingTeamId: room.leadingTeamId,
+    bids: room.bids,
+    status: room.status,
+    timerLeft: room.timerLeft,
+    secondRound: room.secondRound,
+    paused: room.paused,
+    soldHistory: room.soldHistory,
+  }
+}
+
+// Rebuild a room from serialized durable state. Runtime fields (timer handle,
+// socket/session maps) are reset. A room that was mid-round is left paused so
+// the countdown doesn't run headless — the auctioneer resumes to continue.
+function hydrateRoom(roomCode, s) {
+  const room = makeRoom(s.config)
+  room.teams = s.teams || []
+  room.players = s.players || []
+  room.queue = s.queue || []
+  room.currentIdx = s.currentIdx ?? -1
+  room.currentPrice = s.currentPrice ?? null
+  room.leadingTeamId = s.leadingTeamId ?? null
+  room.bids = s.bids || []
+  room.status = s.status || 'idle'
+  room.timerLeft = s.timerLeft ?? null
+  room.secondRound = s.secondRound || false
+  room.soldHistory = s.soldHistory || []
+  room.paused = s.status === 'running' ? true : !!s.paused
+  rooms.set(roomCode, room)
+  return room
+}
+
+function getAllRooms() {
+  return rooms
 }
 
 function publicState(room) {
@@ -631,6 +678,9 @@ module.exports = {
   requeueUnsold,
   autoAssignUnsold,
   restoreRoom,
+  serializeRoom,
+  hydrateRoom,
+  getAllRooms,
   publicState,
   viewerState,
 }

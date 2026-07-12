@@ -354,8 +354,15 @@ function reducer(state, action) {
       return { ...state, queue: [...remainingQueue, ...unsoldIdxs], currentIdx: -1, status: 'idle' }
     }
 
-    case A.FINISH:
-      return { ...state, status: 'finished' }
+    case A.FINISH: {
+      // Ending the auction: every player not sold (still queued/pending or on the
+      // block) becomes 'unsold' so they're consistently counted as unsold and are
+      // available for Auto-Assign and Re-auction.
+      const players = state.players.map(p =>
+        p.status === 'sold' ? p : { ...p, status: 'unsold' }
+      )
+      return { ...state, players, status: 'finished' }
+    }
 
     case A.AUTO_ASSIGN: {
       // Get all unsold players
@@ -374,25 +381,23 @@ function reducer(state, action) {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
       }
       
-      // Assign players to teams with available spots
-      let updatedTeams = state.teams.map(t => ({ ...t }))
+      // Assign players to teams with available spots.
+      // Copy each team's players array too — a shallow {...t} would share the
+      // array reference with the current state and make this reducer impure
+      // (mutating it via push would duplicate assignments on re-invocation).
+      let updatedTeams = state.teams.map(t => ({ ...t, players: [...t.players] }))
       let updatedPlayers = state.players.map(p => ({ ...p }))
       
       shuffled.forEach(unsoldPlayer => {
         const basePrice = Number(unsoldPlayer.basePrice) || 0
-        // Find teams with available roster spots, prioritize teams with fewer players
+        // Find teams that can take this player (roster not full + can afford the
+        // base price), preferring teams with fewer players so rosters fill evenly.
+        // Note: no full-roster-completion guard here — auto-assign fills as many
+        // spots as each team's budget allows, even if it can't complete the roster.
         const availableTeams = updatedTeams
           .filter(t => {
             if (maxPlayers > 0 && t.players.length >= maxPlayers) return false
             if (Number(t.budget) < basePrice) return false
-
-            if (maxPlayers > 0) {
-              const spotsFilledAfter = t.players.length + 1
-              const spotsNeededAfter = Math.max(0, maxPlayers - spotsFilledAfter)
-              const minNeeded = minCostForRemainingSpots(updatedPlayers, unsoldPlayer.idx, spotsNeededAfter)
-              if (Number(t.budget) - basePrice < minNeeded) return false
-            }
-
             return true
           })
           .sort((a, b) => a.players.length - b.players.length)

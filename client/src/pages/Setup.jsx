@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Papa from 'papaparse'
 import { saveAuctionConfig } from '../hooks/useAuctionStorage'
 import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
-import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
+import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup, getPlayerImportWarnings } from '../utils/validation'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
+import BrandMark from '../components/BrandMark'
 
 const DEFAULT_CONFIG = {
   numTeams: 4,
@@ -32,6 +34,7 @@ export default function Setup() {
   const [players, setPlayers] = useState([])
   const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
   const [csvError, setCsvError] = useState('')
+  const [csvWarnings, setCsvWarnings] = useState([])
   const [preAllocations, setPreAllocations] = useState([]) // [{playerId, teamId, price}]
   const [retainSearch, setRetainSearch] = useState('')
   const fileRef = useRef()
@@ -102,6 +105,7 @@ export default function Setup() {
 
   const handleCSV = (e) => {
     setCsvError('')
+    setCsvWarnings([])
     const file = e.target.files[0]
     if (!file) return
     Papa.parse(file, {
@@ -125,7 +129,14 @@ export default function Setup() {
           return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value, photoUrl: normalizePhotoUrl(photoRaw) }
         }).filter(Boolean)
         if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice (photoUrl optional)'); return }
-        setPlayers(prev => [...prev, ...parsed])
+        const skipped = data.length - parsed.length
+        setPlayers(prev => {
+          const combined = [...prev, ...parsed]
+          const warnings = getPlayerImportWarnings(combined)
+          if (skipped > 0) warnings.unshift(`${skipped} row${skipped > 1 ? 's' : ''} skipped (missing or invalid name).`)
+          setCsvWarnings(warnings)
+          return combined
+        })
       },
       error: () => setCsvError('Failed to parse CSV.'),
     })
@@ -192,23 +203,28 @@ export default function Setup() {
 
   /* ---------- render ---------- */
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-3xl mx-auto p-6">
+    <div className="app-shell text-white">
+      <div className="app-page setup-form max-w-3xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm">← Back</button>
-          <h1 className="text-2xl font-bold">
-            {mode === 'offline' ? '📺 Offline Auction Setup' : '📱 Online Auction Setup'}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm inline-flex items-center gap-1.5">← Back to home</button>
+            <BrandMark size={28} withWordmark wordmark="Auction OS" />
+          </div>
+          <p className="hero-kicker mb-2">{mode === 'offline' ? 'Single-console setup' : 'Multi-device setup'}</p>
+          <h1 className="page-title">
+            {mode === 'offline' ? 'Offline Auction Setup' : 'Online Auction Setup'}
           </h1>
         </div>
 
         {/* Step tabs */}
-        <div className="flex gap-1 mb-8 bg-gray-900 rounded-xl p-1">
-          {[['config','⚙️ Config'], ['teams','👕 Teams'], ['players','🏃 Players'], ['preallocate','📌 Retain'], ['review','✅ Review']].map(([s, label]) => (
+        <div className="flex gap-1 mb-8 auction-surface rounded-xl p-1">
+          {[['config','Configuration'], ['teams','Teams'], ['players','Players'], ['preallocate','Retentions'], ['review','Review']].map(([s, label]) => (
             <button
               key={s}
               onClick={() => setStep(s)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${step === s ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              aria-selected={step === s}
+              className={`tab-chip flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${step === s ? 'text-white' : 'text-gray-400 hover:text-white'}`}
             >
               {label}
             </button>
@@ -218,16 +234,28 @@ export default function Setup() {
         {/* --- Step: Config --- */}
         {step === 'config' && (
           <div className="space-y-6">
-            <Field label="Number of Teams">
-              <input type="number" min={2} max={16} value={config.numTeams}
-                onChange={e => handleConfigChange('numTeams', e.target.value)}
-                className="input-field" />
-            </Field>
-            <Field label="Points per Team (budget)">
-              <input type="number" min={100} value={config.pointsPerTeam}
-                onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
-                className="input-field" />
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+              <Field label="Number of Teams">
+                <input type="number" min={2} max={16} value={config.numTeams}
+                  onChange={e => handleConfigChange('numTeams', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+              <Field label="Points per Team (budget)">
+                <input type="number" min={100} value={config.pointsPerTeam}
+                  onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+              <Field label="Minimum Base Bid">
+                <input type="number" min={1} value={config.minBidBase}
+                  onChange={e => handleConfigChange('minBidBase', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+              <Field label="Max Players per Team">
+                <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
+                  onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
+                  className="input-field max-w-[220px]" />
+              </Field>
+            </div>
             <Field label="Bid Increment Tiers">
               <div className="space-y-2">
                 {tiers.map((tier, idx) => (
@@ -242,7 +270,7 @@ export default function Setup() {
                       <input
                         type="number" min={1} value={tier.upTo ?? ''}
                         onChange={e => updateTier(idx, 'upTo', e.target.value)}
-                        className="input-field w-20 text-center text-sm py-1"
+                        className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
                         placeholder="Up to"
                       />
                     )}
@@ -250,12 +278,12 @@ export default function Setup() {
                     <input
                       type="number" min={1} value={tier.increment}
                       onChange={e => updateTier(idx, 'increment', e.target.value)}
-                      className="input-field w-20 text-center text-sm py-1"
+                      className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
                       placeholder="Inc"
                     />
                     <span className="text-xs text-gray-500">pts</span>
                     {tiers.length > 1 && (
-                      <button onClick={() => removeTier(idx)} className="text-red-400 hover:text-red-300 text-sm px-1">✕</button>
+                      <button onClick={() => removeTier(idx)} aria-label="Remove tier" className="text-red-400 hover:text-red-300 px-1"><Icon name="x" size={14} /></button>
                     )}
                   </div>
                 ))}
@@ -265,37 +293,29 @@ export default function Setup() {
                 >+ Add tier</button>
               </div>
             </Field>
-            <Field label="Minimum Base Bid">
-              <input type="number" min={1} value={config.minBidBase}
-                onChange={e => handleConfigChange('minBidBase', e.target.value)}
-                className="input-field" />
-            </Field>
-            <Field label="Max Players per Team">
-              <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
-                onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
-                className="input-field" />
-            </Field>
-            <Field label="Player Order">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={config.randomizeOrder}
-                  onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
-                  className="w-5 h-5 rounded" />
-                <span className="text-sm text-gray-300">Randomize player auction order</span>
-              </label>
-            </Field>
-            <Field label="Timer Mode">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={config.timerEnabled}
-                  onChange={e => handleConfigChange('timerEnabled', e.target.checked)}
-                  className="w-5 h-5 rounded" />
-                <span className="text-sm text-gray-300">Enable countdown timer per bid</span>
-              </label>
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+              <Field label="Player Order">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={config.randomizeOrder}
+                    onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
+                    className="w-5 h-5 rounded" />
+                  <span className="text-sm text-gray-300">Randomize player auction order</span>
+                </label>
+              </Field>
+              <Field label="Timer Mode">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={config.timerEnabled}
+                    onChange={e => handleConfigChange('timerEnabled', e.target.checked)}
+                    className="w-5 h-5 rounded" />
+                  <span className="text-sm text-gray-300">Enable countdown timer per bid</span>
+                </label>
+              </Field>
+            </div>
             {config.timerEnabled && (
               <Field label="Timer Duration (seconds)">
                 <input type="number" min={5} max={120} value={config.timerSeconds}
                   onChange={e => handleConfigChange('timerSeconds', e.target.value)}
-                  className="input-field" />
+                  className="input-field max-w-[220px]" />
               </Field>
             )}
             <div className="flex justify-end">
@@ -308,7 +328,7 @@ export default function Setup() {
         {step === 'teams' && (
           <div className="space-y-4">
             {teams.map((team, i) => (
-              <div key={team.id} className="bg-gray-900 rounded-xl p-4 flex gap-4 items-center">
+              <div key={team.id} className="auction-surface rounded-xl p-4 flex gap-4 items-center">
                 <span className="text-gray-500 text-sm w-6">{i + 1}</span>
                 <div className="flex-1">
                   <label className="text-xs text-gray-400 mb-1 block">Team Name</label>
@@ -344,16 +364,26 @@ export default function Setup() {
         {step === 'players' && (
           <div className="space-y-6">
             {/* CSV Upload */}
-            <div className="bg-gray-900 rounded-xl p-4">
+            <div className="auction-surface rounded-xl p-4">
               <p className="text-sm font-semibold mb-2 text-gray-300">Import from CSV</p>
               <p className="text-xs text-gray-500 mb-3">Columns: <code>name, role, basePrice</code> and optional <code>photoUrl</code></p>
               <input ref={fileRef} type="file" accept=".csv" onChange={handleCSV}
                 className="text-sm text-gray-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-700 file:text-white file:cursor-pointer hover:file:bg-blue-600" />
               {csvError && <p className="text-red-400 text-xs mt-2">{csvError}</p>}
+              {csvWarnings.length > 0 && (
+                <ul className="mt-2 space-y-1" role="status">
+                  {csvWarnings.map((w, i) => (
+                    <li key={i} className="text-amber-400 text-xs flex gap-1.5">
+                      <span aria-hidden="true">⚠</span>
+                      <span>{w}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Manual Add */}
-            <div className="bg-gray-900 rounded-xl p-4">
+            <div className="auction-surface rounded-xl p-4">
               <p className="text-sm font-semibold mb-3 text-gray-300">Add Player Manually</p>
               <div className="flex gap-3 flex-wrap">
                 <input value={newPlayer.name} onChange={e => setNewPlayer(p => ({ ...p, name: e.target.value }))}
@@ -374,7 +404,7 @@ export default function Setup() {
 
             {/* Player list */}
             {players.length > 0 && (
-              <div className="bg-gray-900 rounded-xl overflow-hidden">
+              <div className="auction-surface rounded-xl overflow-hidden">
                 <div className="grid grid-cols-[1fr_120px_100px_64px_40px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
                   <span>Name</span><span>Role</span><span>Base</span><span></span>
                 </div>
@@ -419,7 +449,7 @@ export default function Setup() {
                 className="input-field"
               />
             )}
-            <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-800 rounded-xl p-2">
+            <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-800 rounded-xl p-2 auction-surface-soft">
               {players
                 .filter(p => p.name.toLowerCase().includes(retainSearch.toLowerCase()) ||
                              p.role.toLowerCase().includes(retainSearch.toLowerCase()) ||
@@ -427,7 +457,7 @@ export default function Setup() {
                 .map(p => {
                 const alloc = preAllocations.find(a => a.playerId === p.id)
                 return (
-                  <div key={p.id} className="bg-gray-800 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+                  <div key={p.id} className="auction-surface-soft rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
@@ -468,7 +498,7 @@ export default function Setup() {
               })}
             </div>
             {preAllocations.length > 0 && (
-              <div className="bg-gray-900 rounded-xl p-3 text-xs text-gray-400">
+              <div className="auction-surface rounded-xl p-3 text-xs text-gray-300">
                 <p className="font-semibold text-gray-300 mb-1">{preAllocations.length} player{preAllocations.length !== 1 ? 's' : ''} retained</p>
                 {teams.map(t => {
                   const tAllocs = preAllocations.filter(a => a.teamId === t.id)
@@ -511,21 +541,13 @@ export default function Setup() {
             <div className="flex justify-between">
               <button onClick={() => setStep('players')} className="btn-secondary">← Back</button>
               <button onClick={handleStart} className="btn-primary text-lg px-8 py-3">
-                🚀 Start Auction
+                Start Auction
               </button>
             </div>
           </div>
         )}
       </div>
 
-      <style>{`
-        .input-field { background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem 0.75rem; color: white; width: 100%; outline: none; font-size: 0.875rem; }
-        .input-field:focus { border-color: #3b82f6; }
-        .btn-primary { background: #2563eb; color: white; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: background 0.15s; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #374151; color: white; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
-        .btn-secondary:hover { background: #4b5563; }
-      `}</style>
     </div>
   )
 }
@@ -541,7 +563,7 @@ function Field({ label, children }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="bg-gray-900 rounded-xl p-4">
+    <div className="auction-surface rounded-xl p-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className="text-xl font-bold">{value}</p>
     </div>

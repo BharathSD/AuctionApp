@@ -196,6 +196,22 @@ describe('server auth flows', () => {
     const badTeamErr = validateCaptainSession(room, roomCode, 'team999', joined.body.captainToken)
     assert.equal(badTeamErr, 'Invalid team for this room.')
   })
+
+  it('rate limits repeated invalid captain PIN join attempts', async () => {
+    const roomCode = nextRoomCode('RL')
+    const auctionData = makeAuctionData()
+
+    const created = await postJson('/api/auction/create', { roomCode, auctionData })
+    assert.equal(created.status, 200)
+
+    let last
+    for (let i = 0; i < 9; i += 1) {
+      last = await postJson(`/api/auction/${roomCode}/join`, { pin: '9999' })
+    }
+
+    assert.equal(last.status, 429)
+    assert.match(last.body.error || '', /too many join attempts/i)
+  })
 })
 
 describe('network error filtering', () => {

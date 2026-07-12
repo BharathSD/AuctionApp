@@ -3,12 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
   Bowler: 'bg-green-700',
   'All-rounder': 'bg-purple-700',
+  'All Rounder': 'bg-purple-700',
   'Wicket-keeper': 'bg-orange-700',
+  'Super Striker': 'bg-rose-600',
+  PLAYER: 'bg-slate-600',
 }
 
 const STATUS_COLORS = {
@@ -42,9 +46,9 @@ export default function AvailablePlayers() {
   const [sortBy, setSortBy] = useState('status') // 'status', 'role', 'price'
   const [filterRole, setFilterRole] = useState('all')
 
-  const players = state.players || []
-  const teams = state.teams || []
-  const teamsMap = new Map(teams.map(t => [t.id, t]))
+  const players = useMemo(() => state.players || [], [state.players])
+  const teams = useMemo(() => state.teams || [], [state.teams])
+  const teamsMap = useMemo(() => new Map(teams.map(t => [t.id, t])), [teams])
 
   // Get available players (pending + unsold)
   const availablePlayers = useMemo(() => {
@@ -81,20 +85,19 @@ export default function AvailablePlayers() {
 
   if (!roomCode) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+      <div className="app-shell text-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 mb-4">No active auction found.</p>
           <button onClick={() => navigate('/')} className="btn-primary">Go Home</button>
         </div>
-        <style>{`.btn-primary{background:#2563eb;color:white;padding:.5rem 1.25rem;border-radius:.75rem;font-weight:600;cursor:pointer}`}</style>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="app-shell text-white flex flex-col">
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 sticky top-0 z-40">
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -103,7 +106,7 @@ export default function AvailablePlayers() {
             >
               ←
             </button>
-            <span className="font-bold text-lg">📋 Available Players</span>
+            <span className="font-bold text-lg">Available Players</span>
             <span className={`text-xs px-2 py-1 rounded ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
               {connected ? '● Live' : '○ Offline'}
             </span>
@@ -141,7 +144,7 @@ export default function AvailablePlayers() {
       </div>
 
       {/* Filters & Sort */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex flex-wrap gap-4 items-center">
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex flex-wrap gap-4 items-center">
         <div>
           <label className="text-xs text-gray-500 block mb-1">Filter by Role:</label>
           <select
@@ -175,7 +178,7 @@ export default function AvailablePlayers() {
         {totalAvailable === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <div className="text-center">
-              <p className="text-lg mb-2">✓ All players have been auctioned!</p>
+              <p className="text-lg mb-2 inline-flex items-center gap-2"><Icon name="check" size={20} strokeWidth={2.5} className="text-green-400" /> All players have been auctioned!</p>
               <p className="text-sm">No pending or unsold players remaining.</p>
             </div>
           </div>
@@ -184,7 +187,7 @@ export default function AvailablePlayers() {
             {availablePlayers.map((player) => (
               <div
                 key={player.id}
-                className="bg-gray-800 rounded-lg border border-gray-700 hover:border-gray-600 p-4 transition-colors"
+                className="auction-surface-soft rounded-lg border border-gray-700 hover:border-gray-500 p-4 transition-colors"
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   {/* Left: Player Info */}
@@ -199,7 +202,7 @@ export default function AvailablePlayers() {
                         {player.role}
                       </span>
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${STATUS_COLORS[player.status] || 'bg-gray-700'}`}>
-                        {player.status === 'pending' ? '⏳ Pending' : '❌ Unsold'}
+                        {player.status === 'pending' ? 'Pending' : 'Unsold'}
                       </span>
                     </div>
 
@@ -230,7 +233,7 @@ export default function AvailablePlayers() {
 
                   {/* Right: Quick Stats */}
                   <div className="flex flex-col items-end gap-2 text-right">
-                    <div className="bg-gray-900 rounded px-2 py-1">
+                    <div className="auction-surface rounded px-2 py-1">
                       <div className="text-xs text-gray-500">Base</div>
                       <div className="text-lg font-bold text-yellow-400">{player.basePrice}</div>
                     </div>
@@ -247,20 +250,6 @@ export default function AvailablePlayers() {
         )}
       </div>
 
-      <style>{`
-        .btn-primary {
-          background: #2563eb;
-          color: white;
-          padding: 0.5rem 1.25rem;
-          border-radius: 0.75rem;
-          font-weight: 600;
-          cursor: pointer;
-          border: none;
-        }
-        .btn-primary:hover {
-          background: #1d4ed8;
-        }
-      `}</style>
     </div>
   )
 }

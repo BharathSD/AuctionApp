@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
 import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
 import PlayerAvatar from '../components/PlayerAvatar'
+import Icon from '../components/Icon'
 
 const ROLE_COLORS = {
   Batsman: 'text-blue-400',
   Bowler: 'text-green-400',
   'All-rounder': 'text-purple-400',
+  'All Rounder': 'text-purple-400',
   'Wicket-keeper': 'text-orange-400',
+  'Super Striker': 'text-rose-400',
+  PLAYER: 'text-slate-300',
 }
 
 export default function CaptainBidding() {
@@ -131,8 +135,8 @@ export default function CaptainBidding() {
     const likelyDuplicate = /already connected/i.test(state.sessionError)
     const likelyInvalid = /invalid captain session/i.test(state.sessionError)
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
-        <div className="text-6xl">🚫</div>
+      <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <Icon name="ban" size={64} className="text-red-400" />
         <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
         <p className="text-gray-400 max-w-sm">{state.sessionError}</p>
         {likelyDuplicate && (
@@ -168,9 +172,9 @@ export default function CaptainBidding() {
   if (!roomCode || !teamId) return null
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col" style={{ minHeight: '100dvh' }}>
+    <div className="app-shell text-white flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="font-bold text-sm">{teamName}</p>
           <p className="text-xs text-gray-500">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
@@ -189,11 +193,11 @@ export default function CaptainBidding() {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-gray-900 border-b border-gray-800">
-        <button onClick={() => setActiveTab('bid')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>🏏 Bid</button>
-        <button onClick={() => setActiveTab('roster')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>👕 My Roster</button>
-        <button onClick={() => setActiveTab('teams')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📊 Teams</button>
-        <button onClick={() => setActiveTab('available')} className={`flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500'}`}>📋 Available</button>
+      <div className="auction-topbar flex border-b border-gray-800">
+        <button aria-selected={activeTab === 'bid'} onClick={() => setActiveTab('bid')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'bid' ? 'text-white' : 'text-gray-500'}`}>Bidding</button>
+        <button aria-selected={activeTab === 'roster'} onClick={() => setActiveTab('roster')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white' : 'text-gray-500'}`}>My Roster</button>
+        <button aria-selected={activeTab === 'teams'} onClick={() => setActiveTab('teams')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white' : 'text-gray-500'}`}>Teams</button>
+        <button aria-selected={activeTab === 'available'} onClick={() => setActiveTab('available')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white' : 'text-gray-500'}`}>Available</button>
       </div>
 
       {/* ── BID TAB ── */}
@@ -207,7 +211,6 @@ export default function CaptainBidding() {
 
           {status === 'finished' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <div className="text-5xl">🏆</div>
               <p className="text-xl font-bold">Auction Complete!</p>
               <button onClick={() => setActiveTab('roster')} className="text-blue-400 underline text-sm">View your roster</button>
             </div>
@@ -217,7 +220,7 @@ export default function CaptainBidding() {
             <>
               {/* Player card */}
               {currentPlayer && (
-                <div className="w-full max-w-xs bg-gray-800 rounded-2xl p-6 text-center">
+                <div className="w-full max-w-xs auction-surface rounded-2xl p-6 text-center">
                   <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="2xl" className="mx-auto mb-3" />
                   <p className={`text-sm font-semibold mb-1 ${ROLE_COLORS[currentPlayer.role] || 'text-gray-400'}`}>
                     {currentPlayer.role}
@@ -231,14 +234,14 @@ export default function CaptainBidding() {
               <div className="text-center">
                 <p className="text-xs text-gray-500 mb-1">Current Bid</p>
                 <p className="text-6xl font-black text-yellow-400">{state.currentPrice}</p>
-                {isLeading && <p className="text-green-400 font-bold mt-2 text-sm">🔥 You're leading!</p>}
+                {isLeading && <p className="text-green-400 font-bold mt-2 text-sm">You are leading</p>}
                 {!isLeading && leadingTeam && <p className="text-gray-400 text-sm mt-2">{leadingTeam.name} is leading</p>}
                 {!leadingTeam && status === 'running' && <p className="text-gray-500 text-sm mt-2">No bids yet — be first!</p>}
               </div>
 
               {/* Budget info */}
               {myTeam && status === 'running' && (
-                <div className="w-full max-w-xs bg-gray-800 rounded-2xl px-5 py-3 text-sm">
+                <div className="w-full max-w-xs auction-surface-soft rounded-2xl px-5 py-3 text-sm">
                   <div className="flex justify-between mb-1">
                     <span className="text-gray-400">Available budget</span>
                     <span className="font-bold text-white">{myTeam.budget} pts</span>
@@ -273,12 +276,12 @@ export default function CaptainBidding() {
 
               {/* Status outcomes */}
               {status === 'sold' && (
-                <div className={`rounded-xl px-6 py-3 font-bold text-lg ${isLeading || state.leadingTeamId === teamId ? 'bg-green-800 text-green-200' : 'bg-gray-800 text-gray-300'}`}>
-                  {state.leadingTeamId === teamId ? '🎉 You won this player!' : `✅ Sold to ${leadingTeam?.name}`}
+                <div className={`rounded-xl px-6 py-3 font-bold text-lg inline-flex items-center justify-center gap-2 ${isLeading || state.leadingTeamId === teamId ? 'bg-green-800 text-green-200' : 'bg-gray-800 text-gray-300'}`}>
+                  {state.leadingTeamId === teamId ? <><Icon name="trophy" size={20} /> You won this player!</> : <><Icon name="check" size={18} strokeWidth={2.5} /> Sold to {leadingTeam?.name}</>}
                 </div>
               )}
               {status === 'unsold' && (
-                <div className="bg-red-900 rounded-xl px-6 py-3 text-red-200 font-bold text-lg">❌ Unsold</div>
+                <div className="bg-red-900 rounded-xl px-6 py-3 text-red-200 font-bold text-lg inline-flex items-center justify-center gap-2"><Icon name="x" size={18} strokeWidth={2.5} /> Unsold</div>
               )}
 
               {/* BID BUTTON */}
@@ -288,8 +291,8 @@ export default function CaptainBidding() {
                 </div>
               )}
               {status === 'running' && state.paused && (
-                <div className="w-full max-w-xs rounded-2xl py-5 text-center bg-yellow-900/50 border border-yellow-700 text-yellow-300 font-bold text-lg">
-                  ⏸ Auction Paused
+                <div className="w-full max-w-xs rounded-2xl py-5 text-center bg-yellow-900/50 border border-yellow-700 text-yellow-300 font-bold text-lg inline-flex items-center justify-center gap-2">
+                  <Icon name="pause" size={18} /> Auction Paused
                 </div>
               )}
               {status === 'running' && !state.paused && (
@@ -303,11 +306,11 @@ export default function CaptainBidding() {
                     'bg-gray-800 text-gray-600 cursor-not-allowed'
                   }`}
                 >
-                  {bidFlash === 'ok' ? '✓ Bid placed!' :
+                  {bidFlash === 'ok' ? <span className="inline-flex items-center gap-2"><Icon name="check" size={22} strokeWidth={3} /> Bid placed!</span> :
                    bidFlash === 'late' ? 'Too late!' :
-                   isLeading ? '🔥 You\'re leading!' :
-                   config.maxPlayersPerTeam && myTeam?.players?.length >= config.maxPlayersPerTeam ? '🚫 Roster Full' :
-                   !canAffordRemaining ? '💸 Can\'t fill roster' :
+                   isLeading ? 'You are leading' :
+                   config.maxPlayersPerTeam && myTeam?.players?.length >= config.maxPlayersPerTeam ? <span className="inline-flex items-center gap-2"><Icon name="ban" size={20} /> Roster Full</span> :
+                   !canAffordRemaining ? <span className="inline-flex items-center gap-2"><Icon name="warning" size={20} /> Can't fill roster</span> :
                    canBid ? `BID ${nextBidPrice} pts` :
                    myTeam && myTeam.budget < nextBidPrice ? 'Budget too low' : 'Waiting…'}
                 </button>
@@ -351,17 +354,21 @@ export default function CaptainBidding() {
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-4">All Teams</p>
           <div className="space-y-3">
               {teams.map(team => {
-              const pct = state.config.pointsPerTeam ? Math.round((team.budget / state.config.pointsPerTeam) * 100) : 0
+              const total = state.config.pointsPerTeam || 1
+              const spentPct = Math.min(100, Math.round(((total - team.budget) / total) * 100))
               return (
                 <div key={team.id} className={`bg-gray-800 rounded-xl p-4 ${team.id === teamId ? 'ring-1 ring-blue-500' : ''}`}>
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">{team.name} {team.id === teamId ? '(you)' : ''}</span>
                     <span className="text-yellow-400 font-bold">{team.budget} pts</span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2 mb-1">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${pct}%` }} />
+                  <div className="w-full bg-gray-700 rounded-full h-2 mb-1" title={`${spentPct}% of budget used`}>
+                    <div
+                      className={`h-2 rounded-full transition-all ${spentPct >= 90 ? 'bg-red-400' : spentPct >= 60 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                      style={{ width: `${spentPct}%` }}
+                    />
                   </div>
-                  <p className="text-xs text-gray-500">{team.players.length} players</p>
+                  <p className="text-xs text-gray-500">{team.players.length} players · {spentPct}% used</p>
                 </div>
               )
             })}
@@ -372,12 +379,12 @@ export default function CaptainBidding() {
       {/* ── AVAILABLE TAB ── */}
       {activeTab === 'available' && (
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="bg-gray-900 rounded-xl p-4 mb-4 flex items-center justify-between text-sm">
+          <div className="auction-surface rounded-xl p-4 mb-4 flex items-center justify-between text-sm">
             <p className="text-gray-400">Pending: <span className="text-yellow-400 font-bold">{pendingCount}</span> | Unsold: <span className="text-red-400 font-bold">{unsoldCount}</span></p>
             <p className="text-gray-500">Total: <span className="text-white font-bold">{allAvailablePlayers.length}</span></p>
           </div>
 
-          <div className="bg-gray-900 rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="auction-surface rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-xs text-gray-500 block mb-1">Search</label>
               <input
