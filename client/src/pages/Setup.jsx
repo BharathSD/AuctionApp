@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Papa from 'papaparse'
 import { saveAuctionConfig } from '../hooks/useAuctionStorage'
 import { DEFAULT_BID_TIERS } from '../utils/bidTiers'
-import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup } from '../utils/validation'
+import { validateConfigValues, validatePlayerName, validateBasePrice, validateAuctionStartup, getPlayerImportWarnings } from '../utils/validation'
 import PlayerAvatar from '../components/PlayerAvatar'
 import Icon from '../components/Icon'
 import BrandMark from '../components/BrandMark'
@@ -34,6 +34,7 @@ export default function Setup() {
   const [players, setPlayers] = useState([])
   const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
   const [csvError, setCsvError] = useState('')
+  const [csvWarnings, setCsvWarnings] = useState([])
   const [preAllocations, setPreAllocations] = useState([]) // [{playerId, teamId, price}]
   const [retainSearch, setRetainSearch] = useState('')
   const fileRef = useRef()
@@ -104,6 +105,7 @@ export default function Setup() {
 
   const handleCSV = (e) => {
     setCsvError('')
+    setCsvWarnings([])
     const file = e.target.files[0]
     if (!file) return
     Papa.parse(file, {
@@ -127,7 +129,14 @@ export default function Setup() {
           return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value, photoUrl: normalizePhotoUrl(photoRaw) }
         }).filter(Boolean)
         if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice (photoUrl optional)'); return }
-        setPlayers(prev => [...prev, ...parsed])
+        const skipped = data.length - parsed.length
+        setPlayers(prev => {
+          const combined = [...prev, ...parsed]
+          const warnings = getPlayerImportWarnings(combined)
+          if (skipped > 0) warnings.unshift(`${skipped} row${skipped > 1 ? 's' : ''} skipped (missing or invalid name).`)
+          setCsvWarnings(warnings)
+          return combined
+        })
       },
       error: () => setCsvError('Failed to parse CSV.'),
     })
@@ -361,6 +370,16 @@ export default function Setup() {
               <input ref={fileRef} type="file" accept=".csv" onChange={handleCSV}
                 className="text-sm text-gray-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-700 file:text-white file:cursor-pointer hover:file:bg-blue-600" />
               {csvError && <p className="text-red-400 text-xs mt-2">{csvError}</p>}
+              {csvWarnings.length > 0 && (
+                <ul className="mt-2 space-y-1" role="status">
+                  {csvWarnings.map((w, i) => (
+                    <li key={i} className="text-amber-400 text-xs flex gap-1.5">
+                      <span aria-hidden="true">⚠</span>
+                      <span>{w}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Manual Add */}

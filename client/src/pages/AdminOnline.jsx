@@ -33,6 +33,7 @@ export default function AdminOnline() {
   const [disconnectAlert, setDisconnectAlert] = useState(null) // { teamName, at }
 
   // Smart mount: check if room exists → restore from snapshot if not → create fresh if no snapshot
+  // Intentionally bootstrap once on mount using the initial saved setup snapshot.
   useEffect(() => {
     if (!saved || !saved.roomCode) return
     const rc = saved.roomCode
@@ -65,6 +66,7 @@ export default function AdminOnline() {
       .catch((err) => {
         setBootstrapError(err?.message || 'Failed to initialize room')
       })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const activeRoomCode = roomReady ? roomCode : null
@@ -76,7 +78,15 @@ export default function AdminOnline() {
 
   // Persist online auction progress (snapshot + results payload sync)
   useEffect(() => {
-    syncOnlineAuctionProgress({ roomCode, state })
+    syncOnlineAuctionProgress({
+      roomCode,
+      state: {
+        status: state.status,
+        teams: state.teams,
+        players: state.players,
+        config: state.config,
+      },
+    })
   }, [roomCode, state.status, state.teams, state.players, state.config])
 
   // Flash disconnect alert when a captain drops mid-auction
@@ -91,7 +101,7 @@ export default function AdminOnline() {
       setTimeout(() => setDisconnectAlert(null), 8000)
     }
     prevConnectedRef.current = curr
-  }, [state.connectedTeamIds])
+  }, [state.connectedTeamIds, state.status, state.teams])
 
   const downloadSnapshot = useCallback(() => {
     const data = { version: 1, roomCode, savedAt: new Date().toISOString(), state, originalSetup: saved }
@@ -138,6 +148,15 @@ export default function AdminOnline() {
   const totalPlayers = state.players.length
   const joinUrl = `${window.location.origin}/join/${roomCode}`
   const totalTeams = teams.length || saved?.teams?.length || config.numTeams || 0
+  const liveAnnouncement = status === 'running'
+    ? `${currentPlayer?.name || 'Player'} at ${state.currentPrice || 0} points${leadingTeam ? `, ${leadingTeam.name} leading` : ''}`
+    : status === 'sold'
+      ? `${currentPlayer?.name || 'Player'} sold to ${leadingTeam?.name || 'team'} for ${state.currentPrice || 0} points`
+      : status === 'unsold'
+        ? `${currentPlayer?.name || 'Player'} marked unsold`
+        : status === 'finished'
+          ? `Auction finished. ${soldCount} of ${totalPlayers} players sold.`
+          : 'Waiting for auction to start.'
 
   if (status === 'finished') {
     return (
@@ -200,6 +219,9 @@ export default function AdminOnline() {
 
   return (
     <div className="app-shell text-white flex flex-col">
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {liveAnnouncement}
+      </div>
       {/* Top bar */}
       <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
@@ -297,9 +319,9 @@ export default function AdminOnline() {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col xl:flex-row">
         {/* ── Left: current player + controls ── */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 gap-6 min-h-0">
           {(status === 'idle') && (
             <div className="text-center">
               <p className="text-gray-400 mb-2">Share the join link with captains, then start.</p>
@@ -456,11 +478,11 @@ export default function AdminOnline() {
         </div>
 
         {/* ── Right: teams + bid log ── */}
-        <div className="w-72 lg:w-80 2xl:w-96 auction-surface border-l border-gray-800 flex flex-col" style={{height: 'calc(100vh - 57px)'}}>
+        <div className="w-full xl:w-72 2xl:w-96 auction-surface border-t xl:border-t-0 xl:border-l border-gray-800 flex flex-col max-h-[52vh] xl:max-h-none xl:h-[calc(100vh-57px)]">
           {/* Teams — always fully visible */}
           <div className="p-4 border-b border-gray-800 shrink-0">
             <p className="text-sm text-gray-400 uppercase tracking-widest mb-3">Teams</p>
-            <div className="space-y-2">
+            <div className="space-y-2" role="list" aria-label="Teams summary">
               {teams.map(team => {
                 const total = saved.config.pointsPerTeam || 1
                 const spentPct = Math.round(((total - team.budget) / total) * 100)
@@ -468,7 +490,7 @@ export default function AdminOnline() {
                 const isLeading = state.leadingTeamId === team.id
                 const isExpanded = expandedTeamId === team.id
                 return (
-                  <div key={team.id} className={`rounded-lg overflow-hidden ${isLeading ? 'ring-1 ring-blue-500' : ''}`}>
+                  <div key={team.id} role="listitem" className={`rounded-lg overflow-hidden ${isLeading ? 'ring-1 ring-blue-500' : ''}`}>
                     {/* Team header row — click to expand */}
                     <div
                       role="button"
@@ -557,7 +579,7 @@ export default function AdminOnline() {
               <p className="text-sm text-blue-400 font-medium mb-3 truncate">{currentPlayer.name}</p>
             )}
             {bids.length === 0 && <p className="text-sm text-gray-600">No bids yet — waiting for the first bid.</p>}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" role="log" aria-live="polite" aria-label="Live bid feed">
               {bids.slice(0, 30).map((b, i) => {
                 const team = teams.find(t => t.id === b.teamId)
                 const prevPrice = bids[i + 1]?.price

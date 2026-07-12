@@ -87,6 +87,15 @@ export default function ViewerDisplay() {
   const timerPct = config.timerEnabled && config.timerSeconds
     ? Math.max(0, (timerLeft / config.timerSeconds) * 100) : 100
   const timerColor = timerLeft > 10 ? 'bg-green-500' : timerLeft > 5 ? 'bg-yellow-400' : 'bg-red-500'
+  const liveAnnouncement = status === 'running'
+    ? `${currentPlayer?.name || 'Player'} at ${currentPrice || 0} points${leadingTeam ? `, ${leadingTeam.name} leading` : ''}`
+    : status === 'sold'
+      ? `${currentPlayer?.name || 'Player'} sold to ${leadingTeam?.name || 'team'} for ${currentPrice || 0} points`
+      : status === 'unsold'
+        ? `${currentPlayer?.name || 'Player'} marked unsold`
+        : status === 'finished'
+          ? `Auction finished. ${soldCount} of ${totalPlayers} players sold.`
+          : 'Waiting for auction to start.'
 
   // Recently sold players (last 5)
   const recentSold = players
@@ -96,9 +105,12 @@ export default function ViewerDisplay() {
 
   return (
     <div className="app-shell text-white flex flex-col overflow-hidden">
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {liveAnnouncement}
+      </div>
 
       {/* ── Top bar ── */}
-      <div className="auction-topbar border-b border-gray-800 px-6 py-3 flex items-center justify-between gap-4">
+      <div className="auction-topbar border-b border-gray-800 px-3 md:px-6 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <span className="broadcast-title truncate">Cricket Auction Live Board</span>
           {secondRound && (
@@ -127,10 +139,10 @@ export default function ViewerDisplay() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
 
         {/* ── Left: current player + bid ── */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 gap-6 min-h-0">
 
           {status === 'idle' && (
             <div className="text-center">
@@ -225,15 +237,15 @@ export default function ViewerDisplay() {
         </div>
 
         {/* ── Right: teams scoreboard ── */}
-        <div className="w-80 auction-surface border-l border-gray-800 flex flex-col">
+        <div className="w-full lg:w-80 xl:w-96 auction-surface border-t lg:border-t-0 lg:border-l border-gray-800 flex flex-col max-h-[46vh] lg:max-h-none">
           <div className="px-4 py-3 border-b border-gray-800">
             <h2 className="section-title text-sm text-gray-300">Teams</h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2" role="list" aria-label="Team status board">
             {teams.map(team => {
               const isLeading = team.id === leadingTeamId
               return (
-                <div key={team.id}
+                <div key={team.id} role="listitem"
                   className={`rounded-xl p-3 border transition-all ${isLeading
                     ? 'bg-blue-900/50 border-blue-600'
                     : 'auction-surface-soft border-gray-700'}`}>
@@ -258,11 +270,11 @@ export default function ViewerDisplay() {
               <div className="px-4 py-2 border-t border-gray-800">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recently Sold</h2>
               </div>
-              <div className="px-3 pb-3 space-y-1">
+              <div className="px-3 pb-3 space-y-1" role="list" aria-label="Recently sold players">
                 {recentSold.map((p, i) => {
                   const buyer = teams.find(t => t.id === p.soldTo)
                   return (
-                    <div key={i} className="flex justify-between items-center text-xs auction-surface-soft rounded-lg px-2 py-1.5">
+                    <div key={i} role="listitem" className="flex justify-between items-center text-xs auction-surface-soft rounded-lg px-2 py-1.5">
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="xs" />
                         <div className="min-w-0">

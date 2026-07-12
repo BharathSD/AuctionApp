@@ -30,9 +30,12 @@ const httpServer = createServer(app)
 // Track admin tokens and rate limits
 const adminTokens = new Map() // roomCode -> adminToken
 const bidRateLimitMap = new Map() // `${roomCode}:${teamId}` -> { count, resetTime }
+const joinAttemptMap = new Map() // `${roomCode}:${ip}` -> { count, resetTime }
 const captainTokens = new Map() // roomCode -> Map<teamId, token>
 const BID_RATE_LIMIT = 3 // max 3 bids per second per team
 const RATE_LIMIT_WINDOW = 1000 // milliseconds
+const JOIN_RATE_LIMIT = 8 // max 8 PIN attempts per minute per room/IP
+const JOIN_RATE_LIMIT_WINDOW = 60_000 // milliseconds
 
 function pruneStaleRateLimitEntries(now) {
   for (const [key, value] of bidRateLimitMap.entries()) {
@@ -42,9 +45,22 @@ function pruneStaleRateLimitEntries(now) {
   }
 }
 
+function pruneStaleJoinEntries(now) {
+  for (const [key, value] of joinAttemptMap.entries()) {
+    if (!value || Number(value.resetTime) + JOIN_RATE_LIMIT_WINDOW < now) {
+      joinAttemptMap.delete(key)
+    }
+  }
+}
+
+function getRequestIp(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+  return fwd || req.ip || req.socket?.remoteAddress || 'unknown'
+}
+
 // ── Admin auth helper ──────────────────────────────────────────
 function generateAdminToken() {
-  return Math.random().toString(36).slice(2, 12)
+  return crypto.randomBytes(24).toString('hex')
 }
 
 function generateCaptainToken() {
@@ -71,6 +87,7 @@ function resetServerStateForTests() {
   adminTokens.clear()
   captainTokens.clear()
   bidRateLimitMap.clear()
+  joinAttemptMap.clear()
 }
 
 // Swallow aborted connection errors on the HTTP server (ECONNABORTED, ECONNRESET)
@@ -147,6 +164,22 @@ app.get('/api/auction/:roomCode/state', (req, res) => {
 app.post('/api/auction/:roomCode/join', (req, res) => {
   const { pin } = req.body
   const roomCode = req.params.roomCode
+
+  // PIN join throttling to reduce brute-force attempts.
+  const now = Date.now()
+  pruneStaleJoinEntries(now)
+  const joinKey = `${roomCode}:${getRequestIp(req)}`
+  const attempts = joinAttemptMap.get(joinKey) || { count: 0, resetTime: now }
+  if (attempts.resetTime + JOIN_RATE_LIMIT_WINDOW < now) {
+    attempts.count = 0
+    attempts.resetTime = now
+  }
+  attempts.count += 1
+  joinAttemptMap.set(joinKey, attempts)
+  if (attempts.count > JOIN_RATE_LIMIT) {
+    return res.status(429).json({ error: 'Too many join attempts. Please wait a minute and try again.' })
+  }
+
   const result = engine.joinRoom(roomCode, pin)
   if (result.error) return res.status(401).json(result)
 
@@ -158,6 +191,8 @@ app.post('/api/auction/:roomCode/join', (req, res) => {
   const captainToken = generateCaptainToken()
   const roomTokens = getCaptainTokenMap(roomCode)
   roomTokens.set(result.team.id, captainToken)
+  // Successful validation resets throttling for this room/IP key.
+  joinAttemptMap.delete(joinKey)
   res.json({ teamId: result.team.id, teamName: result.team.name, captainToken })
 })
 
@@ -447,6 +482,7 @@ module.exports = {
     adminTokens,
     captainTokens,
     bidRateLimitMap,
+    joinAttemptMap,
     isIgnorableNetworkError,
     resetServerStateForTests,
   },

@@ -46,9 +46,9 @@ export default function AvailablePlayers() {
   const [sortBy, setSortBy] = useState('status') // 'status', 'role', 'price'
   const [filterRole, setFilterRole] = useState('all')
 
-  const players = state.players || []
-  const teams = state.teams || []
-  const teamsMap = new Map(teams.map(t => [t.id, t]))
+  const players = useMemo(() => state.players || [], [state.players])
+  const teams = useMemo(() => state.teams || [], [state.teams])
+  const teamsMap = useMemo(() => new Map(teams.map(t => [t.id, t])), [teams])
 
   // Get available players (pending + unsold)
   const availablePlayers = useMemo(() => {

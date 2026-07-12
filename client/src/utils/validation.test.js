@@ -9,6 +9,7 @@ import {
   validateBidTierConfig,
   validateAuctionStartup,
   validateConfigValues,
+  getPlayerImportWarnings,
 } from './validation'
 
 describe('validateNumeric', () => {
@@ -256,3 +257,52 @@ describe('validateConfigValues', () => {
     expect(result.valid).toBe(false)
   })
 })
+
+describe('getPlayerImportWarnings', () => {
+  it('returns no warnings for a clean roster', () => {
+    const players = [
+      { name: 'Sachin', role: 'Batsman' },
+      { name: 'Zaheer', role: 'Bowler' },
+    ]
+    expect(getPlayerImportWarnings(players)).toEqual([])
+  })
+
+  it('returns empty array for empty/invalid input', () => {
+    expect(getPlayerImportWarnings([])).toEqual([])
+    expect(getPlayerImportWarnings(null)).toEqual([])
+    expect(getPlayerImportWarnings(undefined)).toEqual([])
+  })
+
+  it('flags case-insensitive duplicate names', () => {
+    const players = [
+      { name: 'Vinod Kumar', role: 'Batsman' },
+      { name: 'vinod kumar', role: 'Bowler' },
+    ]
+    const warnings = getPlayerImportWarnings(players)
+    expect(warnings.length).toBe(1)
+    expect(warnings[0]).toMatch(/duplicate name/i)
+    expect(warnings[0]).toContain('Vinod Kumar')
+  })
+
+  it('flags placeholder and blank roles', () => {
+    const players = [
+      { name: 'A', role: 'PLAYER' },
+      { name: 'B', role: '' },
+      { name: 'C', role: 'Bowler' },
+    ]
+    const warnings = getPlayerImportWarnings(players)
+    const roleWarning = warnings.find(w => /generic or blank role/i.test(w))
+    expect(roleWarning).toBeTruthy()
+    expect(roleWarning).toMatch(/2 players/)
+  })
+
+  it('does not flag distinct names or real roles', () => {
+    const players = [
+      { name: 'Rohit', role: 'Batsman' },
+      { name: 'Rahul', role: 'Wicket-keeper' },
+      { name: 'Bumrah', role: 'Super Striker' },
+    ]
+    expect(getPlayerImportWarnings(players)).toEqual([])
+  })
+})
+

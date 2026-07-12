@@ -22,6 +22,13 @@ export default function Results() {
   const { teams = [], players = [], config = {}, mode } = resultData
   const soldPlayers = players.filter(p => p.status === 'sold')
   const unsoldPlayers = players.filter(p => p.status !== 'sold')
+  const teamNameById = new Map(teams.map(t => [t.id, t.name]))
+
+  const snapshotBids = Array.isArray(resultData.bids)
+    ? resultData.bids
+    : Array.isArray(resultData?._runtime?.bids)
+      ? resultData._runtime.bids
+      : []
 
   const exportXLSX = async () => {
     const ExcelJS = (await import('exceljs')).default
@@ -154,6 +161,70 @@ export default function Results() {
       cell.alignment = { horizontal: 'center' }
     })
     totalRow.getCell(1).alignment = { horizontal: 'left' }
+
+    // ── Sheet 3: Bid log / audit trail ───────────────────────
+    const bidSheet = wb.addWorksheet('Bid Log')
+    bidSheet.columns = [
+      { key: 'time', width: 24 },
+      { key: 'event', width: 14 },
+      { key: 'player', width: 28 },
+      { key: 'team', width: 22 },
+      { key: 'price', width: 14 },
+      { key: 'source', width: 18 },
+    ]
+
+    const bidHeader = bidSheet.addRow(['Time', 'Event', 'Player', 'Team', 'Price', 'Source'])
+    bidHeader.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+
+    const formatTime = (ts) => {
+      if (!ts) return ''
+      const d = new Date(ts)
+      return Number.isNaN(d.getTime()) ? '' : d.toLocaleString()
+    }
+
+    // Snapshot bid list is usually newest-first for the currently active player.
+    ;[...snapshotBids].reverse().forEach(b => {
+      bidSheet.addRow([
+        formatTime(b.ts),
+        'BID',
+        b.playerName || '',
+        teamNameById.get(b.teamId) || b.teamId || '',
+        b.price ?? '',
+        'live snapshot',
+      ])
+    })
+
+    // Sold entries are always available in final results and act as durable audit rows.
+    soldPlayers.forEach(p => {
+      bidSheet.addRow([
+        formatTime(p.soldAt),
+        'SOLD',
+        p.name,
+        teamNameById.get(p.soldTo) || p.soldTo || '',
+        p.soldPrice ?? '',
+        'final roster',
+      ])
+    })
+
+    if (bidSheet.rowCount === 1) {
+      bidSheet.addRow(['', 'INFO', 'No bid/audit events available in current snapshot.', '', '', ''])
+    }
+
+    bidSheet.eachRow((row, idx) => {
+      if (idx === 1) return
+      row.getCell(2).alignment = { horizontal: 'center' }
+      row.getCell(5).alignment = { horizontal: 'right' }
+      const event = String(row.getCell(2).value || '')
+      if (event === 'SOLD') {
+        row.getCell(2).font = { bold: true, color: { argb: 'FF22C55E' } }
+      } else if (event === 'BID') {
+        row.getCell(2).font = { bold: true, color: { argb: 'FF60A5FA' } }
+      }
+    })
 
     // ── Write and download ───────────────────────────────────
     const buffer = await wb.xlsx.writeBuffer()
