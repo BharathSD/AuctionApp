@@ -558,6 +558,19 @@ describe('requeueUnsold', () => {
     const result = engine.requeueUnsold('RQ02', io)
     assert.ok(result.error)
   })
+
+  it('does not duplicate players already present in remaining queue', () => {
+    setupRoom('RQ03', makeConfig(), makeTeams(), makePlayers([100, 200, 300]))
+    engine.startNextPlayer('RQ03', io) // player 0 on block
+    engine.unsellPlayer('RQ03', io)
+    engine.startNextPlayer('RQ03', io) // player 1 on block, queue still has player 2 remaining
+    engine.finishAuction('RQ03', io)   // all not-sold become unsold
+
+    engine.requeueUnsold('RQ03', io)
+    const room = engine.getRoom('RQ03')
+    assert.equal(room.queue.length, 3)
+    assert.equal(new Set(room.queue).size, 3)
+  })
 })
 
 // ─── autoAssignUnsold ───────────────────────────────────────

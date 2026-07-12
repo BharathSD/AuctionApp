@@ -487,7 +487,13 @@ function requeueUnsold(roomCode, io) {
 
   room.players.forEach((p, i) => { if (p.status === 'unsold') room.players[i] = { ...p, status: 'pending' } })
   const remainingQueue = room.queue.slice(room.currentIdx + 1)
-  room.queue = [...remainingQueue, ...unsoldIdxs]
+  // Keep remaining queue order, then append unsold players not already queued.
+  // This avoids duplicate queue entries after finish -> re-auction flows.
+  const mergedQueue = [...remainingQueue]
+  unsoldIdxs.forEach((idx) => {
+    if (!mergedQueue.includes(idx)) mergedQueue.push(idx)
+  })
+  room.queue = mergedQueue
   room.currentIdx = -1
   room.status = 'idle'
 

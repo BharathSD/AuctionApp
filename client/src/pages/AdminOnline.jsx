@@ -74,7 +74,7 @@ export default function AdminOnline() {
   const {
     state, currentPlayer, leadingTeam,
     adminNextPlayer, adminUndoBid, adminFinish, adminSold, adminReopenSold, adminUndoSold, adminReturnSoldToQueue, adminUnsold, adminRequeueUnsold, adminKickTeam, adminPause, adminResume, adminAutoAssignUnsold,
-  } = useOnlineAuction({ roomCode: activeRoomCode, role: 'admin', teamId: null })
+  } = useOnlineAuction({ roomCode: activeRoomCode, role: 'admin', teamId: null, adminToken: saved?.adminToken })
 
   // Persist online auction progress (snapshot + results payload sync)
   useEffect(() => {

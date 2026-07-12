@@ -52,7 +52,7 @@ const INITIAL = {
   sessionError: null,
 }
 
-export function useOnlineAuction({ roomCode, role, teamId }) {
+export function useOnlineAuction({ roomCode, role, teamId, adminToken }) {
   const socketRef = useRef(null)
   const [state, dispatch] = useReducer(reducer, INITIAL)
 
@@ -65,10 +65,10 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
     socket.on('connect', () => {
       dispatch({ type: 'SET_CONNECTED', payload: true })
       if (role === 'admin') {
-        // Get admin token from stored auction data
+        // Prefer the token captured by the admin page; fallback to storage.
         const saved = loadAuctionState?.() || {}
-        const adminToken = saved.adminToken || ''
-        socket.emit('admin:join', { roomCode, adminToken })
+        const token = adminToken || saved.adminToken || ''
+        socket.emit('admin:join', { roomCode, adminToken: token })
       } else {
         const captainToken = sessionStorage.getItem('captain_token') || ''
         socket.emit('captain:join', { roomCode, teamId, captainToken })
@@ -99,7 +99,7 @@ export function useOnlineAuction({ roomCode, role, teamId }) {
       socket.disconnect()
       socketRef.current = null
     }
-  }, [roomCode, role, teamId])
+  }, [roomCode, role, teamId, adminToken])
 
   const adminNextPlayer = useCallback(() => socketRef.current?.emit('admin:nextPlayer'), [])
   const adminUndoBid = useCallback(() => socketRef.current?.emit('admin:undoBid'), [])

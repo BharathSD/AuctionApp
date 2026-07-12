@@ -146,6 +146,26 @@ describe('socket admin auth', () => {
     }
   })
 
+  it('allows authorized admin to start the auction', async () => {
+    const { roomCode, adminToken } = await setupRoom('AS')
+
+    const socket = await connectSocket()
+    try {
+      const statePromise = waitForEvent(socket, 'auction:stateUpdate')
+      socket.emit('admin:join', { roomCode, adminToken })
+      await statePromise
+
+      const startedPromise = waitForEvent(socket, 'auction:playerStart')
+      socket.emit('admin:nextPlayer')
+      const started = await startedPromise
+      assert.equal(started.status, 'running')
+      assert.equal(started.currentIdx, 0)
+      assert.equal(started.currentPrice, 100)
+    } finally {
+      socket.disconnect()
+    }
+  })
+
   it('rejects admin token reuse across rooms', async () => {
     const roomA = await setupRoom('A1')
     const roomB = await setupRoom('B1')
