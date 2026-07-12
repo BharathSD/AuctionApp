@@ -19,6 +19,14 @@ const DEFAULT_CONFIG = {
   randomizeOrder: false,
 }
 
+const ROLE_OPTIONS = [
+  { value: 'Super Striker', label: 'Super Striker' },
+  { value: 'All Rounder', label: 'All Rounder' },
+  { value: 'Batsman', label: 'Batsman' },
+  { value: 'Bowler', label: 'Bowler' },
+  { value: 'Wicket-keeper', label: 'Wicket Keeper' },
+]
+
 export default function Setup() {
   const { mode } = useParams()
   const navigate = useNavigate()
@@ -33,10 +41,14 @@ export default function Setup() {
   )
   const [players, setPlayers] = useState([])
   const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
+  const [editingPlayerId, setEditingPlayerId] = useState(null)
   const [csvError, setCsvError] = useState('')
   const [csvWarnings, setCsvWarnings] = useState([])
   const [preAllocations, setPreAllocations] = useState([]) // [{playerId, teamId, price}]
   const [retainSearch, setRetainSearch] = useState('')
+  const [playerSearch, setPlayerSearch] = useState('')
+  const [playerRoleFilter, setPlayerRoleFilter] = useState([])
+  const [playerRoleSearch, setPlayerRoleSearch] = useState('')
   const fileRef = useRef()
 
   const normalizePhotoUrl = (rawValue) => {
@@ -88,7 +100,7 @@ export default function Setup() {
     }
   }
 
-  const addPlayer = () => {
+  const upsertPlayer = () => {
     // Validate player name and price
     const nameVal = validatePlayerName(newPlayer.name)
     if (!nameVal.valid) { alert(nameVal.error); return }
@@ -97,11 +109,42 @@ export default function Setup() {
     if (!priceVal.valid) { alert(priceVal.error); return }
     
     const photoUrl = normalizePhotoUrl(newPlayer.photoUrl)
-    setPlayers(prev => [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl }])
+    setPlayers(prev => {
+      const next = editingPlayerId
+        ? prev.map(p => p.id === editingPlayerId
+          ? { ...p, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl }
+          : p)
+        : [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl }]
+      setCsvWarnings(getPlayerImportWarnings(next))
+      return next
+    })
+    setEditingPlayerId(null)
     setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
   }
 
-  const removePlayer = (id) => setPlayers(prev => prev.filter(p => p.id !== id))
+  const startEditPlayer = (player) => {
+    setEditingPlayerId(player.id)
+    setNewPlayer({
+      name: player.name || '',
+      role: player.role || 'Batsman',
+      basePrice: String(player.basePrice ?? ''),
+      photoUrl: player.photoUrl || '',
+    })
+  }
+
+  const cancelEditPlayer = () => {
+    setEditingPlayerId(null)
+    setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
+  }
+
+  const removePlayer = (id) => {
+    setPlayers(prev => {
+      const next = prev.filter(p => p.id !== id)
+      setCsvWarnings(getPlayerImportWarnings(next))
+      return next
+    })
+    if (editingPlayerId === id) cancelEditPlayer()
+  }
 
   const handleCSV = (e) => {
     setCsvError('')
@@ -200,6 +243,38 @@ export default function Setup() {
         })
     }
   }
+
+  const roleOrder = ROLE_OPTIONS.reduce((acc, role, idx) => ({ ...acc, [role.value]: idx }), {})
+  const roleUsageCounts = players.reduce((acc, p) => {
+    const role = String(p.role || '').trim()
+    if (!role) return acc
+    acc[role] = (acc[role] || 0) + 1
+    return acc
+  }, {})
+  const roleFilterOptions = [...new Set([...ROLE_OPTIONS.map(r => r.value), ...players.map(p => p.role).filter(Boolean)])]
+    .sort((a, b) => {
+      const usageDiff = (roleUsageCounts[b] || 0) - (roleUsageCounts[a] || 0)
+      if (usageDiff !== 0) return usageDiff
+      const orderA = roleOrder[a] ?? Number.MAX_SAFE_INTEGER
+      const orderB = roleOrder[b] ?? Number.MAX_SAFE_INTEGER
+      if (orderA !== orderB) return orderA - orderB
+      return a.localeCompare(b)
+    })
+  const visibleRoleOptions = roleFilterOptions.filter(role =>
+    role.toLowerCase().includes(playerRoleSearch.trim().toLowerCase())
+  )
+  const toggleRoleFilter = (role) => {
+    setPlayerRoleFilter(prev => prev.includes(role)
+      ? prev.filter(r => r !== role)
+      : [...prev, role])
+  }
+  const filteredPlayers = players.filter((p) => {
+    const matchesSearch = !playerSearch.trim()
+      || p.name.toLowerCase().includes(playerSearch.trim().toLowerCase())
+      || p.role.toLowerCase().includes(playerSearch.trim().toLowerCase())
+    const matchesRole = playerRoleFilter.length === 0 || playerRoleFilter.includes(p.role)
+    return matchesSearch && matchesRole
+  })
 
   /* ---------- render ---------- */
   return (
@@ -384,17 +459,22 @@ export default function Setup() {
 
             {/* Manual Add */}
             <div className="auction-surface rounded-xl p-4">
-              <p className="text-sm font-semibold mb-3 text-gray-300">Add Player Manually</p>
+              <p className="text-sm font-semibold mb-3 text-gray-300">{editingPlayerId ? 'Edit Player' : 'Add Player Manually'}</p>
               <div className="flex gap-3 flex-wrap">
                 <input value={newPlayer.name} onChange={e => setNewPlayer(p => ({ ...p, name: e.target.value }))}
                   placeholder="Player name" className="input-field flex-1 min-w-36" />
                 <select value={newPlayer.role} onChange={e => setNewPlayer(p => ({ ...p, role: e.target.value }))}
                   className="input-field w-36">
-                  {['Batsman','Bowler','All-rounder','Wicket-keeper'].map(r => <option key={r}>{r}</option>)}
+                  {ROLE_OPTIONS.map((role) => (
+                    <option key={role.value} value={role.value}>{role.label}</option>
+                  ))}
                 </select>
                 <input type="number" value={newPlayer.basePrice} onChange={e => setNewPlayer(p => ({ ...p, basePrice: e.target.value }))}
                   placeholder="Base price" className="input-field w-32" min={1} />
-                <button onClick={addPlayer} className="btn-primary">Add</button>
+                <button onClick={upsertPlayer} className="btn-primary">{editingPlayerId ? 'Update' : 'Add'}</button>
+                {editingPlayerId && (
+                  <button onClick={cancelEditPlayer} className="btn-secondary">Cancel</button>
+                )}
               </div>
               <div className="mt-3">
                 <input value={newPlayer.photoUrl} onChange={e => setNewPlayer(p => ({ ...p, photoUrl: e.target.value }))}
@@ -405,12 +485,55 @@ export default function Setup() {
             {/* Player list */}
             {players.length > 0 && (
               <div className="auction-surface rounded-xl overflow-hidden">
-                <div className="grid grid-cols-[1fr_120px_100px_64px_40px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+                <div className="px-4 py-3 border-b border-gray-800 grid grid-cols-1 sm:grid-cols-[1fr_280px] gap-2">
+                  <input
+                    value={playerSearch}
+                    onChange={(e) => setPlayerSearch(e.target.value)}
+                    placeholder="Search players by name or role"
+                    className="input-field"
+                  />
+                  <div className="auction-surface-soft rounded-lg p-2">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs text-gray-400">Role filters ({playerRoleFilter.length || 'All'})</span>
+                      {playerRoleFilter.length > 0 && (
+                        <button
+                          onClick={() => setPlayerRoleFilter([])}
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      value={playerRoleSearch}
+                      onChange={(e) => setPlayerRoleSearch(e.target.value)}
+                      placeholder="Search roles"
+                      className="input-field text-xs py-1 mb-2"
+                    />
+                    <div className="max-h-24 overflow-y-auto space-y-1">
+                      {visibleRoleOptions.map((role) => (
+                        <label key={role} className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={playerRoleFilter.includes(role)}
+                            onChange={() => toggleRoleFilter(role)}
+                            className="w-3.5 h-3.5 rounded"
+                          />
+                          <span>{role}</span>
+                        </label>
+                      ))}
+                      {visibleRoleOptions.length === 0 && (
+                        <p className="text-xs text-gray-500">No matching roles</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-[1fr_120px_100px_64px_88px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
                   <span>Name</span><span>Role</span><span>Base</span><span></span>
                 </div>
                 <div className="max-h-72 overflow-y-auto divide-y divide-gray-800">
-                  {players.map(p => (
-                    <div key={p.id} className="grid grid-cols-[1fr_120px_100px_64px_40px] gap-2 px-4 py-3 items-center text-sm">
+                  {filteredPlayers.map(p => (
+                    <div key={p.id} className="grid grid-cols-[1fr_120px_100px_64px_88px] gap-2 px-4 py-3 items-center text-sm">
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
                         <span className="font-medium truncate">{p.name}</span>
@@ -418,12 +541,15 @@ export default function Setup() {
                       <span className="text-gray-400">{p.role}</span>
                       <span className="text-yellow-400">{p.basePrice} pts</span>
                       <span className="text-[11px] text-gray-500">{p.photoUrl ? 'Photo' : 'No photo'}</span>
-                      <button onClick={() => removePlayer(p.id)} className="text-gray-600 hover:text-red-400 text-lg leading-none">×</button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => startEditPlayer(p)} className="text-blue-400 hover:text-blue-300 text-xs">Edit</button>
+                        <button onClick={() => removePlayer(p.id)} className="text-gray-600 hover:text-red-400 text-lg leading-none">×</button>
+                      </div>
                     </div>
                   ))}
                 </div>
                 <div className="px-4 py-2 border-t border-gray-800 text-xs text-gray-500">
-                  {players.length} player{players.length !== 1 ? 's' : ''} added
+                  Showing {filteredPlayers.length} of {players.length} player{players.length !== 1 ? 's' : ''}
                 </div>
               </div>
             )}
