@@ -18,6 +18,8 @@ const DEFAULT_CONFIG = {
   minBidBase: 100,
   maxPlayersPerTeam: 11,
   randomizeOrder: false,
+  groupByCategory: false, // bidding only — Round Robin Selection always groups
+  categoryGroups: [],     // [{ roles: string[] }] — admin-arranged, possibly-merged categories
 }
 
 const ROLE_OPTIONS = [
@@ -89,7 +91,7 @@ export default function Setup() {
   }
 
   const handleConfigChange = (field, value) => {
-    const stringFields = field === 'timerEnabled' || field === 'randomizeOrder' || field === 'engine'
+    const stringFields = field === 'timerEnabled' || field === 'randomizeOrder' || field === 'engine' || field === 'groupByCategory'
     const parsed = stringFields ? value : Number(value) || value
     setConfig(prev => ({ ...prev, [field]: parsed }))
     if (field === 'numTeams') {
@@ -287,22 +289,40 @@ export default function Setup() {
     return matchesSearch && matchesRole
   })
 
-  /* ---------- draft category order (Round Robin only) ---------- */
+  /* ---------- category groups (Round Robin, or bidding when grouped) ---------- */
   // Present categories (distinct roles in the current player list), merged
-  // with any previously-arranged order: keeps prior ordering, appends newly
-  // added categories at the end, drops ones that no longer have players.
+  // with any previously-arranged groups: keeps prior ordering/merges, drops
+  // roles that no longer have players (shrinking a merged group rather than
+  // dropping it entirely if at least one of its roles still has players),
+  // and appends any newly-added role as its own singleton group.
   const presentCategories = [...new Set(players.map(p => p.role).filter(Boolean))]
-  const savedCategoryOrder = config.categoryOrder || []
-  const categoryOrder = [
-    ...savedCategoryOrder.filter(c => presentCategories.includes(c)),
-    ...presentCategories.filter(c => !savedCategoryOrder.includes(c)),
+  const savedCategoryGroups = config.categoryGroups || []
+  const coveredCategories = new Set(savedCategoryGroups.flatMap(g => g.roles))
+  const categoryGroups = [
+    ...savedCategoryGroups
+      .map(g => ({ roles: g.roles.filter(r => presentCategories.includes(r)) }))
+      .filter(g => g.roles.length > 0),
+    ...presentCategories.filter(r => !coveredCategories.has(r)).map(r => ({ roles: [r] })),
   ]
-  const moveCategory = (idx, dir) => {
+  const moveGroup = (idx, dir) => {
     const newIdx = idx + dir
-    if (newIdx < 0 || newIdx >= categoryOrder.length) return
-    const next = [...categoryOrder]
+    if (newIdx < 0 || newIdx >= categoryGroups.length) return
+    const next = [...categoryGroups]
     ;[next[idx], next[newIdx]] = [next[newIdx], next[idx]]
-    setConfig(prev => ({ ...prev, categoryOrder: next }))
+    setConfig(prev => ({ ...prev, categoryGroups: next }))
+  }
+  const mergeGroupWithNext = (idx) => {
+    if (idx < 0 || idx >= categoryGroups.length - 1) return
+    const next = [...categoryGroups]
+    next.splice(idx, 2, { roles: [...next[idx].roles, ...next[idx + 1].roles] })
+    setConfig(prev => ({ ...prev, categoryGroups: next }))
+  }
+  const splitGroup = (idx) => {
+    const group = categoryGroups[idx]
+    if (!group || group.roles.length <= 1) return
+    const next = [...categoryGroups]
+    next.splice(idx, 1, ...group.roles.map(r => ({ roles: [r] })))
+    setConfig(prev => ({ ...prev, categoryGroups: next }))
   }
 
   /* ---------- render ---------- */
@@ -327,7 +347,7 @@ export default function Setup() {
             ['config', 'Configuration'],
             ['teams', 'Teams'],
             ['players', 'Players'],
-            ...(config.engine === 'draft' ? [['categories', 'Categories']] : []),
+            ...(config.engine === 'draft' || config.groupByCategory ? [['categories', 'Categories']] : []),
             ['preallocate', 'Retentions'],
             ['review', 'Review'],
           ].map(([s, label]) => (
@@ -440,6 +460,16 @@ export default function Setup() {
                   </label>
                 </Field>
               )}
+              {config.engine !== 'draft' && (
+                <Field label="Category Grouping">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={!!config.groupByCategory}
+                      onChange={e => handleConfigChange('groupByCategory', e.target.checked)}
+                      className="w-5 h-5 rounded" />
+                    <span className="text-sm text-gray-300">Group players by category during the auction</span>
+                  </label>
+                </Field>
+              )}
               <Field label="Timer Mode">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={config.timerEnabled}
@@ -454,6 +484,11 @@ export default function Setup() {
             {config.engine === 'draft' && (
               <p className="text-xs text-gray-500 -mt-3">
                 Categories are the player <code>role</code> values in your player list — you'll set the selection order for them in the Categories step. Team pick order is randomized by the admin from the selection console, right before starting.
+              </p>
+            )}
+            {config.engine !== 'draft' && config.groupByCategory && (
+              <p className="text-xs text-gray-500 -mt-3">
+                A new Categories step will let you order (and merge) player categories — the auction queue will work through them in that order, category by category, instead of your player list order. "Randomize player auction order" then only shuffles within each category, not across them.
               </p>
             )}
             {config.timerEnabled && (
@@ -627,48 +662,69 @@ export default function Setup() {
             <div className="flex justify-between">
               <button onClick={() => setStep('teams')} className="btn-secondary">← Back</button>
               <button
-                onClick={() => setStep(config.engine === 'draft' ? 'categories' : 'preallocate')}
+                onClick={() => setStep(config.engine === 'draft' || config.groupByCategory ? 'categories' : 'preallocate')}
                 disabled={!players.length}
                 className="btn-primary disabled:opacity-40"
               >
-                {config.engine === 'draft' ? 'Next: Categories →' : 'Next: Retain →'}
+                {config.engine === 'draft' || config.groupByCategory ? 'Next: Categories →' : 'Next: Retain →'}
               </button>
             </div>
           </div>
         )}
 
-        {/* --- Step: Category order (Round Robin Selection only) --- */}
-        {step === 'categories' && config.engine === 'draft' && (
+        {/* --- Step: Category groups (Round Robin Selection, or bidding when grouped) --- */}
+        {step === 'categories' && (config.engine === 'draft' || config.groupByCategory) && (
           <div className="space-y-4">
             <p className="text-gray-400 text-sm">
-              Choose the order categories will be picked in. Every team picks from category 1 until it's exhausted, then category 2, and so on.
+              {config.engine === 'draft'
+                ? "Choose the order categories will be picked in. Every team picks from category 1 until it's exhausted, then category 2, and so on. Merge two categories to pool them together as one combined group."
+                : "Choose the order players will be auctioned in, by category. Merge two categories to auction those players back-to-back as one combined group."}
             </p>
-            {categoryOrder.length === 0 ? (
+            {categoryGroups.length === 0 ? (
               <p className="text-gray-500 italic text-sm">Add players first to set a category order.</p>
             ) : (
               <div className="space-y-2">
-                {categoryOrder.map((cat, i) => (
-                  <div key={cat} className="auction-surface rounded-xl px-4 py-3 flex items-center gap-3">
-                    <span className="text-gray-500 font-mono w-6 text-center">{i + 1}</span>
-                    <span className="flex-1 font-medium">{cat}</span>
-                    <button
-                      onClick={() => moveCategory(i, -1)}
-                      disabled={i === 0}
-                      aria-label={`Move ${cat} up`}
-                      className="text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => moveCategory(i, 1)}
-                      disabled={i === categoryOrder.length - 1}
-                      aria-label={`Move ${cat} down`}
-                      className="text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
-                    >
-                      ▼
-                    </button>
-                  </div>
-                ))}
+                {categoryGroups.map((group, i) => {
+                  const label = group.roles.join(' + ')
+                  return (
+                    <div key={label} className="auction-surface rounded-xl px-4 py-3 flex items-center gap-3">
+                      <span className="text-gray-500 font-mono w-6 text-center">{i + 1}</span>
+                      <span className="flex-1 font-medium">{label}</span>
+                      {group.roles.length > 1 && (
+                        <button
+                          onClick={() => splitGroup(i)}
+                          className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1"
+                        >
+                          Split
+                        </button>
+                      )}
+                      {i < categoryGroups.length - 1 && (
+                        <button
+                          onClick={() => mergeGroupWithNext(i)}
+                          className="text-xs text-purple-400 hover:text-purple-300 px-2 py-1"
+                        >
+                          Merge ↓
+                        </button>
+                      )}
+                      <button
+                        onClick={() => moveGroup(i, -1)}
+                        disabled={i === 0}
+                        aria-label={`Move ${label} up`}
+                        className="text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveGroup(i, 1)}
+                        disabled={i === categoryGroups.length - 1}
+                        aria-label={`Move ${label} down`}
+                        className="text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
             <div className="flex justify-between">

@@ -75,18 +75,26 @@ describe('createDraftRoom', () => {
     assert.deepEqual(room.pickOrder, [])
   })
 
-  it('uses config.categoryOrder verbatim when every category is present', () => {
+  it('uses config.categoryGroups verbatim when every category is present', () => {
     const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
-    createOnlyDraftRoom('DCR03', makeConfig({ categoryOrder: ['Bowler', 'Batsman'] }), makeTeams(), players)
+    createOnlyDraftRoom('DCR03', makeConfig({ categoryGroups: [{ roles: ['Bowler'] }, { roles: ['Batsman'] }] }), makeTeams(), players)
     const room = engine.getRoom('DCR03')
     assert.deepEqual(room.categories, ['Bowler', 'Batsman'])
+    assert.deepEqual(room.categoryGroups, [{ roles: ['Bowler'] }, { roles: ['Batsman'] }])
   })
 
-  it('appends present categories missing from config.categoryOrder, and drops absent ones', () => {
+  it('appends present categories missing from config.categoryGroups, and drops absent ones', () => {
     const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
-    createOnlyDraftRoom('DCR04', makeConfig({ categoryOrder: ['Super Striker', 'Batsman'] }), makeTeams(), players)
+    createOnlyDraftRoom('DCR04', makeConfig({ categoryGroups: [{ roles: ['Super Striker'] }, { roles: ['Batsman'] }] }), makeTeams(), players)
     const room = engine.getRoom('DCR04')
     assert.deepEqual(room.categories, ['Batsman', 'Bowler'])
+  })
+
+  it('joins merged roles into one combined category label', () => {
+    const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Wicket-keeper', count: 1 }, { role: 'Bowler', count: 1 }])
+    createOnlyDraftRoom('DCR05', makeConfig({ categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }, { roles: ['Bowler'] }] }), makeTeams(), players)
+    const room = engine.getRoom('DCR05')
+    assert.deepEqual(room.categories, ['Batsman + Wicket-keeper', 'Bowler'])
   })
 })
 
@@ -243,6 +251,37 @@ describe('pickPlayer', () => {
     assert.equal(result.status, 'running')
     assert.equal(result.currentTurnTeamId, 'team1')
   })
+
+  it('accepts a pick from either role in a merged category', () => {
+    const teams = makeTeams(2)
+    const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Wicket-keeper', count: 1 }])
+    createOnlyDraftRoom('DPK09', makeConfig({ categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }] }), teams, players)
+    engine.randomizePickOrder('DPK09', io)
+    const started = engine.startDraft('DPK09', io)
+    // The Wicket-keeper isn't an exact match to the merged label, but it's
+    // in the group's role list, so it must be a valid pick.
+    const wicketKeeper = engine.getRoom('DPK09').players.find(p => p.role === 'Wicket-keeper')
+
+    const result = engine.pickPlayer('DPK09', started.currentTurnTeamId, wicketKeeper.id, io)
+
+    assert.equal(result.error, undefined)
+    assert.equal(engine.getRoom('DPK09').players.find(p => p.id === wicketKeeper.id).status, 'sold')
+  })
+
+  it('only advances past a merged category once every one of its roles is exhausted', () => {
+    const teams = makeTeams(2)
+    const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Wicket-keeper', count: 1 }, { role: 'Bowler', count: 1 }])
+    createOnlyDraftRoom('DPK10', makeConfig({ categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }, { roles: ['Bowler'] }] }), teams, players)
+    engine.randomizePickOrder('DPK10', io)
+    const started = engine.startDraft('DPK10', io)
+    const batsman = engine.getRoom('DPK10').players.find(p => p.role === 'Batsman')
+
+    // Only the Batsman is picked — the Wicket-keeper is still pending, so
+    // the merged category must not advance yet.
+    const result = engine.pickPlayer('DPK10', started.currentTurnTeamId, batsman.id, io)
+
+    assert.equal(result.currentCategory, 'Batsman + Wicket-keeper')
+  })
 })
 
 // ─── undoPick ─────────────────────────────────────────────────
@@ -295,6 +334,7 @@ describe('draft room persistence round-trip', () => {
     const rehydrated = engine.hydrateRoom('DPS01_HYDRATED', serialized)
     assert.equal(rehydrated.status, 'running')
     assert.deepEqual(rehydrated.categories, room.categories)
+    assert.deepEqual(rehydrated.categoryGroups, room.categoryGroups)
     assert.deepEqual(rehydrated.pickOrder, room.pickOrder)
     assert.equal(rehydrated.picks.length, 1)
   })

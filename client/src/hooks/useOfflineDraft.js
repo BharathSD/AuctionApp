@@ -30,19 +30,33 @@ function shuffle(arr) {
   return a
 }
 
-// Admin-arranged category order (config.categoryOrder), merged with whatever
-// pending-player roles actually exist — any role missing from the configured
-// order (e.g. players added after the order was set) is appended at the end
-// rather than silently dropped.
-function resolveCategoryOrder(configOrder, pendingPlayers) {
+// Admin-arranged category groups (config.categoryGroups — each { roles: [...] },
+// letting two or more roles be combined into one pool), merged with whatever
+// pending-player roles actually exist: any present role missing from every
+// configured group becomes its own singleton group appended at the end,
+// rather than being silently dropped; roles no longer present are dropped
+// from whichever group contained them. Returns { categories, categoryGroups }
+// — index-aligned: `categories` is the display label per group (roles joined
+// with " + "), `categoryGroups` is the underlying role list per group.
+function resolveCategoryGroups(configGroups, pendingPlayers) {
   const present = [...new Set(pendingPlayers.map(p => p.role))]
-  const order = Array.isArray(configOrder) ? configOrder : []
-  return [...order.filter(c => present.includes(c)), ...present.filter(c => !order.includes(c))]
+  const groups = Array.isArray(configGroups) ? configGroups : []
+  const covered = new Set(groups.flatMap(g => g.roles || []))
+  const resolvedGroups = [
+    ...groups
+      .map(g => ({ roles: (g.roles || []).filter(r => present.includes(r)) }))
+      .filter(g => g.roles.length > 0),
+    ...present.filter(r => !covered.has(r)).map(r => ({ roles: [r] })),
+  ]
+  return {
+    categories: resolvedGroups.map(g => g.roles.join(' + ')),
+    categoryGroups: resolvedGroups,
+  }
 }
 
-function categoryHasPending(players, categories, categoryIdx) {
-  const category = categories[categoryIdx]
-  return players.some(p => p.status === 'pending' && p.role === category)
+function categoryHasPending(players, categoryGroups, categoryIdx) {
+  const roles = categoryGroups[categoryIdx]?.roles || []
+  return players.some(p => p.status === 'pending' && roles.includes(p.role))
 }
 
 function teamRosterFull(teams, teamId, maxPlayers) {
@@ -63,16 +77,16 @@ function rotateTurn(pickOrder, currentTurnIdx) {
 
 // Skips forward through exhausted categories and capped-out teams until a
 // valid (category, team) turn is found, or the draft is finished.
-function advanceDraftState({ players, teams, categories, currentCategoryIdx, pickOrder, currentTurnIdx, maxPlayers }) {
+function advanceDraftState({ players, teams, categoryGroups, currentCategoryIdx, pickOrder, currentTurnIdx, maxPlayers }) {
   let catIdx = currentCategoryIdx
   let order = pickOrder
   let turnIdx = currentTurnIdx
-  const guardLimit = (order.length || 1) * (categories.length + 1) + order.length + 5
+  const guardLimit = (order.length || 1) * (categoryGroups.length + 1) + order.length + 5
   for (let i = 0; i < guardLimit; i++) {
-    if (order.length === 0 || catIdx >= categories.length) {
+    if (order.length === 0 || catIdx >= categoryGroups.length) {
       return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, status: 'finished' }
     }
-    if (!categoryHasPending(players, categories, catIdx)) {
+    if (!categoryHasPending(players, categoryGroups, catIdx)) {
       catIdx += 1
       continue
     }
@@ -99,6 +113,7 @@ function buildInitialState(saved) {
       teams: saved.teams,
       players: saved.players,
       categories: r.categories || [],
+      categoryGroups: r.categoryGroups || [],
       currentCategoryIdx: r.currentCategoryIdx || 0,
       pickOrder: r.pickOrder || [],
       currentTurnIdx: r.currentTurnIdx || 0,
@@ -108,8 +123,8 @@ function buildInitialState(saved) {
       timerLeft: saved.config.timerEnabled ? saved.config.timerSeconds : null,
     }
   }
-  const categories = resolveCategoryOrder(
-    saved.config.categoryOrder,
+  const { categories, categoryGroups } = resolveCategoryGroups(
+    saved.config.categoryGroups,
     saved.players.filter(p => p.status === 'pending')
   )
   return {
@@ -117,6 +132,7 @@ function buildInitialState(saved) {
     teams: saved.teams,
     players: saved.players,
     categories,
+    categoryGroups,
     currentCategoryIdx: 0,
     pickOrder: [], // set only via RANDOMIZE_ORDER — an explicit admin action
     currentTurnIdx: 0,
@@ -143,7 +159,7 @@ function reducer(state, action) {
       const advanced = advanceDraftState({
         players: state.players,
         teams: state.teams,
-        categories: state.categories,
+        categoryGroups: state.categoryGroups,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: state.pickOrder,
         currentTurnIdx: state.currentTurnIdx,
@@ -165,7 +181,8 @@ function reducer(state, action) {
       if (playerIdx < 0) return state
       const player = state.players[playerIdx]
       if (player.status !== 'pending') return state
-      if (player.role !== state.categories[state.currentCategoryIdx]) return state
+      const currentRoles = state.categoryGroups[state.currentCategoryIdx]?.roles || []
+      if (!currentRoles.includes(player.role)) return state
       const maxPlayers = Number(state.config.maxPlayersPerTeam) || 0
       const team = state.teams.find(t => t.id === teamId)
       if (!team) return state
@@ -196,7 +213,7 @@ function reducer(state, action) {
       const advanced = advanceDraftState({
         players,
         teams,
-        categories: state.categories,
+        categoryGroups: state.categoryGroups,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: rotated.pickOrder,
         currentTurnIdx: rotated.currentTurnIdx,
@@ -254,7 +271,7 @@ function reducer(state, action) {
       const advanced = advanceDraftState({
         players: state.players,
         teams: state.teams,
-        categories: state.categories,
+        categoryGroups: state.categoryGroups,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: rotated.pickOrder,
         currentTurnIdx: rotated.currentTurnIdx,
@@ -305,6 +322,7 @@ export function useOfflineDraft() {
       players: state.players,
       _runtime: {
         categories: state.categories,
+        categoryGroups: state.categoryGroups,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: state.pickOrder,
         currentTurnIdx: state.currentTurnIdx,
@@ -312,7 +330,7 @@ export function useOfflineDraft() {
         picks: state.picks,
       },
     }))
-  }, [state.teams, state.players, state.categories, state.currentCategoryIdx, state.pickOrder, state.currentTurnIdx, state.status, state.picks])
+  }, [state.teams, state.players, state.categories, state.categoryGroups, state.currentCategoryIdx, state.pickOrder, state.currentTurnIdx, state.status, state.picks])
 
   // Turn timer tick
   useEffect(() => {

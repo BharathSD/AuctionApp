@@ -18,11 +18,12 @@ const ROLE_COLORS = {
 }
 
 export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, onUndoPick, canUndoPick, onRandomizeOrder, canStart, children }) {
-  const { status, teams, players, categories, currentCategoryIdx, pickOrder, currentTurnIdx, picks, paused, timerLeft, config } = state
+  const { status, teams, players, categories, categoryGroups, currentCategoryIdx, pickOrder, currentTurnIdx, picks, paused, timerLeft, config } = state
   // Derived locally rather than trusting a precomputed `state.currentCategory`
   // — the offline reducer's state doesn't carry one (only the online engine's
   // publicDraftState payload does), so this keeps both callers correct.
   const currentCategory = categories[currentCategoryIdx] ?? null
+  const currentCategoryRoles = categoryGroups?.[currentCategoryIdx]?.roles || []
   const nextTurnTeamId = pickOrder.length > 0 ? pickOrder[(currentTurnIdx + 1) % pickOrder.length] : null
   const nextTurnTeam = teams.find(t => t.id === nextTurnTeamId) || null
   const pickedCount = players.filter(p => p.status === 'sold').length
@@ -138,7 +139,7 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
                 Click a player to assign to {currentTurnTeam?.name}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {players.filter(p => p.status === 'pending' && p.role === currentCategory).map(p => (
+                {players.filter(p => p.status === 'pending' && currentCategoryRoles.includes(p.role)).map(p => (
                   <button
                     key={p.id}
                     onClick={() => onPick(p.id)}
@@ -150,7 +151,7 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
                   </button>
                 ))}
               </div>
-              {players.filter(p => p.status === 'pending' && p.role === currentCategory).length === 0 && (
+              {players.filter(p => p.status === 'pending' && currentCategoryRoles.includes(p.role)).length === 0 && (
                 <p className="text-center text-sm text-gray-600 mt-4">No players left in this category.</p>
               )}
             </div>

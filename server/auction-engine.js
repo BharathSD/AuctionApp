@@ -60,10 +60,18 @@ function createRoom(roomCode, auctionData) {
   // Preserve player statuses — pre-allocated players are already 'sold'
   room.players = auctionData.players.map(p => ({ ...p }))
   // Queue only contains pending (not pre-allocated) players
-  room.queue = room.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
-  if (room.config.randomizeOrder) {
-    for (let i = room.queue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));[room.queue[i], room.queue[j]] = [room.queue[j], room.queue[i]]
+  const pendingIdxs = room.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
+  // Opt-in only (config.groupByCategory) — default behavior below is unchanged
+  // from before category groups existed, so existing auctions are unaffected.
+  if (room.config.groupByCategory && Array.isArray(room.config.categoryGroups) && room.config.categoryGroups.length) {
+    const { categoryGroups } = resolveCategoryGroups(room.config.categoryGroups, pendingIdxs.map(i => room.players[i]))
+    room.queue = buildGroupedQueue(room.players, pendingIdxs, categoryGroups, room.config.randomizeOrder)
+  } else {
+    room.queue = pendingIdxs
+    if (room.config.randomizeOrder) {
+      for (let i = room.queue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));[room.queue[i], room.queue[j]] = [room.queue[j], room.queue[i]]
+      }
     }
   }
   rooms.set(roomCode, room)
@@ -398,22 +406,64 @@ function shuffle(arr) {
   return a
 }
 
-// Admin-arranged category order (config.categoryOrder), merged with whatever
-// pending-player roles actually exist — any role missing from the configured
-// order (e.g. players added after the order was set) is appended at the end
-// rather than silently dropped.
-function resolveCategoryOrder(configOrder, pendingPlayers) {
+// Admin-arranged category groups (config.categoryGroups — each { roles: [...] },
+// letting two or more roles be combined into one pool), merged with whatever
+// pending-player roles actually exist: any present role missing from every
+// configured group (e.g. players added after the order was set) becomes its
+// own singleton group appended at the end, rather than being silently dropped;
+// roles no longer present are dropped from whichever group contained them.
+// Shared by both the draft engine (below) and the bidding engine's optional
+// grouped-queue construction (createRoom, config.groupByCategory).
+// Returns { categories, categoryGroups } — index-aligned: `categories` is the
+// display label per group (roles joined with " + "), `categoryGroups` is the
+// underlying role list per group, used for pending/match checks.
+function resolveCategoryGroups(configGroups, pendingPlayers) {
   const present = [...new Set(pendingPlayers.map(p => p.role))]
-  const order = Array.isArray(configOrder) ? configOrder : []
-  return [...order.filter(c => present.includes(c)), ...present.filter(c => !order.includes(c))]
+  const groups = Array.isArray(configGroups) ? configGroups : []
+  const covered = new Set(groups.flatMap(g => g.roles || []))
+  const resolvedGroups = [
+    ...groups
+      .map(g => ({ roles: (g.roles || []).filter(r => present.includes(r)) }))
+      .filter(g => g.roles.length > 0),
+    ...present.filter(r => !covered.has(r)).map(r => ({ roles: [r] })),
+  ]
+  return {
+    categories: resolvedGroups.map(g => g.roles.join(' + ')),
+    categoryGroups: resolvedGroups,
+  }
+}
+
+// Builds a bidding-mode auction queue ordered by category group instead of
+// plain insertion order: each group's pending players form one contiguous
+// block (in group order), optionally shuffled *within* the block only —
+// group order itself is never randomized, that would defeat the purpose.
+function buildGroupedQueue(players, pendingIdxs, categoryGroups, randomize) {
+  const byRole = new Map()
+  pendingIdxs.forEach(i => {
+    const role = players[i].role
+    if (!byRole.has(role)) byRole.set(role, [])
+    byRole.get(role).push(i)
+  })
+  const seen = new Set()
+  const queue = []
+  categoryGroups.forEach(group => {
+    let block = group.roles.flatMap(role => byRole.get(role) || [])
+    if (randomize) block = shuffle(block)
+    block.forEach(i => { if (!seen.has(i)) { seen.add(i); queue.push(i) } })
+  })
+  // Defensive: resolveCategoryGroups always covers every present role, so this
+  // should never actually add anything — kept as a safety net regardless.
+  pendingIdxs.forEach(i => { if (!seen.has(i)) queue.push(i) })
+  return queue
 }
 
 function makeDraftRoom(config) {
   return {
-    config,             // { numTeams, maxPlayersPerTeam, timerEnabled, timerSeconds, categoryOrder, engine: 'draft' }
+    config,             // { numTeams, maxPlayersPerTeam, timerEnabled, timerSeconds, categoryGroups, engine: 'draft' }
     teams: [],          // [{ id, name, pin, players: [] }] — no budget
     players: [],        // [{ id, name, role, status, soldTo }]
-    categories: [],     // admin-ordered list of distinct player roles
+    categories: [],     // admin-ordered display labels, one per category group
+    categoryGroups: [], // admin-ordered role lists, index-aligned with categories
     currentCategoryIdx: 0,
     pickOrder: [],       // team ids, set only via randomizePickOrder; rotates (first→last) every full round
     currentTurnIdx: 0,
@@ -432,10 +482,12 @@ function createDraftRoom(roomCode, auctionData) {
   const room = makeDraftRoom(auctionData.config)
   room.teams = auctionData.teams.map(t => ({ ...t, players: [...(t.players || [])] }))
   room.players = auctionData.players.map(p => ({ ...p }))
-  room.categories = resolveCategoryOrder(
-    auctionData.config?.categoryOrder,
+  const { categories, categoryGroups } = resolveCategoryGroups(
+    auctionData.config?.categoryGroups,
     room.players.filter(p => p.status === 'pending')
   )
+  room.categories = categories
+  room.categoryGroups = categoryGroups
   rooms.set(roomCode, room)
   return room
 }
@@ -458,8 +510,8 @@ function currentDraftTeamId(room) {
 }
 
 function categoryHasPending(room, categoryIdx) {
-  const category = room.categories[categoryIdx]
-  return room.players.some(p => p.status === 'pending' && p.role === category)
+  const roles = room.categoryGroups[categoryIdx]?.roles || []
+  return room.players.some(p => p.status === 'pending' && roles.includes(p.role))
 }
 
 function teamRosterFull(room, teamId) {
@@ -532,7 +584,8 @@ function pickPlayer(roomCode, teamId, playerId, io) {
   const player = room.players[playerIdx]
   if (player.status !== 'pending') return { error: 'Player is not available' }
   const currentCategory = room.categories[room.currentCategoryIdx]
-  if (player.role !== currentCategory) return { error: `Must pick from the current category: ${currentCategory}` }
+  const currentRoles = room.categoryGroups[room.currentCategoryIdx]?.roles || []
+  if (!currentRoles.includes(player.role)) return { error: `Must pick from the current category: ${currentCategory}` }
 
   const team = room.teams.find(t => t.id === teamId)
   if (!team) return { error: 'Team not found' }
@@ -621,6 +674,7 @@ function restoreDraftRoom(roomCode, snapshot, originalSetup) {
   })
   room.players = snapshot.players || []
   room.categories = snapshot.categories || []
+  room.categoryGroups = snapshot.categoryGroups || []
   room.currentCategoryIdx = snapshot.currentCategoryIdx ?? 0
   room.pickOrder = snapshot.pickOrder || []
   room.currentTurnIdx = snapshot.currentTurnIdx ?? 0
@@ -638,6 +692,7 @@ function publicDraftState(room) {
     teams: room.teams.map(({ pin: _pin, ...t }) => t), // strip PINs from broadcast
     players: room.players,
     categories: room.categories,
+    categoryGroups: room.categoryGroups,
     currentCategoryIdx: room.currentCategoryIdx,
     currentCategory: room.categories[room.currentCategoryIdx] ?? null,
     pickOrder: room.pickOrder,
@@ -890,6 +945,7 @@ function serializeRoom(room) {
       teams: room.teams,
       players: room.players,
       categories: room.categories,
+      categoryGroups: room.categoryGroups,
       currentCategoryIdx: room.currentCategoryIdx,
       pickOrder: room.pickOrder,
       currentTurnIdx: room.currentTurnIdx,
@@ -925,6 +981,7 @@ function hydrateRoom(roomCode, s) {
     room.teams = s.teams || []
     room.players = s.players || []
     room.categories = s.categories || []
+    room.categoryGroups = s.categoryGroups || []
     room.currentCategoryIdx = s.currentCategoryIdx ?? 0
     room.pickOrder = s.pickOrder || []
     room.currentTurnIdx = s.currentTurnIdx ?? 0

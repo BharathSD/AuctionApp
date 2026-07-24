@@ -47,10 +47,10 @@ function CaptainDraft() {
   const pickOrder = state.pickOrder || []
   const nextTurnTeamId = pickOrder.length > 0 ? pickOrder[(state.currentTurnIdx + 1) % pickOrder.length] : null
   const nextTurnTeam = teams.find(t => t.id === nextTurnTeamId) || null
-  const categoryPlayers = useMemo(
-    () => (state.players || []).filter(p => p.status === 'pending' && p.role === state.currentCategory),
-    [state.players, state.currentCategory]
-  )
+  const categoryPlayers = useMemo(() => {
+    const roles = state.categoryGroups?.[state.currentCategoryIdx]?.roles || []
+    return (state.players || []).filter(p => p.status === 'pending' && roles.includes(p.role))
+  }, [state.players, state.categoryGroups, state.currentCategoryIdx])
   const availablePlayers = useMemo(() => {
     let filtered = (state.players || []).filter(p => p.status === 'pending')
     if (availableSearch.trim()) {

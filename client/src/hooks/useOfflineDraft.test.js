@@ -33,13 +33,18 @@ function makePlayers(spec) {
   return players
 }
 
-/** Build a running draft state with a fixed (non-shuffled) category/pick order */
-function runningState({ config, teams, players, categories, pickOrder, currentCategoryIdx = 0, currentTurnIdx = 0 }) {
+/**
+ * Build a running draft state with a fixed (non-shuffled) category/pick
+ * order. `categoryGroups` defaults to one singleton group per `categories`
+ * label (i.e. no merging) when not given explicitly.
+ */
+function runningState({ config, teams, players, categories, categoryGroups, pickOrder, currentCategoryIdx = 0, currentTurnIdx = 0 }) {
   return {
     config,
     teams,
     players,
     categories,
+    categoryGroups: categoryGroups || categories.map(c => ({ roles: [c] })),
     currentCategoryIdx,
     pickOrder,
     currentTurnIdx,
@@ -74,25 +79,48 @@ describe('buildInitialState', () => {
     expect(state.pickOrder).toEqual([])
   })
 
-  it('uses config.categoryOrder verbatim when every category is present', () => {
+  it('uses config.categoryGroups verbatim when every category is present', () => {
     const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
     const state = buildInitialState({
-      config: makeConfig({ categoryOrder: ['Bowler', 'Batsman'] }),
+      config: makeConfig({ categoryGroups: [{ roles: ['Bowler'] }, { roles: ['Batsman'] }] }),
       teams: makeTeams(),
       players,
     })
     expect(state.categories).toEqual(['Bowler', 'Batsman'])
+    expect(state.categoryGroups).toEqual([{ roles: ['Bowler'] }, { roles: ['Batsman'] }])
   })
 
-  it('appends present categories missing from config.categoryOrder, and drops absent ones', () => {
+  it('appends present categories missing from config.categoryGroups, and drops absent ones', () => {
     const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
     const state = buildInitialState({
-      // "Super Striker" no longer has any players; "Bowler" was never ordered.
-      config: makeConfig({ categoryOrder: ['Super Striker', 'Batsman'] }),
+      // "Super Striker" no longer has any players; "Bowler" was never grouped.
+      config: makeConfig({ categoryGroups: [{ roles: ['Super Striker'] }, { roles: ['Batsman'] }] }),
       teams: makeTeams(),
       players,
     })
     expect(state.categories).toEqual(['Batsman', 'Bowler'])
+  })
+
+  it('joins merged roles into one combined category label', () => {
+    const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Wicket-keeper', count: 1 }, { role: 'Bowler', count: 1 }])
+    const state = buildInitialState({
+      config: makeConfig({ categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }, { roles: ['Bowler'] }] }),
+      teams: makeTeams(),
+      players,
+    })
+    expect(state.categories).toEqual(['Batsman + Wicket-keeper', 'Bowler'])
+    expect(state.categoryGroups).toEqual([{ roles: ['Batsman', 'Wicket-keeper'] }, { roles: ['Bowler'] }])
+  })
+
+  it('shrinks (rather than drops) a merged group when only some of its roles are still present', () => {
+    const players = makePlayers([{ role: 'Batsman', count: 1 }])
+    const state = buildInitialState({
+      // "Wicket-keeper" no longer has any players.
+      config: makeConfig({ categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }] }),
+      teams: makeTeams(),
+      players,
+    })
+    expect(state.categoryGroups).toEqual([{ roles: ['Batsman'] }])
   })
 
   it('restores from a persisted _runtime snapshot', () => {
@@ -261,6 +289,40 @@ describe('PICK', () => {
     state = reducer(state, { type: 'PICK', teamId: 'team2', playerId: 'p2' })
 
     expect(state.status).toBe('finished')
+  })
+
+  it('accepts a pick from either role in a merged category', () => {
+    const teams = makeTeams(2)
+    const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Wicket-keeper', count: 1 }])
+    const state = runningState({
+      config: makeConfig(), teams, players,
+      categories: ['Batsman + Wicket-keeper'],
+      categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }],
+      pickOrder: ['team1', 'team2'],
+    })
+
+    // p2 is the Wicket-keeper — not an exact match to the category label,
+    // but it belongs to the merged group's role list, so it must be allowed.
+    const next = reducer(state, { type: 'PICK', teamId: 'team1', playerId: 'p2' })
+
+    expect(next.players.find(p => p.id === 'p2').status).toBe('sold')
+  })
+
+  it('only advances past a merged category once every one of its roles is exhausted', () => {
+    const teams = makeTeams(2)
+    const players = makePlayers([{ role: 'Batsman', count: 1 }, { role: 'Wicket-keeper', count: 1 }, { role: 'Bowler', count: 1 }])
+    const state = runningState({
+      config: makeConfig(), teams, players,
+      categories: ['Batsman + Wicket-keeper', 'Bowler'],
+      categoryGroups: [{ roles: ['Batsman', 'Wicket-keeper'] }, { roles: ['Bowler'] }],
+      pickOrder: ['team1', 'team2'],
+    })
+
+    // Only the Batsman is picked — the Wicket-keeper is still pending, so
+    // the merged category must not advance yet.
+    const next = reducer(state, { type: 'PICK', teamId: 'team1', playerId: 'p1' })
+
+    expect(next.currentCategoryIdx).toBe(0)
   })
 })
 

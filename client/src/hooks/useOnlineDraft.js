@@ -38,6 +38,7 @@ const INITIAL = {
   teams: [],
   players: [],
   categories: [],
+  categoryGroups: [],
   currentCategoryIdx: 0,
   currentCategory: null,
   pickOrder: [],
