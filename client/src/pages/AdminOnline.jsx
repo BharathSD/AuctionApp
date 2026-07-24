@@ -58,7 +58,7 @@ function AdminOnlineDraftConsole() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `draft-${roomCode}-${Date.now()}.json`
+    a.download = `selection-${roomCode}-${Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
   }, [roomCode, state, saved])
@@ -78,7 +78,7 @@ function AdminOnlineDraftConsole() {
     return (
       <div className="app-shell text-white flex items-center justify-center p-6">
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold mb-3">Preparing Draft Room…</h2>
+          <h2 className="text-2xl font-bold mb-3">Preparing Selection Room…</h2>
           {bootstrapError ? (
             <>
               <p className="text-red-400 text-sm mb-4">{bootstrapError}</p>
@@ -103,7 +103,7 @@ function AdminOnlineDraftConsole() {
       {/* Top bar */}
       <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-lg">Draft Admin Console</span>
+          <span className="font-bold text-lg">Selection Admin Console</span>
           <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">ONLINE</span>
           <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
             {state.connected ? '● Live' : '○ Connecting…'}
@@ -155,7 +155,7 @@ function AdminOnlineDraftConsole() {
                 {state.paused ? <><Icon name="play" size={12} /> Resume</> : <><Icon name="pause" size={12} /> Pause</>}
               </button>
               <button
-                onClick={() => { if (window.confirm('End the draft now? Any players not yet picked will be marked unavailable.')) adminFinish() }}
+                onClick={() => { if (window.confirm('End the selection now? Any players not yet picked will be marked unavailable.')) adminFinish() }}
                 className="text-red-400 hover:text-red-300 text-xs border border-red-800 px-2 py-1 rounded inline-flex items-center gap-1"
               >
                 <Icon name="stop" size={13} /> Finish
@@ -195,7 +195,7 @@ function AdminOnlineDraftConsole() {
                     <span className={isOnline ? 'text-white' : 'text-gray-500'}>{team.name}</span>
                     <span className="text-xs text-gray-600">{isOnline ? 'Ready' : 'Waiting…'}</span>
                     {isOnline && (
-                      <button onClick={() => { if (window.confirm(`Kick ${team.name} from the draft?`)) adminKickTeam(team.id) }} className="text-red-500 hover:text-red-300 text-xs">
+                      <button onClick={() => { if (window.confirm(`Kick ${team.name} from the selection?`)) adminKickTeam(team.id) }} className="text-red-500 hover:text-red-300 text-xs">
                         <Icon name="x" size={12} />
                       </button>
                     )}

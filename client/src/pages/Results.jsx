@@ -158,7 +158,7 @@ export default function Results() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'draft-results.xlsx'
+    a.download = 'selection-results.xlsx'
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -386,9 +386,9 @@ export default function Results() {
             <span className="pill-static"><Icon name="trophy" size={13} /> Final results</span>
           </div>
           <p className="hero-kicker mb-2">Tournament complete</p>
-          <h1 className="page-title">{isDraft ? 'Draft Results' : 'Auction Results'}</h1>
+          <h1 className="page-title">{isDraft ? 'Selection Results' : 'Auction Results'}</h1>
           <p className="text-gray-400 text-sm mt-3">
-            {soldPlayers.length} of {players.length} players {isDraft ? 'picked' : 'sold'} · {mode === 'offline' ? 'Offline' : 'Online'} {isDraft ? 'draft' : 'auction'}
+            {soldPlayers.length} of {players.length} players {isDraft ? 'picked' : 'sold'} · {mode === 'offline' ? 'Offline' : 'Online'} {isDraft ? 'selection' : 'auction'}
           </p>
         </div>
 

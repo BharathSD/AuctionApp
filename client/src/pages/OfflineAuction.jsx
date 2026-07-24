@@ -53,7 +53,7 @@ function OfflineDraftConsole() {
     <div className="app-shell text-white flex flex-col" style={{ minHeight: '100dvh' }}>
       <div className="auction-topbar border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-lg">Draft Console</span>
+          <span className="font-bold text-lg">Selection Console</span>
           <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">OFFLINE</span>
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-400">
@@ -66,7 +66,7 @@ function OfflineDraftConsole() {
           )}
           {status === 'running' && (
             <button
-              onClick={() => { if (window.confirm('End the draft now? Any players not yet picked will be marked unavailable.')) finishDraft() }}
+              onClick={() => { if (window.confirm('End the selection now? Any players not yet picked will be marked unavailable.')) finishDraft() }}
               className="text-red-400 hover:text-red-300 text-xs border border-red-800 px-2 py-1 rounded inline-flex items-center gap-1"
             >
               <Icon name="stop" size={12} /> Finish

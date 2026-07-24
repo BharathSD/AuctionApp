@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useReducer } from 'react'
 import { io } from 'socket.io-client'
 import { loadAuctionState } from './useAuctionStorage'
 
-// Round Robin Draft — online (multi-device) engine. Mirrors
+// Round Robin Selection — online (multi-device) engine. Mirrors
 // useOnlineAuction.js's socket wiring and state shape, swapping
 // bid/sell events for pick/turn events (server is authoritative; this
 // hook only merges server-pushed state, same as the bidding hook).

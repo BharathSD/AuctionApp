@@ -383,11 +383,12 @@ function unsellPlayer(roomCode, io) {
   return publicState(room)
 }
 
-// ── Draft (Round Robin) engine ───────────────────────────────
+// ── Round Robin Selection engine ───────────────────────────────
 // A second selection mechanism: no budget/bidding — teams take turns
-// (rotating every full round) picking any available player from the
-// current category; once a category has no pending players left the
-// draft advances to the next (randomized) category.
+// (rotating every full round, in a randomized pick order the admin sets
+// explicitly) picking any available player from the current category;
+// once a category has no pending players left, selection advances to the
+// next category in the admin-arranged order (config.categoryOrder).
 
 function shuffle(arr) {
   const a = [...arr]
@@ -445,7 +446,7 @@ function createDraftRoom(roomCode, auctionData) {
 function randomizePickOrder(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
-  if (room.status !== 'idle') return { error: 'Draft already started' }
+  if (room.status !== 'idle') return { error: 'Selection already started' }
   room.pickOrder = shuffle(room.teams.map(t => t.id))
   room.currentTurnIdx = 0
   io.to(roomCode).emit('draft:orderSet', publicDraftState(room))
@@ -507,7 +508,7 @@ function advanceDraftState(room) {
 function startDraft(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
-  if (room.status !== 'idle') return { error: 'Draft already started' }
+  if (room.status !== 'idle') return { error: 'Selection already started' }
   if (!room.pickOrder.length) return { error: 'Set the pick order first' }
 
   room.status = 'running'
@@ -522,8 +523,8 @@ function startDraft(roomCode, io) {
 function pickPlayer(roomCode, teamId, playerId, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
-  if (room.status !== 'running') return { error: 'Draft not running' }
-  if (room.paused) return { error: 'Draft is paused' }
+  if (room.status !== 'running') return { error: 'Selection not running' }
+  if (room.paused) return { error: 'Selection is paused' }
   if (teamId !== currentDraftTeamId(room)) return { error: 'Not your turn' }
 
   const playerIdx = room.players.findIndex(p => p.id === playerId)
@@ -1013,7 +1014,7 @@ module.exports = {
   getAllRooms,
   publicState,
   viewerState,
-  // Draft (Round Robin) engine
+  // Round Robin Selection engine
   createDraftRoom,
   randomizePickOrder,
   startDraft,

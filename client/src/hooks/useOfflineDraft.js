@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react'
 import { loadAuctionState, updateAuctionState } from './useAuctionStorage'
 
-// Round Robin Draft — offline (single-screen) engine. No budget/bidding:
+// Round Robin Selection — offline (single-screen) engine. No budget/bidding:
 // teams take turns (rotating every full round) picking any available
 // player from the current category; once a category is exhausted the
 // draft advances to the next (randomized) category. Mirrors the shape of

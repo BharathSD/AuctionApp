@@ -121,7 +121,7 @@ export function validateAuctionStartup(config, teams, players, preAllocations) {
     teamPins.add(pinVal.value)
   }
 
-  // Draft mode has no budget concept — skip the pre-allocation-vs-budget check below.
+  // Round Robin Selection mode has no budget concept — skip the pre-allocation-vs-budget check below.
   if (config.engine === 'draft') return { valid: true }
 
   // Check each team has valid budget after pre-allocation
@@ -150,7 +150,7 @@ export function validateConfigValues(config) {
     if (!timerVal.valid) return timerVal
   }
 
-  // Draft mode has no budget/bid-tier concept — nothing further to validate.
+  // Round Robin Selection mode has no budget/bid-tier concept — nothing further to validate.
   if (config.engine === 'draft') return { valid: true }
 
   const budgetVal = validatePositiveNumeric(config.pointsPerTeam, 'Points per team')

@@ -317,7 +317,7 @@ export default function Setup() {
           </div>
           <p className="hero-kicker mb-2">{mode === 'offline' ? 'Single-console setup' : 'Multi-device setup'}</p>
           <h1 className="page-title">
-            {mode === 'offline' ? 'Offline' : 'Online'} {config.engine === 'draft' ? 'Draft' : 'Auction'} Setup
+            {mode === 'offline' ? 'Offline' : 'Online'} {config.engine === 'draft' ? 'Selection' : 'Auction'} Setup
           </h1>
         </div>
 
@@ -349,7 +349,7 @@ export default function Setup() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
                 {[
                   ['bidding', 'Competitive Bidding', 'Teams bid against a budget; highest bid wins each player.'],
-                  ['draft', 'Round Robin Draft', 'No budget — teams take turns picking players, one category at a time.'],
+                  ['draft', 'Round Robin Selection', 'No budget — teams take turns picking players, one category at a time.'],
                 ].map(([value, label, desc]) => (
                   <button
                     key={value}
@@ -453,7 +453,7 @@ export default function Setup() {
             </div>
             {config.engine === 'draft' && (
               <p className="text-xs text-gray-500 -mt-3">
-                Categories are the player <code>role</code> values in your player list — you'll set the draft order for them in the Categories step. Team pick order is randomized by the admin from the draft console, right before starting.
+                Categories are the player <code>role</code> values in your player list — you'll set the selection order for them in the Categories step. Team pick order is randomized by the admin from the selection console, right before starting.
               </p>
             )}
             {config.timerEnabled && (
@@ -637,11 +637,11 @@ export default function Setup() {
           </div>
         )}
 
-        {/* --- Step: Category order (Round Robin Draft only) --- */}
+        {/* --- Step: Category order (Round Robin Selection only) --- */}
         {step === 'categories' && config.engine === 'draft' && (
           <div className="space-y-4">
             <p className="text-gray-400 text-sm">
-              Choose the order categories will be drafted in. Every team picks from category 1 until it's exhausted, then category 2, and so on.
+              Choose the order categories will be picked in. Every team picks from category 1 until it's exhausted, then category 2, and so on.
             </p>
             {categoryOrder.length === 0 ? (
               <p className="text-gray-500 italic text-sm">Add players first to set a category order.</p>
@@ -769,7 +769,7 @@ export default function Setup() {
         {step === 'review' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <StatCard label="Engine" value={config.engine === 'draft' ? 'Round Robin Draft' : 'Competitive Bidding'} />
+              <StatCard label="Engine" value={config.engine === 'draft' ? 'Round Robin Selection' : 'Competitive Bidding'} />
               <StatCard label="Teams" value={config.numTeams} />
               {config.engine === 'draft' ? (
                 <StatCard label="Categories" value={new Set(players.filter(p => !preAllocations.some(a => a.playerId === p.id)).map(p => p.role)).size} />

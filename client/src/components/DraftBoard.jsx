@@ -2,7 +2,7 @@ import PlayerAvatar from './PlayerAvatar'
 import Icon from './Icon'
 import TimerRing from './TimerRing'
 
-// Shared presentational body for the Round Robin Draft console — used by
+// Shared presentational body for the Round Robin Selection console — used by
 // both the Offline single-screen page and the Online admin page (the two
 // pages differ only in their top bar / connection chrome, which they keep
 // themselves; this component owns everything below it).
@@ -31,7 +31,7 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
   if (status === 'finished') {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6">
-        <h2 className="text-3xl font-bold">Draft Complete!</h2>
+        <h2 className="text-3xl font-bold">Selection Complete!</h2>
         <p className="text-gray-400">{pickedCount} of {totalPlayers} players picked</p>
         <div className="w-full max-w-2xl space-y-3 max-h-[60vh] overflow-y-auto">
           {teams.map(team => (
@@ -94,7 +94,7 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
                     disabled={!canStart}
                     className="btn-primary text-xl px-10 py-4 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Start Draft
+                    Start Selection
                   </button>
                 </div>
               </>

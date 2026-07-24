@@ -122,7 +122,7 @@ function CaptainDraft() {
           )}
           {status === 'finished' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <p className="text-xl font-bold">Draft Complete!</p>
+              <p className="text-xl font-bold">Selection Complete!</p>
               <button onClick={() => setActiveTab('roster')} className="text-blue-400 underline text-sm">View your roster</button>
             </div>
           )}

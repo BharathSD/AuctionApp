@@ -100,8 +100,8 @@ export default function ViewerDisplay() {
     ? (status === 'running'
       ? `Category ${currentCategory || ''}. ${currentTurnTeam?.name || 'A team'} is picking.`
       : status === 'finished'
-        ? `Draft finished. ${soldCount} of ${totalPlayers} players picked.`
-        : 'Waiting for the draft to start.')
+        ? `Selection finished. ${soldCount} of ${totalPlayers} players picked.`
+        : 'Waiting for the selection to start.')
     : status === 'running'
       ? `${currentPlayer?.name || 'Player'} at ${currentPrice || 0} points${leadingTeam ? `, ${leadingTeam.name} leading` : ''}`
       : status === 'sold'
@@ -161,14 +161,14 @@ export default function ViewerDisplay() {
 
           {status === 'idle' && (
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-300">{isDraft ? 'Draft Starting Soon' : 'Auction Starting Soon'}</p>
+              <p className="text-3xl font-bold text-gray-300">{isDraft ? 'Selection Starting Soon' : 'Auction Starting Soon'}</p>
               <p className="text-gray-500 mt-2">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
             </div>
           )}
 
           {status === 'finished' && (
             <div className="text-center">
-              <p className="text-4xl font-extrabold text-yellow-400">{isDraft ? 'Draft Complete!' : 'Auction Complete!'}</p>
+              <p className="text-4xl font-extrabold text-yellow-400">{isDraft ? 'Selection Complete!' : 'Auction Complete!'}</p>
               <p className="text-gray-400 mt-3 text-xl">{soldCount} of {totalPlayers} players {isDraft ? 'picked' : 'sold'}</p>
             </div>
           )}
