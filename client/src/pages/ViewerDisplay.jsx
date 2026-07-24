@@ -227,7 +227,7 @@ export default function ViewerDisplay() {
                   status === 'unsold' ? 'auction-surface border-gray-600' :
                   bidFlash ? 'bg-blue-900/50 border-blue-400 scale-[1.02]' : 'auction-surface border-gray-700'}`}>
 
-                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="3xl" className="mx-auto mb-4 ring-2 ring-cyan-300/40" />
+                <PlayerAvatar name={currentPlayer.name} photoUrl={currentPlayer.photoUrl} size="4xl" className="mx-auto mb-4 ring-2 ring-cyan-300/40" />
 
                 {/* Role badge */}
                 <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 text-white

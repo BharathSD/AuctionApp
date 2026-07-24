@@ -21,11 +21,11 @@ export default function PlayerSpotlight({ name, photoUrl, tag = 'On the block' }
   const canRenderImage = isSafePhotoUrl(photoUrl) && !failed
 
   if (!canRenderImage) {
-    return <PlayerAvatar name={name} photoUrl={null} size="3xl" />
+    return <PlayerAvatar name={name} photoUrl={null} size="4xl" />
   }
 
   return (
-    <div className="relative w-full max-w-xs mx-auto">
+    <div className="relative w-full max-w-sm mx-auto">
       <span className="absolute top-3 left-3 z-10 pill-static !text-[0.6rem] !px-2.5 !py-1">{tag}</span>
       <span className="absolute top-3 right-3 z-10 pill-live !text-[0.6rem] !px-2.5 !py-1">
         <span className="live-dot" /> Live
@@ -35,7 +35,7 @@ export default function PlayerSpotlight({ name, photoUrl, tag = 'On the block' }
         alt={name ? `${name} photo` : 'Player photo'}
         onError={() => setFailed(true)}
         loading="lazy"
-        className="w-full h-80 object-cover rounded-2xl border border-white/10 shadow-2xl bg-gray-800"
+        className="w-full h-96 object-cover rounded-2xl border border-white/10 shadow-2xl bg-gray-800"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 rounded-b-2xl bg-gradient-to-t from-black/70 to-transparent" />
     </div>

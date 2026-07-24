@@ -45,6 +45,7 @@ const INITIAL = {
   currentTurnIdx: 0,
   currentTurnTeamId: null,
   picks: [],
+  events: [],
   canUndoPick: false,
   timerLeft: null,
   config: {},

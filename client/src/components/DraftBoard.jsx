@@ -18,7 +18,11 @@ const ROLE_COLORS = {
 }
 
 export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, onUndoPick, canUndoPick, onRandomizeOrder, canStart, children }) {
-  const { status, teams, players, categories, categoryGroups, currentCategoryIdx, pickOrder, currentTurnIdx, picks, paused, timerLeft, config } = state
+  const { status, teams, players, categories, categoryGroups, currentCategoryIdx, pickOrder, currentTurnIdx, picks, events = [], paused, timerLeft, config } = state
+  // Reshuffling mid-draft is only allowed at a round boundary — currentTurnIdx
+  // resets to 0 exactly when the pick order completes a full wrap, meaning
+  // nobody in this pass through the team list has picked or been skipped yet.
+  const canReshuffleNow = status === 'running' && currentTurnIdx === 0
   // Derived locally rather than trusting a precomputed `state.currentCategory`
   // — the offline reducer's state doesn't carry one (only the online engine's
   // publicDraftState payload does), so this keeps both callers correct.
@@ -172,7 +176,18 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
       {/* ── Right panel: Teams & Pick log ── */}
       <div className="w-72 lg:w-80 2xl:w-96 auction-surface border-l border-gray-800 flex flex-col" style={{ height: 'calc(100vh - 57px)' }}>
         <div className="p-4 border-b border-gray-800 shrink-0">
-          <p className="text-sm text-gray-400 uppercase tracking-widest mb-3">Pick Order</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-gray-400 uppercase tracking-widest">Pick Order</p>
+            {canReshuffleNow && (
+              <button
+                onClick={onRandomizeOrder}
+                title="Re-shuffle pick order"
+                className="text-gray-400 hover:text-white text-xs border border-gray-700 px-2 py-1 rounded-lg inline-flex items-center gap-1"
+              >
+                <Icon name="shuffle" size={12} /> Re-shuffle
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
             {(pickOrder.length > 0 ? pickOrder : teams.map(t => t.id)).map((teamId, i) => {
               const team = teams.find(t => t.id === teamId)
@@ -203,20 +218,34 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
             <p className="text-sm text-gray-400 uppercase tracking-widest">Pick Log</p>
             {picks.length > 0 && <span className="text-xs text-gray-500">{picks.length} pick{picks.length !== 1 ? 's' : ''}</span>}
           </div>
-          {picks.length === 0 && <p className="text-sm text-gray-600">No picks yet.</p>}
+          {picks.length === 0 && events.length === 0 && <p className="text-sm text-gray-600">No picks yet.</p>}
           <div className="space-y-1.5">
-            {picks.slice(0, 30).map((entry, i) => {
-              const team = teams.find(t => t.id === entry.teamId)
-              const player = players.find(p => p.id === entry.playerId)
-              const isLatest = i === 0
-              return (
-                <div key={`${entry.playerId}-${entry.ts}`} className={`rounded-lg px-2.5 py-2 text-sm ${isLatest ? 'bg-blue-900/40 ring-1 ring-blue-700/60' : 'bg-gray-800/40'}`}>
-                  <span className={`truncate ${isLatest ? 'text-blue-100 font-semibold' : 'text-gray-300'}`}>{team?.name}</span>
-                  <span className="text-gray-500"> picked </span>
-                  <span className="text-gray-200">{player?.name}</span>
-                </div>
-              )
-            })}
+            {[
+              ...picks.map(entry => ({ kind: 'pick', ts: entry.ts, entry })),
+              ...events.map(entry => ({ kind: entry.type, ts: entry.ts, entry })),
+            ]
+              .sort((a, b) => b.ts - a.ts)
+              .slice(0, 30)
+              .map(({ kind, ts, entry }, i) => {
+                const isLatest = i === 0
+                if (kind === 'shuffle') {
+                  return (
+                    <div key={`shuffle-${ts}`} className={`rounded-lg px-2.5 py-2 text-sm flex items-center gap-1.5 ${isLatest ? 'bg-blue-900/40 ring-1 ring-blue-700/60' : 'bg-gray-800/40'}`}>
+                      <Icon name="shuffle" size={12} className="text-gray-500 shrink-0" />
+                      <span className="text-gray-400 italic">Pick order re-shuffled</span>
+                    </div>
+                  )
+                }
+                const team = teams.find(t => t.id === entry.teamId)
+                const player = players.find(p => p.id === entry.playerId)
+                return (
+                  <div key={`${entry.playerId}-${ts}`} className={`rounded-lg px-2.5 py-2 text-sm ${isLatest ? 'bg-blue-900/40 ring-1 ring-blue-700/60' : 'bg-gray-800/40'}`}>
+                    <span className={`truncate ${isLatest ? 'text-blue-100 font-semibold' : 'text-gray-300'}`}>{team?.name}</span>
+                    <span className="text-gray-500"> picked </span>
+                    <span className="text-gray-200">{player?.name}</span>
+                  </div>
+                )
+              })}
           </div>
         </div>
       </div>

@@ -25,13 +25,14 @@ export default function PlayerAvatar({ name, photoUrl, size = 'md', className = 
   const initials = useMemo(() => getInitials(name), [name])
 
   const sizeClasses = {
-    xs: 'w-6 h-6 text-[10px]',
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-14 h-14 text-base',
-    xl: 'w-20 h-20 text-xl',
-    '2xl': 'w-28 h-28 text-2xl',
-    '3xl': 'w-36 h-36 text-3xl',
+    xs: 'w-7 h-7 text-[11px]',
+    sm: 'w-10 h-10 text-sm',
+    md: 'w-12 h-12 text-base',
+    lg: 'w-16 h-16 text-lg',
+    xl: 'w-24 h-24 text-2xl',
+    '2xl': 'w-32 h-32 text-3xl',
+    '3xl': 'w-40 h-40 text-4xl',
+    '4xl': 'w-48 h-48 text-5xl',
   }
 
   const canRenderImage = isSafePhotoUrl(photoUrl) && !imageFailed

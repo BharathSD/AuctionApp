@@ -469,7 +469,13 @@ function makeDraftRoom(config) {
     currentTurnIdx: 0,
     status: 'idle',      // idle | running | finished
     paused: false,
-    picks: [],            // undo stack: [{ playerId, playerIdx, playerBefore, teamId, pickOrder, currentTurnIdx, currentCategoryIdx, ts }]
+    // { [teamId]: remaining skip turns }, scoped to the *current* category only
+    // (reset on every category advance). Lazily populated the first time each
+    // team is evaluated against a category, from how many of their existing
+    // (retained) players already fall in it — see advanceDraftState.
+    categorySkips: {},
+    picks: [],            // undo stack: [{ playerId, playerIdx, playerBefore, teamId, pickOrder, currentTurnIdx, currentCategoryIdx, categorySkips, ts }]
+    events: [],            // display-only log (not undoable, not in `picks`): [{ type: 'shuffle', ts }]
     timerLeft: null,
     timerHandle: null,
     connectedCaptains: new Map(),
@@ -494,13 +500,30 @@ function createDraftRoom(roomCode, auctionData) {
 
 // Randomizes the team pick order — an explicit admin action (rather than an
 // automatic side effect of room creation) so it's visible/attributable in
-// the UI. Only valid before the draft has started; can be re-run from idle.
+// the UI. Valid before the draft has started (can be re-run from idle), or
+// mid-draft at a round boundary (currentTurnIdx === 0 — nobody in the
+// current pass through the team list has picked or been skipped yet).
 function randomizePickOrder(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
-  if (room.status !== 'idle') return { error: 'Selection already started' }
+  const atRoundBoundary = room.status === 'running' && room.currentTurnIdx === 0
+  if (room.status !== 'idle' && !atRoundBoundary) {
+    return { error: 'Pick order can only be reshuffled before the draft starts or between rounds' }
+  }
   room.pickOrder = shuffle(room.teams.map(t => t.id))
   room.currentTurnIdx = 0
+
+  if (atRoundBoundary) {
+    // Reordering can put a team at position 0 that was never validated by the
+    // boundary check (roster-full or still owes a category-retention skip) —
+    // re-walk the skip logic to land on a genuinely valid turn.
+    room.events.push({ type: 'shuffle', ts: Date.now() })
+    clearTimer(room)
+    advanceDraftState(room)
+    room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : null
+    if (room.status === 'running' && room.config.timerEnabled) startDraftTimer(roomCode, room, io)
+  }
+
   io.to(roomCode).emit('draft:orderSet', publicDraftState(room))
   return publicDraftState(room)
 }
@@ -529,9 +552,19 @@ function advanceDraftTurn(room) {
   }
 }
 
-// Skips forward through exhausted categories and capped-out teams until the
-// draft lands on a valid (category, team) turn, or finishes. Mutates room in
-// place. Returns true if the draft is now finished.
+// Returns how many of `team`'s existing players fall in the given category's
+// role set — at the moment a team is first evaluated against a category this
+// can only be pre-existing (retained) players, never in-draft picks, since
+// they haven't had a turn in this category yet. Safe proxy for "how many
+// retained players does this team have here" with no separate flag needed.
+function retainedCountInCategory(team, roles) {
+  return team.players.filter(p => roles.includes(p.role)).length
+}
+
+// Skips forward through exhausted categories, capped-out teams, and teams
+// still sitting out turns they owe this category for pre-draft retentions,
+// until the draft lands on a valid (category, team) turn, or finishes.
+// Mutates room in place. Returns true if the draft is now finished.
 function advanceDraftState(room) {
   const guardLimit = (room.pickOrder.length || 1) * (room.categories.length + 1) + room.pickOrder.length + 5
   for (let i = 0; i < guardLimit; i++) {
@@ -541,13 +574,25 @@ function advanceDraftState(room) {
     }
     if (!categoryHasPending(room, room.currentCategoryIdx)) {
       room.currentCategoryIdx += 1
+      room.categorySkips = {}
       continue
     }
     if (room.teams.every(t => teamRosterFull(room, t.id))) {
       room.status = 'finished'
       return true
     }
-    if (teamRosterFull(room, currentDraftTeamId(room))) {
+    const teamId = currentDraftTeamId(room)
+    if (teamRosterFull(room, teamId)) {
+      advanceDraftTurn(room)
+      continue
+    }
+    if (!(teamId in room.categorySkips)) {
+      const team = room.teams.find(t => t.id === teamId)
+      const roles = room.categoryGroups[room.currentCategoryIdx]?.roles || []
+      room.categorySkips[teamId] = team ? retainedCountInCategory(team, roles) : 0
+    }
+    if (room.categorySkips[teamId] > 0) {
+      room.categorySkips[teamId] -= 1
       advanceDraftTurn(room)
       continue
     }
@@ -601,6 +646,7 @@ function pickPlayer(roomCode, teamId, playerId, io) {
     pickOrder: [...room.pickOrder],
     currentTurnIdx: room.currentTurnIdx,
     currentCategoryIdx: room.currentCategoryIdx,
+    categorySkips: { ...room.categorySkips },
     ts: Date.now(),
   })
 
@@ -639,6 +685,7 @@ function undoPick(roomCode, io) {
   room.pickOrder = last.pickOrder
   room.currentTurnIdx = last.currentTurnIdx
   room.currentCategoryIdx = last.currentCategoryIdx
+  room.categorySkips = last.categorySkips || {}
   room.status = 'running'
   room.paused = false
   room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : room.timerLeft
@@ -678,9 +725,11 @@ function restoreDraftRoom(roomCode, snapshot, originalSetup) {
   room.currentCategoryIdx = snapshot.currentCategoryIdx ?? 0
   room.pickOrder = snapshot.pickOrder || []
   room.currentTurnIdx = snapshot.currentTurnIdx ?? 0
+  room.categorySkips = snapshot.categorySkips || {}
   room.status = snapshot.status || 'idle'
   room.timerLeft = null
   room.picks = snapshot.picks || []
+  room.events = snapshot.events || []
 
   rooms.set(roomCode, room)
   return room
@@ -702,7 +751,8 @@ function publicDraftState(room) {
     paused: room.paused,
     timerLeft: room.timerLeft,
     canUndoPick: room.picks.length > 0,
-    picks: room.picks.slice(0, 50).map(({ playerBefore: _playerBefore, pickOrder: _pickOrder, currentTurnIdx: _t, currentCategoryIdx: _c, ...rest }) => rest),
+    picks: room.picks.slice(0, 50).map(({ playerBefore: _playerBefore, pickOrder: _pickOrder, currentTurnIdx: _t, currentCategoryIdx: _c, categorySkips: _s, ...rest }) => rest),
+    events: room.events.slice(0, 50),
     connectedTeamIds: [...room.connectedCaptains.values()],
   }
 }
@@ -949,10 +999,12 @@ function serializeRoom(room) {
       currentCategoryIdx: room.currentCategoryIdx,
       pickOrder: room.pickOrder,
       currentTurnIdx: room.currentTurnIdx,
+      categorySkips: room.categorySkips,
       status: room.status,
       timerLeft: room.timerLeft,
       paused: room.paused,
       picks: room.picks,
+      events: room.events,
     }
   }
   return {
@@ -985,9 +1037,11 @@ function hydrateRoom(roomCode, s) {
     room.currentCategoryIdx = s.currentCategoryIdx ?? 0
     room.pickOrder = s.pickOrder || []
     room.currentTurnIdx = s.currentTurnIdx ?? 0
+    room.categorySkips = s.categorySkips || {}
     room.status = s.status || 'idle'
     room.timerLeft = s.timerLeft ?? null
     room.picks = s.picks || []
+    room.events = s.events || []
     room.paused = s.status === 'running' ? true : !!s.paused
     rooms.set(roomCode, room)
     return room

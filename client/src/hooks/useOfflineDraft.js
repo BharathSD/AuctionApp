@@ -75,23 +75,35 @@ function rotateTurn(pickOrder, currentTurnIdx) {
   return { pickOrder: nextOrder, currentTurnIdx: nextIdx }
 }
 
-// Skips forward through exhausted categories and capped-out teams until a
-// valid (category, team) turn is found, or the draft is finished.
-function advanceDraftState({ players, teams, categoryGroups, currentCategoryIdx, pickOrder, currentTurnIdx, maxPlayers }) {
+// Returns how many of `team`'s existing players fall in the given category's
+// role set — at the moment a team is first evaluated against a category this
+// can only be pre-existing (retained) players, never in-draft picks, since
+// they haven't had a turn in this category yet. Safe proxy for "how many
+// retained players does this team have here" with no separate flag needed.
+function retainedCountInCategory(team, roles) {
+  return team.players.filter(p => roles.includes(p.role)).length
+}
+
+// Skips forward through exhausted categories, capped-out teams, and teams
+// still sitting out turns they owe this category for pre-draft retentions,
+// until a valid (category, team) turn is found, or the draft is finished.
+function advanceDraftState({ players, teams, categoryGroups, currentCategoryIdx, pickOrder, currentTurnIdx, categorySkips, maxPlayers }) {
   let catIdx = currentCategoryIdx
   let order = pickOrder
   let turnIdx = currentTurnIdx
+  let skips = categorySkips
   const guardLimit = (order.length || 1) * (categoryGroups.length + 1) + order.length + 5
   for (let i = 0; i < guardLimit; i++) {
     if (order.length === 0 || catIdx >= categoryGroups.length) {
-      return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, status: 'finished' }
+      return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, categorySkips: skips, status: 'finished' }
     }
     if (!categoryHasPending(players, categoryGroups, catIdx)) {
       catIdx += 1
+      skips = {}
       continue
     }
     if (teams.every(t => teamRosterFull(teams, t.id, maxPlayers))) {
-      return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, status: 'finished' }
+      return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, categorySkips: skips, status: 'finished' }
     }
     const teamId = order[turnIdx]
     if (teamRosterFull(teams, teamId, maxPlayers)) {
@@ -100,9 +112,21 @@ function advanceDraftState({ players, teams, categoryGroups, currentCategoryIdx,
       turnIdx = rotated.currentTurnIdx
       continue
     }
-    return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, status: 'running' }
+    if (!(teamId in skips)) {
+      const team = teams.find(t => t.id === teamId)
+      const roles = categoryGroups[catIdx]?.roles || []
+      skips = { ...skips, [teamId]: team ? retainedCountInCategory(team, roles) : 0 }
+    }
+    if (skips[teamId] > 0) {
+      skips = { ...skips, [teamId]: skips[teamId] - 1 }
+      const rotated = rotateTurn(order, turnIdx)
+      order = rotated.pickOrder
+      turnIdx = rotated.currentTurnIdx
+      continue
+    }
+    return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, categorySkips: skips, status: 'running' }
   }
-  return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, status: 'finished' }
+  return { currentCategoryIdx: catIdx, pickOrder: order, currentTurnIdx: turnIdx, categorySkips: skips, status: 'finished' }
 }
 
 function buildInitialState(saved) {
@@ -117,8 +141,10 @@ function buildInitialState(saved) {
       currentCategoryIdx: r.currentCategoryIdx || 0,
       pickOrder: r.pickOrder || [],
       currentTurnIdx: r.currentTurnIdx || 0,
+      categorySkips: r.categorySkips || {},
       status: r.status || 'idle',
       picks: r.picks || [],
+      events: r.events || [],
       paused: false,
       timerLeft: saved.config.timerEnabled ? saved.config.timerSeconds : null,
     }
@@ -136,8 +162,10 @@ function buildInitialState(saved) {
     currentCategoryIdx: 0,
     pickOrder: [], // set only via RANDOMIZE_ORDER — an explicit admin action
     currentTurnIdx: 0,
+    categorySkips: {},
     status: 'idle',
     picks: [],
+    events: [],
     paused: false,
     timerLeft: saved.config.timerEnabled ? saved.config.timerSeconds : null,
   }
@@ -149,8 +177,35 @@ function reducer(state, action) {
       return buildInitialState(action.payload)
 
     case A.RANDOMIZE_ORDER: {
-      if (state.status !== 'idle') return state
-      return { ...state, pickOrder: shuffle(state.teams.map(t => t.id)), currentTurnIdx: 0 }
+      // Valid before the draft has started (can be re-run from idle), or
+      // mid-draft at a round boundary (currentTurnIdx === 0 — nobody in the
+      // current pass through the team list has picked or been skipped yet).
+      const atRoundBoundary = state.status === 'running' && state.currentTurnIdx === 0
+      if (state.status !== 'idle' && !atRoundBoundary) return state
+      const pickOrder = shuffle(state.teams.map(t => t.id))
+      if (!atRoundBoundary) {
+        return { ...state, pickOrder, currentTurnIdx: 0 }
+      }
+      // Reordering can put a team at position 0 that was never validated by
+      // the boundary check (roster-full or still owes a category-retention
+      // skip) — re-walk the skip logic to land on a genuinely valid turn.
+      const maxPlayers = Number(state.config.maxPlayersPerTeam) || 0
+      const advanced = advanceDraftState({
+        players: state.players,
+        teams: state.teams,
+        categoryGroups: state.categoryGroups,
+        categorySkips: state.categorySkips,
+        currentCategoryIdx: state.currentCategoryIdx,
+        pickOrder,
+        currentTurnIdx: 0,
+        maxPlayers,
+      })
+      return {
+        ...state,
+        ...advanced,
+        events: [{ type: 'shuffle', ts: Date.now() }, ...state.events],
+        timerLeft: state.config.timerEnabled ? state.config.timerSeconds : null,
+      }
     }
 
     case A.START: {
@@ -160,6 +215,7 @@ function reducer(state, action) {
         players: state.players,
         teams: state.teams,
         categoryGroups: state.categoryGroups,
+        categorySkips: state.categorySkips,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: state.pickOrder,
         currentTurnIdx: state.currentTurnIdx,
@@ -196,6 +252,7 @@ function reducer(state, action) {
         pickOrder: state.pickOrder,
         currentTurnIdx: state.currentTurnIdx,
         currentCategoryIdx: state.currentCategoryIdx,
+        categorySkips: state.categorySkips,
         ts: Date.now(),
       }
 
@@ -214,6 +271,7 @@ function reducer(state, action) {
         players,
         teams,
         categoryGroups: state.categoryGroups,
+        categorySkips: state.categorySkips,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: rotated.pickOrder,
         currentTurnIdx: rotated.currentTurnIdx,
@@ -255,6 +313,7 @@ function reducer(state, action) {
         pickOrder: last.pickOrder,
         currentTurnIdx: last.currentTurnIdx,
         currentCategoryIdx: last.currentCategoryIdx,
+        categorySkips: last.categorySkips || {},
         status: 'running',
         paused: false,
         timerLeft: state.config.timerEnabled ? state.config.timerSeconds : state.timerLeft,
@@ -272,6 +331,7 @@ function reducer(state, action) {
         players: state.players,
         teams: state.teams,
         categoryGroups: state.categoryGroups,
+        categorySkips: state.categorySkips,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: rotated.pickOrder,
         currentTurnIdx: rotated.currentTurnIdx,
@@ -323,14 +383,16 @@ export function useOfflineDraft() {
       _runtime: {
         categories: state.categories,
         categoryGroups: state.categoryGroups,
+        categorySkips: state.categorySkips,
         currentCategoryIdx: state.currentCategoryIdx,
         pickOrder: state.pickOrder,
         currentTurnIdx: state.currentTurnIdx,
         status: state.status,
         picks: state.picks,
+        events: state.events,
       },
     }))
-  }, [state.teams, state.players, state.categories, state.categoryGroups, state.currentCategoryIdx, state.pickOrder, state.currentTurnIdx, state.status, state.picks])
+  }, [state.teams, state.players, state.categories, state.categoryGroups, state.categorySkips, state.currentCategoryIdx, state.pickOrder, state.currentTurnIdx, state.status, state.picks, state.events])
 
   // Turn timer tick
   useEffect(() => {
