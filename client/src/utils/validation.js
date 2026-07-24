@@ -91,12 +91,12 @@ export function validateAuctionStartup(config, teams, players, preAllocations) {
   if (!teams || teams.length === 0) {
     return { valid: false, error: 'Must create at least 1 team' }
   }
-  
+
   // Must have at least 1 player (pending or pre-allocated)
   if (!players || players.length === 0) {
     return { valid: false, error: 'Must add at least 1 player' }
   }
-  
+
   // numTeams must match actual teams
   if (config.numTeams !== teams.length) {
     return { valid: false, error: `Team count mismatch: expected ${config.numTeams}, have ${teams.length}` }
@@ -120,43 +120,49 @@ export function validateAuctionStartup(config, teams, players, preAllocations) {
     if (teamPins.has(pinVal.value)) return { valid: false, error: `Duplicate team PIN: "${pinVal.value}"` }
     teamPins.add(pinVal.value)
   }
-  
+
+  // Draft mode has no budget concept — skip the pre-allocation-vs-budget check below.
+  if (config.engine === 'draft') return { valid: true }
+
   // Check each team has valid budget after pre-allocation
   for (const team of teams) {
     const myAllocs = (preAllocations || []).filter(a => a.teamId === team.id)
     const spent = myAllocs.reduce((s, a) => s + Number(a.price || 0), 0)
     const remaining = config.pointsPerTeam - spent
-    
+
     if (remaining < 0) {
       return { valid: false, error: `Team "${team.name}" pre-allocation (${spent} pts) exceeds budget (${config.pointsPerTeam} pts)` }
     }
   }
-  
+
   return { valid: true }
 }
 
 export function validateConfigValues(config) {
   const numTeamsVal = validateNumeric(config.numTeams, 1, 16, 'Number of teams')
   if (!numTeamsVal.valid) return numTeamsVal
-  
-  const budgetVal = validatePositiveNumeric(config.pointsPerTeam, 'Points per team')
-  if (!budgetVal.valid) return budgetVal
-  
-  const minBidVal = validateNonNegative(config.minBidBase, 'Minimum base bid')
-  if (!minBidVal.valid) return minBidVal
-  
+
   const maxPlayersVal = validatePositiveNumeric(config.maxPlayersPerTeam, 'Max players per team')
   if (!maxPlayersVal.valid) return maxPlayersVal
-  
+
   if (config.timerEnabled) {
     const timerVal = validateNumeric(config.timerSeconds, 5, 120, 'Timer seconds')
     if (!timerVal.valid) return timerVal
   }
-  
+
+  // Draft mode has no budget/bid-tier concept — nothing further to validate.
+  if (config.engine === 'draft') return { valid: true }
+
+  const budgetVal = validatePositiveNumeric(config.pointsPerTeam, 'Points per team')
+  if (!budgetVal.valid) return budgetVal
+
+  const minBidVal = validateNonNegative(config.minBidBase, 'Minimum base bid')
+  if (!minBidVal.valid) return minBidVal
+
   // Validate bid tiers
   const tierVal = validateBidTierConfig(config.bidTiers || [])
   if (!tierVal.valid) return tierVal
-  
+
   return { valid: true }
 }
 

@@ -35,6 +35,7 @@ export default function CaptainJoin() {
       sessionStorage.setItem('captain_teamId', data.teamId)
       sessionStorage.setItem('captain_teamName', data.teamName)
       sessionStorage.setItem('captain_token', data.captainToken)
+      sessionStorage.setItem('captain_engine', data.engine || 'bidding')
       navigate('/auction/online/captain')
     } catch {
       setError('Could not reach server. Is the auction running?')

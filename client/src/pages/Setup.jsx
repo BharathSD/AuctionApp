@@ -9,6 +9,7 @@ import Icon from '../components/Icon'
 import BrandMark from '../components/BrandMark'
 
 const DEFAULT_CONFIG = {
+  engine: 'bidding', // 'bidding' | 'draft'
   numTeams: 4,
   pointsPerTeam: 10000,
   bidTiers: [{ upTo: null, increment: 100 }],
@@ -88,7 +89,8 @@ export default function Setup() {
   }
 
   const handleConfigChange = (field, value) => {
-    const parsed = field === 'timerEnabled' || field === 'randomizeOrder' ? value : Number(value) || value
+    const stringFields = field === 'timerEnabled' || field === 'randomizeOrder' || field === 'engine'
+    const parsed = stringFields ? value : Number(value) || value
     setConfig(prev => ({ ...prev, [field]: parsed }))
     if (field === 'numTeams') {
       const n = Number(value) || 2
@@ -196,6 +198,7 @@ export default function Setup() {
     if (!startupVal.valid) { alert(`Cannot start: ${startupVal.error}`); return }
     
     if (!players.length) return
+    const isDraft = config.engine === 'draft'
     const auctionData = {
       mode,
       config,
@@ -203,14 +206,22 @@ export default function Setup() {
         const myAllocs = preAllocations.filter(a => a.teamId === t.id)
         const prePlayers = myAllocs.map(a => {
           const p = players.find(pl => pl.id === a.playerId)
-          return p ? { ...p, soldPrice: Number(a.price), status: 'sold', soldTo: t.id } : null
+          if (!p) return null
+          return isDraft
+            ? { ...p, status: 'sold', soldTo: t.id }
+            : { ...p, soldPrice: Number(a.price), status: 'sold', soldTo: t.id }
         }).filter(Boolean)
+        if (isDraft) return { ...t, players: prePlayers }
         const spent = myAllocs.reduce((s, a) => s + Number(a.price), 0)
         return { ...t, budget: config.pointsPerTeam - spent, spent, players: prePlayers }
       }),
       players: players.map(p => {
         const alloc = preAllocations.find(a => a.playerId === p.id)
-        if (alloc) return { ...p, status: 'sold', soldTo: alloc.teamId, soldPrice: Number(alloc.price) }
+        if (alloc) {
+          return isDraft
+            ? { ...p, status: 'sold', soldTo: alloc.teamId }
+            : { ...p, status: 'sold', soldTo: alloc.teamId, soldPrice: Number(alloc.price) }
+        }
         return { ...p, status: 'pending', soldTo: null, soldPrice: null }
       }),
       roomCode: mode === 'online' ? Math.random().toString(36).slice(2, 8).toUpperCase() : null,
@@ -276,6 +287,24 @@ export default function Setup() {
     return matchesSearch && matchesRole
   })
 
+  /* ---------- draft category order (Round Robin only) ---------- */
+  // Present categories (distinct roles in the current player list), merged
+  // with any previously-arranged order: keeps prior ordering, appends newly
+  // added categories at the end, drops ones that no longer have players.
+  const presentCategories = [...new Set(players.map(p => p.role).filter(Boolean))]
+  const savedCategoryOrder = config.categoryOrder || []
+  const categoryOrder = [
+    ...savedCategoryOrder.filter(c => presentCategories.includes(c)),
+    ...presentCategories.filter(c => !savedCategoryOrder.includes(c)),
+  ]
+  const moveCategory = (idx, dir) => {
+    const newIdx = idx + dir
+    if (newIdx < 0 || newIdx >= categoryOrder.length) return
+    const next = [...categoryOrder]
+    ;[next[idx], next[newIdx]] = [next[newIdx], next[idx]]
+    setConfig(prev => ({ ...prev, categoryOrder: next }))
+  }
+
   /* ---------- render ---------- */
   return (
     <div className="app-shell text-white">
@@ -288,13 +317,20 @@ export default function Setup() {
           </div>
           <p className="hero-kicker mb-2">{mode === 'offline' ? 'Single-console setup' : 'Multi-device setup'}</p>
           <h1 className="page-title">
-            {mode === 'offline' ? 'Offline Auction Setup' : 'Online Auction Setup'}
+            {mode === 'offline' ? 'Offline' : 'Online'} {config.engine === 'draft' ? 'Draft' : 'Auction'} Setup
           </h1>
         </div>
 
         {/* Step tabs */}
         <div className="flex gap-1 mb-8 auction-surface rounded-xl p-1">
-          {[['config','Configuration'], ['teams','Teams'], ['players','Players'], ['preallocate','Retentions'], ['review','Review']].map(([s, label]) => (
+          {[
+            ['config', 'Configuration'],
+            ['teams', 'Teams'],
+            ['players', 'Players'],
+            ...(config.engine === 'draft' ? [['categories', 'Categories']] : []),
+            ['preallocate', 'Retentions'],
+            ['review', 'Review'],
+          ].map(([s, label]) => (
             <button
               key={s}
               onClick={() => setStep(s)}
@@ -309,85 +345,119 @@ export default function Setup() {
         {/* --- Step: Config --- */}
         {step === 'config' && (
           <div className="space-y-6">
+            <Field label="Selection Engine">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
+                {[
+                  ['bidding', 'Competitive Bidding', 'Teams bid against a budget; highest bid wins each player.'],
+                  ['draft', 'Round Robin Draft', 'No budget — teams take turns picking players, one category at a time.'],
+                ].map(([value, label, desc]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleConfigChange('engine', value)}
+                    aria-pressed={config.engine === value}
+                    className={`text-left rounded-xl p-4 border transition-colors ${config.engine === value ? 'border-blue-500 bg-blue-900/30' : 'border-gray-800 auction-surface hover:border-gray-600'}`}
+                  >
+                    <p className="text-sm font-semibold text-white mb-1">{label}</p>
+                    <p className="text-xs text-gray-400">{desc}</p>
+                  </button>
+                ))}
+              </div>
+            </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
               <Field label="Number of Teams">
                 <input type="number" min={2} max={16} value={config.numTeams}
                   onChange={e => handleConfigChange('numTeams', e.target.value)}
                   className="input-field max-w-[220px]" />
               </Field>
-              <Field label="Points per Team (budget)">
-                <input type="number" min={100} value={config.pointsPerTeam}
-                  onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
-                  className="input-field max-w-[220px]" />
-              </Field>
-              <Field label="Minimum Base Bid">
-                <input type="number" min={1} value={config.minBidBase}
-                  onChange={e => handleConfigChange('minBidBase', e.target.value)}
-                  className="input-field max-w-[220px]" />
-              </Field>
+              {config.engine !== 'draft' && (
+                <Field label="Points per Team (budget)">
+                  <input type="number" min={100} value={config.pointsPerTeam}
+                    onChange={e => handleConfigChange('pointsPerTeam', e.target.value)}
+                    className="input-field max-w-[220px]" />
+                </Field>
+              )}
+              {config.engine !== 'draft' && (
+                <Field label="Minimum Base Bid">
+                  <input type="number" min={1} value={config.minBidBase}
+                    onChange={e => handleConfigChange('minBidBase', e.target.value)}
+                    className="input-field max-w-[220px]" />
+                </Field>
+              )}
               <Field label="Max Players per Team">
                 <input type="number" min={1} max={50} value={config.maxPlayersPerTeam}
                   onChange={e => handleConfigChange('maxPlayersPerTeam', e.target.value)}
                   className="input-field max-w-[220px]" />
               </Field>
             </div>
-            <Field label="Bid Increment Tiers">
-              <div className="space-y-2">
-                {tiers.map((tier, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 w-16 shrink-0">
-                      {idx === 0 ? 'From 0' : `From ${tiers[idx - 1].upTo}`}
-                    </span>
-                    <span className="text-xs text-gray-500">to</span>
-                    {tier.upTo === null ? (
-                      <span className="text-xs text-gray-400 w-20 text-center">∞</span>
-                    ) : (
+            {config.engine !== 'draft' && (
+              <Field label="Bid Increment Tiers">
+                <div className="space-y-2">
+                  {tiers.map((tier, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 w-16 shrink-0">
+                        {idx === 0 ? 'From 0' : `From ${tiers[idx - 1].upTo}`}
+                      </span>
+                      <span className="text-xs text-gray-500">to</span>
+                      {tier.upTo === null ? (
+                        <span className="text-xs text-gray-400 w-20 text-center">∞</span>
+                      ) : (
+                        <input
+                          type="number" min={1} value={tier.upTo ?? ''}
+                          onChange={e => updateTier(idx, 'upTo', e.target.value)}
+                          className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
+                          placeholder="Up to"
+                        />
+                      )}
+                      <span className="text-xs text-gray-500">→ +</span>
                       <input
-                        type="number" min={1} value={tier.upTo ?? ''}
-                        onChange={e => updateTier(idx, 'upTo', e.target.value)}
+                        type="number" min={1} value={tier.increment}
+                        onChange={e => updateTier(idx, 'increment', e.target.value)}
                         className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
-                        placeholder="Up to"
+                        placeholder="Inc"
                       />
-                    )}
-                    <span className="text-xs text-gray-500">→ +</span>
-                    <input
-                      type="number" min={1} value={tier.increment}
-                      onChange={e => updateTier(idx, 'increment', e.target.value)}
-                      className="input-field w-20 max-w-[5rem] text-center text-sm py-1"
-                      placeholder="Inc"
-                    />
-                    <span className="text-xs text-gray-500">pts</span>
-                    {tiers.length > 1 && (
-                      <button onClick={() => removeTier(idx)} aria-label="Remove tier" className="text-red-400 hover:text-red-300 px-1"><Icon name="x" size={14} /></button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  onClick={addTier}
-                  className="text-blue-400 hover:text-blue-300 text-xs mt-1"
-                >+ Add tier</button>
-              </div>
-            </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-              <Field label="Player Order">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={config.randomizeOrder}
-                    onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
-                    className="w-5 h-5 rounded" />
-                  <span className="text-sm text-gray-300">Randomize player auction order</span>
-                </label>
+                      <span className="text-xs text-gray-500">pts</span>
+                      {tiers.length > 1 && (
+                        <button onClick={() => removeTier(idx)} aria-label="Remove tier" className="text-red-400 hover:text-red-300 px-1"><Icon name="x" size={14} /></button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={addTier}
+                    className="text-blue-400 hover:text-blue-300 text-xs mt-1"
+                  >+ Add tier</button>
+                </div>
               </Field>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+              {config.engine !== 'draft' && (
+                <Field label="Player Order">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={config.randomizeOrder}
+                      onChange={e => handleConfigChange('randomizeOrder', e.target.checked)}
+                      className="w-5 h-5 rounded" />
+                    <span className="text-sm text-gray-300">Randomize player auction order</span>
+                  </label>
+                </Field>
+              )}
               <Field label="Timer Mode">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={config.timerEnabled}
                     onChange={e => handleConfigChange('timerEnabled', e.target.checked)}
                     className="w-5 h-5 rounded" />
-                  <span className="text-sm text-gray-300">Enable countdown timer per bid</span>
+                  <span className="text-sm text-gray-300">
+                    {config.engine === 'draft' ? 'Enable countdown timer per turn' : 'Enable countdown timer per bid'}
+                  </span>
                 </label>
               </Field>
             </div>
+            {config.engine === 'draft' && (
+              <p className="text-xs text-gray-500 -mt-3">
+                Categories are the player <code>role</code> values in your player list — you'll set the draft order for them in the Categories step. Team pick order is randomized by the admin from the draft console, right before starting.
+              </p>
+            )}
             {config.timerEnabled && (
-              <Field label="Timer Duration (seconds)">
+              <Field label={config.engine === 'draft' ? 'Turn Duration (seconds)' : 'Timer Duration (seconds)'}>
                 <input type="number" min={5} max={120} value={config.timerSeconds}
                   onChange={e => handleConfigChange('timerSeconds', e.target.value)}
                   className="input-field max-w-[220px]" />
@@ -556,7 +626,54 @@ export default function Setup() {
 
             <div className="flex justify-between">
               <button onClick={() => setStep('teams')} className="btn-secondary">← Back</button>
-              <button onClick={() => setStep('preallocate')} disabled={!players.length} className="btn-primary disabled:opacity-40">Next: Retain →</button>
+              <button
+                onClick={() => setStep(config.engine === 'draft' ? 'categories' : 'preallocate')}
+                disabled={!players.length}
+                className="btn-primary disabled:opacity-40"
+              >
+                {config.engine === 'draft' ? 'Next: Categories →' : 'Next: Retain →'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* --- Step: Category order (Round Robin Draft only) --- */}
+        {step === 'categories' && config.engine === 'draft' && (
+          <div className="space-y-4">
+            <p className="text-gray-400 text-sm">
+              Choose the order categories will be drafted in. Every team picks from category 1 until it's exhausted, then category 2, and so on.
+            </p>
+            {categoryOrder.length === 0 ? (
+              <p className="text-gray-500 italic text-sm">Add players first to set a category order.</p>
+            ) : (
+              <div className="space-y-2">
+                {categoryOrder.map((cat, i) => (
+                  <div key={cat} className="auction-surface rounded-xl px-4 py-3 flex items-center gap-3">
+                    <span className="text-gray-500 font-mono w-6 text-center">{i + 1}</span>
+                    <span className="flex-1 font-medium">{cat}</span>
+                    <button
+                      onClick={() => moveCategory(i, -1)}
+                      disabled={i === 0}
+                      aria-label={`Move ${cat} up`}
+                      className="text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => moveCategory(i, 1)}
+                      disabled={i === categoryOrder.length - 1}
+                      aria-label={`Move ${cat} down`}
+                      className="text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-between">
+              <button onClick={() => setStep('players')} className="btn-secondary">← Back</button>
+              <button onClick={() => setStep('preallocate')} className="btn-primary">Next: Retain →</button>
             </div>
           </div>
         )}
@@ -589,7 +706,7 @@ export default function Setup() {
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
                         <span className="font-medium text-sm truncate">{p.name}</span>
                       </div>
-                      <span className="ml-2 text-xs text-gray-400">{p.role} • Base: {p.basePrice}</span>
+                      <span className="ml-2 text-xs text-gray-400">{p.role}{config.engine !== 'draft' && ` • Base: ${p.basePrice}`}</span>
                     </div>
                     {alloc ? (
                       <div className="flex items-center gap-2 shrink-0">
@@ -600,12 +717,14 @@ export default function Setup() {
                         >
                           {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
-                        <input
-                          type="number" min={0} placeholder="Price"
-                          value={alloc.price}
-                          onChange={e => setPreAllocations(prev => prev.map(a => a.playerId === p.id ? { ...a, price: e.target.value } : a))}
-                          className="input-field w-24 text-xs py-1"
-                        />
+                        {config.engine !== 'draft' && (
+                          <input
+                            type="number" min={0} placeholder="Price"
+                            value={alloc.price}
+                            onChange={e => setPreAllocations(prev => prev.map(a => a.playerId === p.id ? { ...a, price: e.target.value } : a))}
+                            className="input-field w-24 text-xs py-1"
+                          />
+                        )}
                         <button
                           onClick={() => setPreAllocations(prev => prev.filter(a => a.playerId !== p.id))}
                           className="text-red-400 hover:text-red-300 text-lg leading-none px-1"
@@ -629,6 +748,9 @@ export default function Setup() {
                 {teams.map(t => {
                   const tAllocs = preAllocations.filter(a => a.teamId === t.id)
                   if (!tAllocs.length) return null
+                  if (config.engine === 'draft') {
+                    return <p key={t.id}>{t.name}: {tAllocs.length} player{tAllocs.length !== 1 ? 's' : ''} retained</p>
+                  }
                   const totalCost = tAllocs.reduce((s, a) => s + Number(a.price || 0), 0)
                   return (
                     <p key={t.id}>{t.name}: {tAllocs.length} player{tAllocs.length !== 1 ? 's' : ''} — {totalCost} pts spent</p>
@@ -647,9 +769,16 @@ export default function Setup() {
         {step === 'review' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
+              <StatCard label="Engine" value={config.engine === 'draft' ? 'Round Robin Draft' : 'Competitive Bidding'} />
               <StatCard label="Teams" value={config.numTeams} />
-              <StatCard label="Points per team" value={config.pointsPerTeam} />
-              <StatCard label="Bid tiers" value={tiers.length === 1 ? `+${tiers[0].increment} flat` : `${tiers.length} tiers`} />
+              {config.engine === 'draft' ? (
+                <StatCard label="Categories" value={new Set(players.filter(p => !preAllocations.some(a => a.playerId === p.id)).map(p => p.role)).size} />
+              ) : (
+                <StatCard label="Points per team" value={config.pointsPerTeam} />
+              )}
+              {config.engine !== 'draft' && (
+                <StatCard label="Bid tiers" value={tiers.length === 1 ? `+${tiers[0].increment} flat` : `${tiers.length} tiers`} />
+              )}
               <StatCard label="Max players/team" value={config.maxPlayersPerTeam} />
               <StatCard label="Players" value={players.length} />
               <StatCard label="Retained" value={preAllocations.length} />

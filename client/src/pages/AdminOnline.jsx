@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import {
   loadAuctionState,
   syncOnlineAuctionProgress,
-  loadOnlineLiveSnapshot,
 } from '../hooks/useAuctionStorage'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
+import { useOnlineDraft } from '../hooks/useOnlineDraft'
+import { useRoomBootstrap } from '../hooks/useRoomBootstrap'
 import PlayerAvatar from '../components/PlayerAvatar'
 import PlayerSpotlight from '../components/PlayerSpotlight'
 import Icon from '../components/Icon'
 import TimerRing from '../components/TimerRing'
+import DraftBoard from '../components/DraftBoard'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
@@ -21,54 +23,214 @@ const ROLE_COLORS = {
   PLAYER: 'bg-slate-600',
 }
 
+// Entry point for the /auction/online/admin route. Picks the right console
+// based on the configured selection engine — each console below calls
+// exactly one of the two mutually-exclusive online engine hooks, so only
+// one socket connection is ever opened for a given room.
 export default function AdminOnline() {
+  const saved = loadAuctionState()
+  return saved?.config?.engine === 'draft' ? <AdminOnlineDraftConsole /> : <AdminOnlineBiddingConsole />
+}
+
+function AdminOnlineDraftConsole() {
   const navigate = useNavigate()
   const saved = loadAuctionState()
-  const [roomReady, setRoomReady] = useState(false)
   const [roomCode] = useState(saved?.roomCode || null)
-  const [bootstrapError, setBootstrapError] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
+  const { roomReady, bootstrapError, restored } = useRoomBootstrap(saved)
+  const activeRoomCode = roomReady ? roomCode : null
+
+  const {
+    state, currentTurnTeam,
+    adminRandomizePickOrder, adminStartDraft, adminPick, adminUndoPick, adminFinish, adminKickTeam, adminPause, adminResume,
+  } = useOnlineDraft({ roomCode: activeRoomCode, role: 'admin', teamId: null, adminToken: saved?.adminToken })
+
+  useEffect(() => {
+    syncOnlineAuctionProgress({
+      roomCode,
+      state: { status: state.status, teams: state.teams, players: state.players, config: state.config },
+    })
+  }, [roomCode, state.status, state.teams, state.players, state.config])
+
+  const downloadSnapshot = useCallback(() => {
+    const data = { version: 1, roomCode, savedAt: new Date().toISOString(), state, originalSetup: saved }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `draft-${roomCode}-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [roomCode, state, saved])
+
+  if (!saved) {
+    return (
+      <div className="app-shell text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-400 mb-4">No auction configured.</p>
+          <button onClick={() => navigate('/setup/online')} className="btn-primary">Set up auction</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!roomReady) {
+    return (
+      <div className="app-shell text-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-3">Preparing Draft Room…</h2>
+          {bootstrapError ? (
+            <>
+              <p className="text-red-400 text-sm mb-4">{bootstrapError}</p>
+              <button onClick={() => window.location.reload()} className="btn-primary">Retry</button>
+            </>
+          ) : (
+            <p className="text-gray-400 text-sm">Reconnecting to room <span className="font-mono text-yellow-400">{roomCode}</span></p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const { status, players, config } = state
+  const pickedCount = players.filter(p => p.status === 'sold').length
+  const totalPlayers = players.length
+  const joinUrl = `${window.location.origin}/join/${roomCode}`
+  const totalTeams = state.teams.length || saved?.teams?.length || config.numTeams || 0
+
+  return (
+    <div className="app-shell text-white flex flex-col">
+      {/* Top bar */}
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-lg">Draft Admin Console</span>
+          <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">ONLINE</span>
+          <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+            {state.connected ? '● Live' : '○ Connecting…'}
+          </span>
+          {restored && (
+            <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded font-semibold inline-flex items-center gap-1"><Icon name="check" size={12} strokeWidth={2.5} /> Restored</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-gray-800 rounded-lg px-3 py-1 text-sm">
+            <span className="text-gray-500">Room: </span>
+            <span className="font-mono font-bold text-yellow-400">{roomCode}</span>
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(joinUrl)
+                setLinkCopied(true)
+                setTimeout(() => setLinkCopied(false), 2000)
+              }}
+              className="text-xs bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg"
+            >
+              Copy join link
+            </button>
+            {linkCopied && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 bg-green-700 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50 inline-flex items-center gap-1">
+                <Icon name="check" size={12} strokeWidth={2.5} /> Link copied!
+              </div>
+            )}
+          </div>
+          <span className="text-xs text-gray-500">{pickedCount}/{totalPlayers} picked</span>
+          <button
+            onClick={() => window.open(`/watch/${roomCode}`, '_blank')}
+            title="Open viewer display (stream this on YouTube)"
+            className="text-purple-400 hover:text-white text-xs border border-purple-800 px-2 py-1 rounded inline-flex items-center gap-1"
+          >
+            <Icon name="tv" size={13} /> Viewer
+          </button>
+          <button
+            onClick={downloadSnapshot}
+            title="Save snapshot (for manual recovery)"
+            className="text-gray-400 hover:text-white text-xs border border-gray-700 px-2 py-1 rounded inline-flex items-center gap-1"
+          >
+            <Icon name="save" size={13} /> Save
+          </button>
+          {status === 'running' && (
+            <>
+              <button onClick={state.paused ? adminResume : adminPause} className="text-yellow-400 hover:text-yellow-300 text-xs border border-yellow-700 px-2 py-1 rounded inline-flex items-center gap-1">
+                {state.paused ? <><Icon name="play" size={12} /> Resume</> : <><Icon name="pause" size={12} /> Pause</>}
+              </button>
+              <button
+                onClick={() => { if (window.confirm('End the draft now? Any players not yet picked will be marked unavailable.')) adminFinish() }}
+                className="text-red-400 hover:text-red-300 text-xs border border-red-800 px-2 py-1 rounded inline-flex items-center gap-1"
+              >
+                <Icon name="stop" size={13} /> Finish
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {state.sessionError && (
+        <div className="bg-red-900/80 border-b border-red-700 px-4 py-2 flex items-center justify-between gap-4">
+          <span className="text-red-200 text-sm">Admin session error: {state.sessionError}</span>
+          <button onClick={() => window.location.reload()} className="bg-white text-red-700 text-xs font-bold px-3 py-1 rounded-lg shrink-0">Retry</button>
+        </div>
+      )}
+
+      <DraftBoard
+        state={state}
+        currentTurnTeam={currentTurnTeam}
+        onRandomizeOrder={adminRandomizePickOrder}
+        canStart={state.pickOrder.length > 0 && state.connectedTeamIds.length >= totalTeams}
+        onStart={adminStartDraft}
+        onPick={(playerId) => adminPick(playerId)}
+        onUndoPick={adminUndoPick}
+        canUndoPick={state.canUndoPick}
+      >
+        {status === 'idle' && (
+          <div className="mb-6">
+            <p className="text-gray-400 mb-2">Share the join link with captains, then start.</p>
+            <p className="font-mono text-blue-300 text-sm mb-4 break-all">{joinUrl}</p>
+            <div className="mb-2 space-y-1">
+              {state.teams.map(team => {
+                const isOnline = state.connectedTeamIds.includes(team.id)
+                return (
+                  <div key={team.id} className="flex items-center justify-center gap-2 text-sm">
+                    <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-600'}`} />
+                    <span className={isOnline ? 'text-white' : 'text-gray-500'}>{team.name}</span>
+                    <span className="text-xs text-gray-600">{isOnline ? 'Ready' : 'Waiting…'}</span>
+                    {isOnline && (
+                      <button onClick={() => { if (window.confirm(`Kick ${team.name} from the draft?`)) adminKickTeam(team.id) }} className="text-red-500 hover:text-red-300 text-xs">
+                        <Icon name="x" size={12} />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {state.connectedTeamIds.length < totalTeams && (
+              <p className="text-yellow-500 text-xs">
+                Waiting for {totalTeams - state.connectedTeamIds.length} more captain{totalTeams - state.connectedTeamIds.length !== 1 ? 's' : ''} to join…
+              </p>
+            )}
+          </div>
+        )}
+      </DraftBoard>
+
+      {status === 'finished' && (
+        <div className="flex justify-center pb-8 pt-4">
+          <button onClick={() => navigate('/results')} className="animate-pulse-ring bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-lg shadow-blue-900 transition-all hover:scale-105 cursor-pointer">
+            View Results →
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AdminOnlineBiddingConsole() {
+  const navigate = useNavigate()
+  const saved = loadAuctionState()
   const [expandedTeamId, setExpandedTeamId] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
-  const [restored, setRestored] = useState(false)
   const [disconnectAlert, setDisconnectAlert] = useState(null) // { teamName, at }
-
-  // Smart mount: check if room exists → restore from snapshot if not → create fresh if no snapshot
-  // Intentionally bootstrap once on mount using the initial saved setup snapshot.
-  useEffect(() => {
-    if (!saved || !saved.roomCode) return
-    const rc = saved.roomCode
-    fetch(`/api/auction/${rc}/state`)
-      .then(r => {
-        if (r.ok) { setRoomReady(true); return }
-        const liveSnapshot = loadOnlineLiveSnapshot()
-        if (liveSnapshot && liveSnapshot.roomCode === rc) {
-          return fetch('/api/auction/restore', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomCode: rc, snapshot: liveSnapshot.state, originalSetup: saved, adminToken: saved.adminToken }),
-          }).then(async (resp) => {
-            const data = await resp.json().catch(() => ({}))
-            if (!resp.ok) throw new Error(data.error || 'Restore failed')
-            setRestored(true)
-            setRoomReady(true)
-          })
-        }
-        return fetch('/api/auction/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomCode: rc, auctionData: saved }),
-        }).then(async (resp) => {
-          const data = await resp.json().catch(() => ({}))
-          if (!resp.ok) throw new Error(data.error || 'Failed to create room')
-          setRoomReady(true)
-        })
-      })
-      .catch((err) => {
-        setBootstrapError(err?.message || 'Failed to initialize room')
-      })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
+  const [roomCode] = useState(saved?.roomCode || null)
+  const { roomReady, bootstrapError, restored } = useRoomBootstrap(saved)
   const activeRoomCode = roomReady ? roomCode : null
 
   const {

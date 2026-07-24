@@ -123,7 +123,7 @@ function makeIoProxy(roomCode) {
         if (passThrough.includes(event)) {
           io.to(viewersRoom).emit(event, data)
         } else {
-          io.to(viewersRoom).emit(event, engine.viewerState(room))
+          io.to(viewersRoom).emit(event, engine.viewerRoomState(room))
         }
       },
     }),
@@ -143,7 +143,8 @@ app.post('/api/auction/create', (req, res) => {
   const { roomCode, auctionData } = req.body
   if (!roomCode || !auctionData) return res.status(400).json({ error: 'Missing roomCode or auctionData' })
   if (engine.getRoom(roomCode)) return res.status(409).json({ error: 'Room already exists' })
-  engine.createRoom(roomCode, auctionData)
+  if (auctionData.config?.engine === 'draft') engine.createDraftRoom(roomCode, auctionData)
+  else engine.createRoom(roomCode, auctionData)
   
   // Generate admin token for this room
   const adminToken = generateAdminToken()
@@ -157,7 +158,7 @@ app.post('/api/auction/create', (req, res) => {
 app.get('/api/auction/:roomCode/state', (req, res) => {
   const room = engine.getRoom(req.params.roomCode)
   if (!room) return res.status(404).json({ error: 'Room not found' })
-  res.json(engine.publicState(room))
+  res.json(engine.roomState(room))
 })
 
 // ── REST: Validate captain join ───────────────────────────────
@@ -193,7 +194,12 @@ app.post('/api/auction/:roomCode/join', (req, res) => {
   roomTokens.set(result.team.id, captainToken)
   // Successful validation resets throttling for this room/IP key.
   joinAttemptMap.delete(joinKey)
-  res.json({ teamId: result.team.id, teamName: result.team.name, captainToken })
+  res.json({
+    teamId: result.team.id,
+    teamName: result.team.name,
+    captainToken,
+    engine: result.room?.config?.engine || 'bidding',
+  })
 })
 
 // ── REST: Restore auction room from snapshot ─────────────────
@@ -204,7 +210,9 @@ app.post('/api/auction/restore', (req, res) => {
   if (!expectedToken || adminToken !== expectedToken) {
     return res.status(401).json({ error: 'Invalid admin token' })
   }
-  engine.restoreRoom(roomCode, snapshot, originalSetup)
+  const engineType = snapshot?.config?.engine || originalSetup?.config?.engine
+  if (engineType === 'draft') engine.restoreDraftRoom(roomCode, snapshot, originalSetup)
+  else engine.restoreRoom(roomCode, snapshot, originalSetup)
   res.json({ ok: true, roomCode, restored: true })
 })
 
@@ -234,7 +242,7 @@ io.on('connection', (socket) => {
     currentRoom = roomCode
     isAdmin = true
     socket.join(roomCode)
-    socket.emit('auction:stateUpdate', engine.publicState(room))
+    socket.emit('auction:stateUpdate', engine.roomState(room))
   })
 
   // Join as viewer (read-only, no controls)
@@ -243,7 +251,7 @@ io.on('connection', (socket) => {
     if (!room) { socket.emit('error', { message: 'Room not found' }); return }
     currentRoom = roomCode
     socket.join(`${roomCode}:viewers`)
-    socket.emit('auction:stateUpdate', engine.viewerState(room))
+    socket.emit('auction:stateUpdate', engine.viewerRoomState(room))
   })
 
   // Join as captain (after REST validation)
@@ -267,14 +275,43 @@ io.on('connection', (socket) => {
     currentTeamId = teamId
     socket.join(roomCode)
     engine.connectCaptain(roomCode, teamId, socket.id, makeIoProxy(roomCode))
-    socket.emit('auction:stateUpdate', engine.publicState(room))
-    io.to(roomCode).emit('captain:connected', { teamId, connectedTeamIds: engine.publicState(room).connectedTeamIds })
+    socket.emit('auction:stateUpdate', engine.roomState(room))
+    io.to(roomCode).emit('captain:connected', { teamId, connectedTeamIds: engine.roomState(room).connectedTeamIds })
   })
 
   // Admin: start next player
   socket.on('admin:nextPlayer', () => {
     if (!isAdmin || !currentRoom) return
     engine.startNextPlayer(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: randomize the team pick order (draft mode) — explicit action,
+  // must run before startDraft; can be re-run while still idle.
+  socket.on('admin:randomizePickOrder', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.randomizePickOrder(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: start the draft (round robin mode's "begin" action)
+  socket.on('admin:startDraft', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.startDraft(currentRoom, makeIoProxy(currentRoom))
+  })
+
+  // Admin: pick a player on behalf of the on-turn team (draft mode)
+  socket.on('admin:pick', ({ playerId }) => {
+    if (!isAdmin || !currentRoom || !playerId) return
+    const room = engine.getRoom(currentRoom)
+    if (!room) return
+    const teamId = room.pickOrder?.[room.currentTurnIdx]
+    if (!teamId) return
+    engine.pickPlayer(currentRoom, teamId, playerId, makeIoProxy(currentRoom))
+  })
+
+  // Admin: undo the last draft pick
+  socket.on('admin:undoPick', () => {
+    if (!isAdmin || !currentRoom) return
+    engine.undoPick(currentRoom, makeIoProxy(currentRoom))
   })
 
   // Captain: place bid (rate limited)
@@ -300,6 +337,13 @@ io.on('connection', (socket) => {
     
     const result = engine.placeBid(currentRoom, currentTeamId, makeIoProxy(currentRoom))
     if (result.error) socket.emit('bid:rejected', { reason: result.error })
+  })
+
+  // Captain: pick a player on their team's turn (draft mode)
+  socket.on('captain:pick', ({ playerId }) => {
+    if (!currentTeamId || !currentRoom || !playerId) return
+    const result = engine.pickPlayer(currentRoom, currentTeamId, playerId, makeIoProxy(currentRoom))
+    if (result.error) socket.emit('pick:rejected', { reason: result.error })
   })
 
   // Admin: undo last bid

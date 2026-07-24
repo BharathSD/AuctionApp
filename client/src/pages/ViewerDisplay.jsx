@@ -45,6 +45,8 @@ const INITIAL = {
   connected: false, status: 'idle', currentPrice: null, leadingTeamId: null,
   timerLeft: null, teams: [], players: [], queue: [], currentIdx: -1,
   bids: [], config: {}, secondRound: false, bidFlash: false,
+  categories: [], currentCategoryIdx: 0, currentCategory: null,
+  currentTurnTeamId: null, picks: [],
 }
 
 export default function ViewerDisplay() {
@@ -66,6 +68,10 @@ export default function ViewerDisplay() {
     socket.on('auction:sold', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
     socket.on('auction:unsold', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
     socket.on('auction:finished', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
+    socket.on('draft:started', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
+    socket.on('draft:picked', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
+    socket.on('draft:stateUpdate', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
+    socket.on('draft:finished', d => dispatch({ type: 'STATE_UPDATE', payload: d }))
     socket.on('bid:accepted', d => {
       dispatch({ type: 'BID_ACCEPTED', payload: d })
       setTimeout(() => dispatch({ type: 'CLEAR_FLASH' }), 600)
@@ -75,10 +81,13 @@ export default function ViewerDisplay() {
   }, [roomCode])
 
   const { status, teams, currentIdx, queue, players, currentPrice,
-    leadingTeamId, timerLeft, config, secondRound, bidFlash, connected } = state
+    leadingTeamId, timerLeft, config, secondRound, bidFlash, connected,
+    categories, currentCategoryIdx, currentCategory, currentTurnTeamId } = state
 
+  const isDraft = config.engine === 'draft'
   const currentPlayer = queue[currentIdx] !== undefined ? players[queue[currentIdx]] : null
   const leadingTeam = teams.find(t => t.id === leadingTeamId) || null
+  const currentTurnTeam = teams.find(t => t.id === currentTurnTeamId) || null
   const soldCount = players.filter(p => p.status === 'sold').length
   const totalPlayers = players.length
   const currentNumber = currentIdx >= 0 ? currentIdx + 1 : 0
@@ -87,17 +96,23 @@ export default function ViewerDisplay() {
   const timerPct = config.timerEnabled && config.timerSeconds
     ? Math.max(0, (timerLeft / config.timerSeconds) * 100) : 100
   const timerColor = timerLeft > 10 ? 'bg-green-500' : timerLeft > 5 ? 'bg-yellow-400' : 'bg-red-500'
-  const liveAnnouncement = status === 'running'
-    ? `${currentPlayer?.name || 'Player'} at ${currentPrice || 0} points${leadingTeam ? `, ${leadingTeam.name} leading` : ''}`
-    : status === 'sold'
-      ? `${currentPlayer?.name || 'Player'} sold to ${leadingTeam?.name || 'team'} for ${currentPrice || 0} points`
-      : status === 'unsold'
-        ? `${currentPlayer?.name || 'Player'} marked unsold`
-        : status === 'finished'
-          ? `Auction finished. ${soldCount} of ${totalPlayers} players sold.`
-          : 'Waiting for auction to start.'
+  const liveAnnouncement = isDraft
+    ? (status === 'running'
+      ? `Category ${currentCategory || ''}. ${currentTurnTeam?.name || 'A team'} is picking.`
+      : status === 'finished'
+        ? `Draft finished. ${soldCount} of ${totalPlayers} players picked.`
+        : 'Waiting for the draft to start.')
+    : status === 'running'
+      ? `${currentPlayer?.name || 'Player'} at ${currentPrice || 0} points${leadingTeam ? `, ${leadingTeam.name} leading` : ''}`
+      : status === 'sold'
+        ? `${currentPlayer?.name || 'Player'} sold to ${leadingTeam?.name || 'team'} for ${currentPrice || 0} points`
+        : status === 'unsold'
+          ? `${currentPlayer?.name || 'Player'} marked unsold`
+          : status === 'finished'
+            ? `Auction finished. ${soldCount} of ${totalPlayers} players sold.`
+            : 'Waiting for auction to start.'
 
-  // Recently sold players (last 5)
+  // Recently sold/picked players (last 5)
   const recentSold = players
     .filter(p => p.status === 'sold')
     .sort((a, b) => (Number(b.soldAt) || 0) - (Number(a.soldAt) || 0))
@@ -146,19 +161,54 @@ export default function ViewerDisplay() {
 
           {status === 'idle' && (
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-300">Auction Starting Soon</p>
+              <p className="text-3xl font-bold text-gray-300">{isDraft ? 'Draft Starting Soon' : 'Auction Starting Soon'}</p>
               <p className="text-gray-500 mt-2">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
             </div>
           )}
 
           {status === 'finished' && (
             <div className="text-center">
-              <p className="text-4xl font-extrabold text-yellow-400">Auction Complete!</p>
-              <p className="text-gray-400 mt-3 text-xl">{soldCount} of {totalPlayers} players sold</p>
+              <p className="text-4xl font-extrabold text-yellow-400">{isDraft ? 'Draft Complete!' : 'Auction Complete!'}</p>
+              <p className="text-gray-400 mt-3 text-xl">{soldCount} of {totalPlayers} players {isDraft ? 'picked' : 'sold'}</p>
             </div>
           )}
 
-          {(status === 'running' || status === 'sold' || status === 'unsold') && currentPlayer && (
+          {isDraft && status === 'running' && (
+            <div className="w-full max-w-3xl flex flex-col items-center gap-6">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {categories.map((cat, i) => (
+                  <span
+                    key={cat}
+                    className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                      i === currentCategoryIdx ? 'bg-blue-600 text-white' : i < currentCategoryIdx ? 'bg-gray-800 text-gray-500 line-through' : 'bg-gray-800 text-gray-400'
+                    }`}
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+              <div className="broadcast-hero rounded-3xl p-10 text-center w-full shadow-2xl border auction-surface border-gray-700">
+                <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 text-white ${ROLE_COLORS[currentCategory] || 'bg-gray-600'}`}>
+                  {currentCategory?.toUpperCase()}
+                </span>
+                <p className="text-gray-400 text-sm uppercase tracking-widest mb-2">On the clock</p>
+                <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight">{currentTurnTeam?.name || '—'}</h1>
+              </div>
+              {config.timerEnabled && timerLeft !== null && (
+                <div className="w-full max-w-3xl">
+                  <div className="flex justify-between text-sm text-gray-400 mb-1">
+                    <span>Timer</span>
+                    <span className={timerLeft <= 5 ? 'text-red-400 font-bold animate-pulse' : ''}>{timerLeft}s</span>
+                  </div>
+                  <div className="w-full auction-surface-soft rounded-full h-3.5">
+                    <div className={`h-3 rounded-full transition-all duration-1000 ${timerColor}`} style={{ width: `${timerPct}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isDraft && (status === 'running' || status === 'sold' || status === 'unsold') && currentPlayer && (
             <>
               <div className="w-full max-w-3xl flex items-center justify-between gap-4 text-sm text-gray-300">
                 <span className="score-chip">
@@ -243,22 +293,30 @@ export default function ViewerDisplay() {
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2" role="list" aria-label="Team status board">
             {teams.map(team => {
-              const isLeading = team.id === leadingTeamId
+              const isLeading = !isDraft && team.id === leadingTeamId
+              const isTurn = isDraft && team.id === currentTurnTeamId
               return (
                 <div key={team.id} role="listitem"
-                  className={`rounded-xl p-3 border transition-all ${isLeading
+                  className={`rounded-xl p-3 border transition-all ${(isLeading || isTurn)
                     ? 'bg-blue-900/50 border-blue-600'
                     : 'auction-surface-soft border-gray-700'}`}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-semibold text-sm truncate text-gray-100">{team.name}</span>
                     {isLeading && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">Leading</span>}
+                    {isTurn && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">On the clock</span>}
                   </div>
-                  {/* Budget bar (% only — no exact numbers) */}
-                  <div className="w-full bg-gray-700/80 rounded-full h-2 mb-1.5">
-                    <div className={`h-2 rounded-full transition-all ${isLeading ? 'bg-blue-400' : 'bg-emerald-500'}`}
-                      style={{ width: `${team.budgetPct ?? 100}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-500">{team.playerCount ?? team.players?.length ?? 0} player{(team.playerCount ?? team.players?.length ?? 0) !== 1 ? 's' : ''} • {team.budgetPct ?? 100}% budget left</p>
+                  {isDraft ? (
+                    <p className="text-xs text-gray-500">{team.playerCount ?? team.players?.length ?? 0} player{(team.playerCount ?? team.players?.length ?? 0) !== 1 ? 's' : ''} picked</p>
+                  ) : (
+                    <>
+                      {/* Budget bar (% only — no exact numbers) */}
+                      <div className="w-full bg-gray-700/80 rounded-full h-2 mb-1.5">
+                        <div className={`h-2 rounded-full transition-all ${isLeading ? 'bg-blue-400' : 'bg-emerald-500'}`}
+                          style={{ width: `${team.budgetPct ?? 100}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-500">{team.playerCount ?? team.players?.length ?? 0} player{(team.playerCount ?? team.players?.length ?? 0) !== 1 ? 's' : ''} • {team.budgetPct ?? 100}% budget left</p>
+                    </>
+                  )}
                 </div>
               )
             })}
@@ -268,9 +326,9 @@ export default function ViewerDisplay() {
           {recentSold.length > 0 && (
             <>
               <div className="px-4 py-2 border-t border-gray-800">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recently Sold</h2>
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{isDraft ? 'Recently Picked' : 'Recently Sold'}</h2>
               </div>
-              <div className="px-3 pb-3 space-y-1" role="list" aria-label="Recently sold players">
+              <div className="px-3 pb-3 space-y-1" role="list" aria-label={isDraft ? 'Recently picked players' : 'Recently sold players'}>
                 {recentSold.map((p, i) => {
                   const buyer = teams.find(t => t.id === p.soldTo)
                   return (
@@ -282,10 +340,13 @@ export default function ViewerDisplay() {
                           <span className={`ml-1 ${ROLE_TEXT[p.role] || 'text-gray-400'}`}>({p.role})</span>
                         </div>
                       </div>
-                      <div className="text-right shrink-0 ml-2">
-                        <span className="text-yellow-400 font-mono">{p.soldPrice}pts</span>
-                        {buyer && <p className="text-gray-500">{buyer.name}</p>}
-                      </div>
+                      {!isDraft && (
+                        <div className="text-right shrink-0 ml-2">
+                          <span className="text-yellow-400 font-mono">{p.soldPrice}pts</span>
+                          {buyer && <p className="text-gray-500">{buyer.name}</p>}
+                        </div>
+                      )}
+                      {isDraft && buyer && <p className="text-gray-500 shrink-0 ml-2">{buyer.name}</p>}
                     </div>
                   )
                 })}
