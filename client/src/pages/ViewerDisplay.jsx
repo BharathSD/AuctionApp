@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import PlayerAvatar from '../components/PlayerAvatar'
@@ -82,7 +82,8 @@ export default function ViewerDisplay() {
 
   const { status, teams, currentIdx, queue, players, currentPrice,
     leadingTeamId, timerLeft, config, secondRound, bidFlash, connected,
-    categories, currentCategoryIdx, currentCategory, currentTurnTeamId } = state
+    categories, currentCategoryIdx, currentCategory, currentTurnTeamId,
+    categoryGroups, pickOrder, currentTurnIdx } = state
 
   const isDraft = config.engine === 'draft'
   const currentPlayer = queue[currentIdx] !== undefined ? players[queue[currentIdx]] : null
@@ -92,6 +93,26 @@ export default function ViewerDisplay() {
   const totalPlayers = players.length
   const currentNumber = currentIdx >= 0 ? currentIdx + 1 : 0
   const progressPct = totalPlayers > 0 ? Math.round((soldCount / totalPlayers) * 100) : 0
+
+  const nextTurnTeamId = pickOrder?.length > 0 ? pickOrder[((currentTurnIdx ?? 0) + 1) % pickOrder.length] : null
+  const nextTurnTeam = teams.find(t => t.id === nextTurnTeamId) || null
+  const currentCategoryRoles = categoryGroups?.[currentCategoryIdx]?.roles || []
+  const categoryRemaining = players.filter(p => p.status === 'pending' && currentCategoryRoles.includes(p.role)).length
+
+  // Flash the "Just Picked" card whenever a new pick lands, mirroring the
+  // bidFlash treatment bidding mode already gets — round robin has no bid
+  // event to key off, so we key off soldCount increasing instead.
+  const prevSoldCountRef = useRef(soldCount)
+  const [pickFlash, setPickFlash] = useState(false)
+  useEffect(() => {
+    if (isDraft && soldCount > prevSoldCountRef.current) {
+      setPickFlash(true)
+      const t = setTimeout(() => setPickFlash(false), 2000)
+      prevSoldCountRef.current = soldCount
+      return () => clearTimeout(t)
+    }
+    prevSoldCountRef.current = soldCount
+  }, [soldCount, isDraft])
 
   const timerPct = config.timerEnabled && config.timerSeconds
     ? Math.max(0, (timerLeft / config.timerSeconds) * 100) : 100
@@ -117,6 +138,8 @@ export default function ViewerDisplay() {
     .filter(p => p.status === 'sold')
     .sort((a, b) => (Number(b.soldAt) || 0) - (Number(a.soldAt) || 0))
     .slice(0, 5)
+  const lastPick = recentSold[0] || null
+  const lastPickTeam = lastPick ? teams.find(t => t.id === lastPick.soldTo) : null
 
   return (
     <div className="app-shell text-white flex flex-col overflow-hidden">
@@ -193,7 +216,28 @@ export default function ViewerDisplay() {
                 </span>
                 <p className="text-gray-400 text-sm uppercase tracking-widest mb-2">On the clock</p>
                 <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight">{currentTurnTeam?.name || '—'}</h1>
+                <p className="text-gray-500 text-sm mt-3">
+                  {categoryRemaining} player{categoryRemaining !== 1 ? 's' : ''} left in {currentCategory}
+                  {nextTurnTeam && nextTurnTeam.id !== currentTurnTeam?.id && (
+                    <> · Next: <span className="text-gray-300 font-semibold">{nextTurnTeam.name}</span></>
+                  )}
+                </p>
               </div>
+
+              {/* Just picked celebration — mirrors the "SOLD TO" callout bidding mode gets */}
+              {lastPick && (
+                <div className={`w-full rounded-2xl p-5 flex items-center gap-4 border transition-all duration-300 ${
+                  pickFlash ? 'bg-green-900/50 border-green-500 scale-[1.02]' : 'bg-green-900/20 border-green-800/60'
+                }`}>
+                  <PlayerAvatar name={lastPick.name} photoUrl={lastPick.photoUrl} size="lg" />
+                  <div className="min-w-0 text-left flex-1">
+                    <p className="text-green-300 text-xs font-semibold uppercase tracking-widest">Just Picked</p>
+                    <p className="text-xl font-bold truncate">{lastPick.name} <span className={`text-sm font-normal ${ROLE_TEXT[lastPick.role] || 'text-gray-400'}`}>({lastPick.role})</span></p>
+                    <p className="text-gray-300 text-sm">by <span className="font-semibold text-white">{lastPickTeam?.name || 'a team'}</span></p>
+                  </div>
+                </div>
+              )}
+
               {config.timerEnabled && timerLeft !== null && (
                 <div className="w-full max-w-3xl">
                   <div className="flex justify-between text-sm text-gray-400 mb-1">
@@ -306,7 +350,22 @@ export default function ViewerDisplay() {
                     {isTurn && <span className="text-xs text-blue-300 font-bold shrink-0 ml-1">On the clock</span>}
                   </div>
                   {isDraft ? (
-                    <p className="text-xs text-gray-500">{team.playerCount ?? team.players?.length ?? 0} player{(team.playerCount ?? team.players?.length ?? 0) !== 1 ? 's' : ''} picked</p>
+                    team.players?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {team.players.slice(0, 10).map(p => (
+                          <div key={p.id} title={p.name}>
+                            <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="xs" />
+                          </div>
+                        ))}
+                        {team.players.length > 10 && (
+                          <div className="w-7 h-7 rounded-full bg-gray-700 text-gray-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+                            +{team.players.length - 10}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">No players yet</p>
+                    )
                   ) : (
                     <>
                       {/* Budget bar (% only — no exact numbers) */}
