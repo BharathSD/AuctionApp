@@ -20,6 +20,7 @@ export default function Results() {
   }
 
   const { teams = [], players = [], config = {}, mode } = resultData
+  const isDraft = config.engine === 'draft'
   const soldPlayers = players.filter(p => p.status === 'sold')
   const unsoldPlayers = players.filter(p => p.status !== 'sold')
   const teamNameById = new Map(teams.map(t => [t.id, t.name]))
@@ -30,7 +31,140 @@ export default function Results() {
       ? resultData._runtime.bids
       : []
 
+  const exportDraftXLSX = async () => {
+    const ExcelJS = (await import('exceljs')).default
+    const wb = new ExcelJS.Workbook()
+    wb.creator = 'Cricket Auction App'
+    wb.created = new Date()
+
+    const TEAM_COLORS = [
+      'FFdbeafe', 'FFdcfce7', 'FFfef9c3', 'FFfce7f3',
+      'FFede9fe', 'FFffedd5', 'FFf0fdfa', 'FFfff7ed',
+    ]
+    const TEAM_HEADER_COLORS = [
+      'FF1d4ed8', 'FF15803d', 'FFca8a04', 'FFbe185d',
+      'FF7c3aed', 'FFc2410c', 'FF0f766e', 'FFea580c',
+    ]
+
+    // ── Sheet 1: Rosters (grouped by team, no price/budget) ──
+    const rosterSheet = wb.addWorksheet('Rosters')
+    rosterSheet.columns = [
+      { key: 'team', width: 22 },
+      { key: 'player', width: 24 },
+      { key: 'role', width: 18 },
+    ]
+    const headerRow = rosterSheet.addRow(['Team', 'Player', 'Category'])
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+
+    teams.forEach((team, ti) => {
+      const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
+      const rowColor = TEAM_COLORS[ti % TEAM_COLORS.length]
+      const headerColor = TEAM_HEADER_COLORS[ti % TEAM_HEADER_COLORS.length]
+
+      const teamHeaderRow = rosterSheet.addRow([team.name, '', ''])
+      rosterSheet.mergeCells(teamHeaderRow.number, 1, teamHeaderRow.number, 3)
+      teamHeaderRow.getCell(1).font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }
+      teamHeaderRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: headerColor } }
+      teamHeaderRow.getCell(1).alignment = { horizontal: 'left', indent: 1 }
+      teamHeaderRow.height = 20
+
+      if (roster.length === 0) {
+        const emptyRow = rosterSheet.addRow(['', 'No players picked', ''])
+        emptyRow.getCell(2).font = { italic: true, color: { argb: 'FF9CA3AF' } }
+        emptyRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+        })
+      } else {
+        roster.forEach(p => {
+          const row = rosterSheet.addRow(['', p.name, p.role])
+          row.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+            cell.alignment = { horizontal: 'left' }
+          })
+        })
+        const subtotalRow = rosterSheet.addRow(['', '', `${roster.length} players`])
+        subtotalRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+          cell.font = { italic: true }
+        })
+      }
+      rosterSheet.addRow([])
+    })
+
+    // ── Sheet 2: Summary (one row per team) ──────────────────
+    const summarySheet = wb.addWorksheet('Summary')
+    summarySheet.columns = [
+      { key: 'team', width: 22 },
+      { key: 'players', width: 14 },
+    ]
+    const sumHeader = summarySheet.addRow(['Team', 'Players Picked'])
+    sumHeader.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+    teams.forEach((team, ti) => {
+      const roster = players.filter(p => p.status === 'sold' && p.soldTo === team.id)
+      const row = summarySheet.addRow([team.name, roster.length])
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TEAM_COLORS[ti % TEAM_COLORS.length] } }
+        cell.alignment = { horizontal: 'center' }
+      })
+      row.getCell(1).alignment = { horizontal: 'left' }
+    })
+    const totalRow = summarySheet.addRow(['TOTAL', soldPlayers.length])
+    totalRow.eachCell(cell => {
+      cell.font = { bold: true }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe2e8f0' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+    totalRow.getCell(1).alignment = { horizontal: 'left' }
+
+    // ── Sheet 3: Pick order (derived from final rosters — reliable across
+    // both offline and online since it doesn't depend on the live picks log) ──
+    const pickSheet = wb.addWorksheet('Pick Order')
+    pickSheet.columns = [
+      { key: 'pick', width: 8 },
+      { key: 'time', width: 24 },
+      { key: 'player', width: 24 },
+      { key: 'category', width: 18 },
+      { key: 'team', width: 22 },
+    ]
+    const pickHeader = pickSheet.addRow(['#', 'Time', 'Player', 'Category', 'Team'])
+    pickHeader.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
+      cell.alignment = { horizontal: 'center' }
+    })
+    const formatTime = (ts) => {
+      if (!ts) return ''
+      const d = new Date(ts)
+      return Number.isNaN(d.getTime()) ? '' : d.toLocaleString()
+    }
+    const orderedPicks = [...soldPlayers].sort((a, b) => (Number(a.soldAt) || 0) - (Number(b.soldAt) || 0))
+    orderedPicks.forEach((p, i) => {
+      pickSheet.addRow([i + 1, formatTime(p.soldAt), p.name, p.role, teamNameById.get(p.soldTo) || p.soldTo || ''])
+    })
+    if (orderedPicks.length === 0) {
+      pickSheet.addRow(['', '', 'No picks recorded.', '', ''])
+    }
+
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'selection-results.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const exportXLSX = async () => {
+    if (isDraft) return exportDraftXLSX()
     const ExcelJS = (await import('exceljs')).default
     const wb = new ExcelJS.Workbook()
     wb.creator = 'Cricket Auction App'
@@ -252,18 +386,19 @@ export default function Results() {
             <span className="pill-static"><Icon name="trophy" size={13} /> Final results</span>
           </div>
           <p className="hero-kicker mb-2">Tournament complete</p>
-          <h1 className="page-title">Auction Results</h1>
+          <h1 className="page-title">{isDraft ? 'Selection Results' : 'Auction Results'}</h1>
           <p className="text-gray-400 text-sm mt-3">
-            {soldPlayers.length} of {players.length} players sold · {mode === 'offline' ? 'Offline' : 'Online'} auction
+            {soldPlayers.length} of {players.length} players {isDraft ? 'picked' : 'sold'} · {mode === 'offline' ? 'Offline' : 'Online'} {isDraft ? 'selection' : 'auction'}
           </p>
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <StatCard label="Total Players" value={players.length} />
-          <StatCard label="Sold" value={soldPlayers.length} color="text-green-400" />
-          <StatCard label="Unsold" value={unsoldPlayers.length} color="text-red-400" />
-          <StatCard label="Points spent" value={soldPlayers.reduce((s, p) => s + p.soldPrice, 0)} color="text-yellow-400" />
+          <StatCard label={isDraft ? 'Picked' : 'Sold'} value={soldPlayers.length} color="text-green-400" />
+          <StatCard label={isDraft ? 'Remaining' : 'Unsold'} value={unsoldPlayers.length} color="text-red-400" />
+          {!isDraft && <StatCard label="Points spent" value={soldPlayers.reduce((s, p) => s + p.soldPrice, 0)} color="text-yellow-400" />}
+          {isDraft && <StatCard label="Teams" value={teams.length} color="text-blue-400" />}
         </div>
 
         {/* Team rosters */}
@@ -279,23 +414,29 @@ export default function Results() {
                 <div key={team.id} className="auction-surface rounded-2xl overflow-hidden">
                   <div className="px-4 py-3 bg-gray-800 flex justify-between items-center">
                     <h3 className="font-bold">{team.name}</h3>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Budget left</p>
-                      <p className="text-yellow-400 font-bold">{team.budget} pts</p>
-                    </div>
+                    {isDraft ? (
+                      <p className="text-gray-400 text-sm">{roster.length} player{roster.length !== 1 ? 's' : ''}</p>
+                    ) : (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Budget left</p>
+                        <p className="text-yellow-400 font-bold">{team.budget} pts</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="px-4 pt-2 pb-1">
-                    <div className="flex justify-between text-[11px] text-gray-500 mb-1">
-                      <span>{spent} pts spent</span>
-                      <span>{usedPct}% of budget used</span>
+                  {!isDraft && (
+                    <div className="px-4 pt-2 pb-1">
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1">
+                        <span>{spent} pts spent</span>
+                        <span>{usedPct}% of budget used</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-1.5">
+                        <div
+                          className={`h-1.5 rounded-full transition-all ${usedPct >= 90 ? 'bg-red-400' : usedPct >= 60 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                          style={{ width: `${usedPct}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full transition-all ${usedPct >= 90 ? 'bg-red-400' : usedPct >= 60 ? 'bg-yellow-400' : 'bg-green-400'}`}
-                        style={{ width: `${usedPct}%` }}
-                      />
-                    </div>
-                  </div>
+                  )}
                   {roster.length === 0 ? (
                     <p className="px-4 py-3 text-gray-600 text-sm">No players acquired</p>
                   ) : (
@@ -309,7 +450,7 @@ export default function Results() {
                             <p className="text-xs text-gray-500">{p.role}</p>
                             </div>
                           </div>
-                          <p className="text-yellow-400 font-bold text-sm">{p.soldPrice} pts</p>
+                          {!isDraft && <p className="text-yellow-400 font-bold text-sm">{p.soldPrice} pts</p>}
                         </div>
                       ))}
                     </div>
@@ -323,7 +464,7 @@ export default function Results() {
         {/* Unsold players */}
         {unsoldPlayers.length > 0 && (
           <div className="mb-10">
-            <h2 className="text-xl font-bold mb-4">Unsold Players</h2>
+            <h2 className="text-xl font-bold mb-4">{isDraft ? 'Unpicked Players' : 'Unsold Players'}</h2>
             <div className="auction-surface rounded-2xl divide-y divide-gray-800">
               {unsoldPlayers.map((p, i) => (
                 <div key={i} className="px-4 py-3 flex justify-between items-center">
@@ -334,7 +475,7 @@ export default function Results() {
                     <p className="text-xs text-gray-500">{p.role}</p>
                     </div>
                   </div>
-                  <p className="text-gray-500 text-sm">Base: {p.basePrice} pts</p>
+                  {!isDraft && <p className="text-gray-500 text-sm">Base: {p.basePrice} pts</p>}
                 </div>
               ))}
             </div>

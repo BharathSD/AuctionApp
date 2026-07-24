@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineAuction } from '../hooks/useOfflineAuction'
+import { useOfflineDraft } from '../hooks/useOfflineDraft'
 import { loadAuctionState } from '../hooks/useAuctionStorage'
 import { getIncrement } from '../utils/bidTiers'
 import PlayerAvatar from '../components/PlayerAvatar'
 import PlayerSpotlight from '../components/PlayerSpotlight'
 import Icon from '../components/Icon'
 import TimerRing from '../components/TimerRing'
+import DraftBoard from '../components/DraftBoard'
 
 const ROLE_COLORS = {
   Batsman: 'bg-blue-700',
@@ -18,7 +20,84 @@ const ROLE_COLORS = {
   PLAYER: 'bg-slate-600',
 }
 
+// Entry point for the /auction/offline route. Picks the right single-screen
+// console based on the configured selection engine — each console below
+// calls exactly one of the two mutually-exclusive engine hooks, so neither
+// hook's localStorage-persistence effect ever runs unless it's the active one.
 export default function OfflineAuction() {
+  const saved = loadAuctionState()
+  return saved?.config?.engine === 'draft' ? <OfflineDraftConsole /> : <OfflineBiddingConsole />
+}
+
+function OfflineDraftConsole() {
+  const navigate = useNavigate()
+  const saved = loadAuctionState()
+  const { state, currentTurnTeam, randomizePickOrder, startDraft, pickPlayer, undoPick, pause, resume, finishDraft } = useOfflineDraft()
+
+  if (!saved) {
+    return (
+      <div className="app-shell text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-400 mb-4">No auction configured.</p>
+          <button onClick={() => navigate('/setup/offline')} className="btn-primary">Set up auction</button>
+        </div>
+      </div>
+    )
+  }
+
+  const { status, players, paused } = state
+  const pickedCount = players.filter(p => p.status === 'sold').length
+  const totalPlayers = players.length
+
+  return (
+    <div className="app-shell text-white flex flex-col" style={{ minHeight: '100dvh' }}>
+      <div className="auction-topbar border-b px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-lg">Selection Console</span>
+          <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">OFFLINE</span>
+        </div>
+        <div className="flex items-center gap-4 text-sm text-gray-400">
+          <span>{pickedCount}/{totalPlayers} picked</span>
+          {status === 'running' && !paused && (
+            <button onClick={pause} className="text-yellow-400 hover:text-yellow-300 text-xs border border-yellow-700 px-2 py-1 rounded inline-flex items-center gap-1"><Icon name="pause" size={12} /> Pause</button>
+          )}
+          {paused && (
+            <button onClick={resume} className="text-green-400 hover:text-green-300 text-xs border border-green-700 px-2 py-1 rounded inline-flex items-center gap-1"><Icon name="play" size={12} /> Resume</button>
+          )}
+          {status === 'running' && (
+            <button
+              onClick={() => { if (window.confirm('End the selection now? Any players not yet picked will be marked unavailable.')) finishDraft() }}
+              className="text-red-400 hover:text-red-300 text-xs border border-red-800 px-2 py-1 rounded inline-flex items-center gap-1"
+            >
+              <Icon name="stop" size={12} /> Finish
+            </button>
+          )}
+        </div>
+      </div>
+
+      <DraftBoard
+        state={state}
+        currentTurnTeam={currentTurnTeam}
+        onRandomizeOrder={randomizePickOrder}
+        canStart={state.pickOrder.length > 0}
+        onStart={startDraft}
+        onPick={(playerId) => pickPlayer(currentTurnTeam?.id, playerId)}
+        onUndoPick={undoPick}
+        canUndoPick={state.picks.length > 0}
+      />
+
+      {status === 'finished' && (
+        <div className="flex justify-center pb-8">
+          <button onClick={() => navigate('/results')} className="animate-pulse-ring bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-lg shadow-blue-900 transition-all hover:scale-105 cursor-pointer">
+            View Results →
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function OfflineBiddingConsole() {
   const navigate = useNavigate()
   const saved = loadAuctionState()
   const [expandedTeamId, setExpandedTeamId] = useState(null)

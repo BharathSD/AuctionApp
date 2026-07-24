@@ -85,6 +85,51 @@ describe('buildInitialState', () => {
   })
 })
 
+// ─── buildInitialState: grouped queue (config.groupByCategory) ─
+
+function makePlayersWithRoles(spec) {
+  // spec: [{ role, count }]
+  const players = []
+  let n = 0
+  spec.forEach(({ role, count }) => {
+    for (let i = 0; i < count; i++) {
+      n += 1
+      players.push({ id: `gp${n}`, name: `Player ${n}`, role, basePrice: 100, status: 'pending' })
+    }
+  })
+  return players
+}
+
+describe('buildInitialState grouped queue', () => {
+  it('keeps the existing flat insertion-order queue when groupByCategory is off (default)', () => {
+    const players = makePlayersWithRoles([{ role: 'Bowler', count: 1 }, { role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
+    const state = buildInitialState({ config: makeConfig(), teams: makeTeams(), players })
+    expect(state.queue).toEqual([0, 1, 2])
+  })
+
+  it('orders the queue by category group, each group as a contiguous block, when enabled', () => {
+    const players = makePlayersWithRoles([{ role: 'Bowler', count: 1 }, { role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
+    const state = buildInitialState({
+      config: makeConfig({ groupByCategory: true, categoryGroups: [{ roles: ['Batsman'] }, { roles: ['Bowler'] }] }),
+      teams: makeTeams(),
+      players,
+    })
+    expect(state.queue).toEqual([1, 0, 2])
+  })
+
+  it('treats a merged category as one contiguous block spanning both roles', () => {
+    const players = makePlayersWithRoles([
+      { role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }, { role: 'Wicket-keeper', count: 1 },
+    ])
+    const state = buildInitialState({
+      config: makeConfig({ groupByCategory: true, categoryGroups: [{ roles: ['Bowler'] }, { roles: ['Batsman', 'Wicket-keeper'] }] }),
+      teams: makeTeams(),
+      players,
+    })
+    expect(state.queue).toEqual([1, 0, 2])
+  })
+})
+
 // ─── NEXT_PLAYER ──────────────────────────────────────────────
 
 describe('NEXT_PLAYER', () => {

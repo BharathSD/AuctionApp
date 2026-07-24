@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOnlineAuction } from '../hooks/useOnlineAuction'
+import { useOnlineDraft } from '../hooks/useOnlineDraft'
 import { getIncrement, minCostForRemainingSpots } from '../utils/bidTiers'
 import PlayerAvatar from '../components/PlayerAvatar'
 import Icon from '../components/Icon'
@@ -15,7 +16,217 @@ const ROLE_COLORS = {
   PLAYER: 'text-slate-300',
 }
 
+// Entry point for the /auction/online/captain route (shared by both engines).
+// CaptainJoin.jsx stashes which engine the room uses (from the /join response)
+// into sessionStorage so this can be read synchronously — no extra network
+// round-trip, and it mounts exactly one of the two mutually-exclusive online
+// engine hooks below.
 export default function CaptainBidding() {
+  const engine = sessionStorage.getItem('captain_engine')
+  return engine === 'draft' ? <CaptainDraft /> : <CaptainBiddingConsole />
+}
+
+function CaptainDraft() {
+  const navigate = useNavigate()
+  const roomCode = sessionStorage.getItem('captain_roomCode')
+  const teamId = sessionStorage.getItem('captain_teamId')
+  const teamName = sessionStorage.getItem('captain_teamName')
+  const [activeTab, setActiveTab] = useState('pick') // pick | roster | teams | available
+  const [availableSearch, setAvailableSearch] = useState('')
+
+  const { state, currentTurnTeam, captainPick, clearSessionError } = useOnlineDraft({ roomCode, role: 'captain', teamId })
+
+  useEffect(() => {
+    if (!roomCode || !teamId) navigate(`/`)
+  }, [roomCode, teamId, navigate])
+
+  const teams = state.teams || []
+  const myTeam = teams.find(t => t.id === teamId)
+  const status = state.status
+  const isMyTurn = state.currentTurnTeamId === teamId
+  const pickOrder = state.pickOrder || []
+  const nextTurnTeamId = pickOrder.length > 0 ? pickOrder[(state.currentTurnIdx + 1) % pickOrder.length] : null
+  const nextTurnTeam = teams.find(t => t.id === nextTurnTeamId) || null
+  const categoryPlayers = useMemo(() => {
+    const roles = state.categoryGroups?.[state.currentCategoryIdx]?.roles || []
+    return (state.players || []).filter(p => p.status === 'pending' && roles.includes(p.role))
+  }, [state.players, state.categoryGroups, state.currentCategoryIdx])
+  const availablePlayers = useMemo(() => {
+    let filtered = (state.players || []).filter(p => p.status === 'pending')
+    if (availableSearch.trim()) {
+      const q = availableSearch.trim().toLowerCase()
+      filtered = filtered.filter(p => String(p.name || '').toLowerCase().includes(q))
+    }
+    return filtered
+  }, [state.players, availableSearch])
+
+  const handlePick = (playerId) => {
+    if (!isMyTurn) return
+    captainPick(playerId)
+  }
+
+  if (state.sessionError) {
+    return (
+      <div className="app-shell text-white flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <Icon name="ban" size={64} className="text-red-400" />
+        <h2 className="text-2xl font-bold text-red-400">Session Ended</h2>
+        <p className="text-gray-400 max-w-sm">{state.sessionError}</p>
+        <div className="flex gap-3 flex-wrap justify-center">
+          <button
+            onClick={() => {
+              clearSessionError()
+              sessionStorage.removeItem('captain_token')
+              sessionStorage.removeItem('captain_teamId')
+              sessionStorage.removeItem('captain_teamName')
+              navigate(`/join/${roomCode}`)
+            }}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl"
+          >
+            Rejoin with PIN
+          </button>
+          <button onClick={() => { sessionStorage.clear(); navigate('/') }} className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 py-3 rounded-xl">
+            Back to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!roomCode || !teamId) return null
+
+  return (
+    <div className="app-shell text-white flex flex-col" style={{ minHeight: '100dvh' }}>
+      <div className="auction-topbar border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+        <div>
+          <p className="font-bold text-sm">{teamName}</p>
+          <p className="text-xs text-gray-500">Room: <span className="font-mono text-yellow-400">{roomCode}</span></p>
+        </div>
+        <span className={`text-xs px-2 py-1 rounded ${state.connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300 animate-pulse'}`}>
+          {state.connected ? '● Live' : '○ Reconnecting…'}
+        </span>
+      </div>
+
+      <div className="auction-topbar flex border-b border-gray-800">
+        <button aria-selected={activeTab === 'pick'} onClick={() => setActiveTab('pick')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'pick' ? 'text-white' : 'text-gray-500'}`}>Pick</button>
+        <button aria-selected={activeTab === 'roster'} onClick={() => setActiveTab('roster')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'roster' ? 'text-white' : 'text-gray-500'}`}>My Roster</button>
+        <button aria-selected={activeTab === 'teams'} onClick={() => setActiveTab('teams')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'teams' ? 'text-white' : 'text-gray-500'}`}>Teams</button>
+        <button aria-selected={activeTab === 'available'} onClick={() => setActiveTab('available')} className={`tab-chip flex-1 py-2.5 text-sm font-medium ${activeTab === 'available' ? 'text-white' : 'text-gray-500'}`}>Available</button>
+      </div>
+
+      {activeTab === 'pick' && (
+        <div className="flex-1 flex flex-col p-4 gap-4">
+          {status === 'idle' && (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-gray-400 text-center">Waiting for the auctioneer to start…</p>
+            </div>
+          )}
+          {status === 'finished' && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4">
+              <p className="text-xl font-bold">Selection Complete!</p>
+              <button onClick={() => setActiveTab('roster')} className="text-blue-400 underline text-sm">View your roster</button>
+            </div>
+          )}
+          {status === 'running' && (
+            <>
+              <div className={`rounded-2xl px-6 py-4 text-center ${isMyTurn ? 'bg-blue-900/50 border border-blue-600' : 'auction-surface-soft'}`}>
+                <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Category</p>
+                <p className="text-xl font-bold mb-2">{state.currentCategory}</p>
+                {isMyTurn ? (
+                  <p className="text-green-400 font-bold text-lg">Your turn — pick a player</p>
+                ) : (
+                  <p className="text-gray-400 text-sm">Waiting for {currentTurnTeam?.name || '…'}</p>
+                )}
+                {nextTurnTeam && nextTurnTeam.id !== currentTurnTeam?.id && (
+                  <p className="text-xs text-gray-500 mt-1">Next: {nextTurnTeam.name}</p>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {categoryPlayers.length === 0 && (
+                  <p className="text-center text-sm text-gray-600 mt-4">No players left in this category.</p>
+                )}
+                {categoryPlayers.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handlePick(p.id)}
+                    disabled={!isMyTurn}
+                    className={`w-full rounded-xl px-4 py-3 flex items-center gap-3 text-left transition-all ${
+                      isMyTurn ? 'bg-gray-800 hover:bg-blue-800 active:scale-[0.98]' : 'bg-gray-900 opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                    <span className="font-medium">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'roster' && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-widest mb-4">Your Players</p>
+          {myTeam?.players.length === 0 && <p className="text-gray-600 text-sm">No players yet</p>}
+          <div className="space-y-2">
+            {myTeam?.players.map((p, i) => (
+              <div key={i} className="bg-gray-800 rounded-xl px-4 py-3 flex items-center gap-2">
+                <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                <div className="min-w-0">
+                  <p className="font-medium">{p.name}</p>
+                  <p className="text-xs text-gray-500">{p.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'teams' && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-widest mb-4">All Teams</p>
+          <div className="space-y-3">
+            {teams.map(team => (
+              <div key={team.id} className={`bg-gray-800 rounded-xl p-4 ${team.id === teamId ? 'ring-1 ring-blue-500' : ''} ${currentTurnTeam?.id === team.id ? 'ring-1 ring-green-500' : ''}`}>
+                <div className="flex justify-between">
+                  <span className="font-medium">{team.name} {team.id === teamId ? '(you)' : ''}</span>
+                  <span className="text-gray-400 text-sm">{team.players.length} picked</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'available' && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <input
+            value={availableSearch}
+            onChange={(e) => setAvailableSearch(e.target.value)}
+            placeholder="Search player name"
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white mb-4"
+          />
+          {availablePlayers.length === 0 ? (
+            <p className="text-gray-500 text-sm">No players match the current search.</p>
+          ) : (
+            <div className="space-y-2">
+              {availablePlayers.map(p => (
+                <div key={p.id} className="bg-gray-800 rounded-xl px-4 py-3 flex items-center gap-2">
+                  <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{p.name}</p>
+                    <p className="text-xs text-gray-500">{p.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CaptainBiddingConsole() {
   const navigate = useNavigate()
   const roomCode = sessionStorage.getItem('captain_roomCode')
   const teamId = sessionStorage.getItem('captain_teamId')

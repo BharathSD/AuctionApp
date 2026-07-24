@@ -22,6 +22,51 @@ const A = {
   AUTO_ASSIGN: 'AUTO_ASSIGN',
 }
 
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+// Mirrors the same helper in useOfflineDraft.js / server/auction-engine.js —
+// resolves config.categoryGroups (admin-arranged, possibly-merged categories)
+// against the roles actually present among pending players.
+function resolveCategoryGroups(configGroups, pendingPlayers) {
+  const present = [...new Set(pendingPlayers.map(p => p.role))]
+  const groups = Array.isArray(configGroups) ? configGroups : []
+  const covered = new Set(groups.flatMap(g => g.roles || []))
+  return [
+    ...groups
+      .map(g => ({ roles: (g.roles || []).filter(r => present.includes(r)) }))
+      .filter(g => g.roles.length > 0),
+    ...present.filter(r => !covered.has(r)).map(r => ({ roles: [r] })),
+  ]
+}
+
+// Builds the auction queue ordered by category group instead of plain
+// insertion order: each group's pending players form one contiguous block
+// (in group order), optionally shuffled *within* the block only — group
+// order itself is never randomized, that would defeat the purpose.
+function buildGroupedQueue(players, pendingIdxs, categoryGroups, randomize) {
+  const byRole = new Map()
+  pendingIdxs.forEach(i => {
+    const role = players[i].role
+    if (!byRole.has(role)) byRole.set(role, [])
+    byRole.get(role).push(i)
+  })
+  const seen = new Set()
+  const queue = []
+  categoryGroups.forEach(group => {
+    let block = group.roles.flatMap(role => byRole.get(role) || [])
+    if (randomize) block = shuffle(block)
+    block.forEach(i => { if (!seen.has(i)) { seen.add(i); queue.push(i) } })
+  })
+  pendingIdxs.forEach(i => { if (!seen.has(i)) queue.push(i) })
+  return queue
+}
+
 function buildInitialState(saved) {
   // If a live runtime state was previously persisted, restore it fully
   if (saved._runtime) {
@@ -47,7 +92,14 @@ function buildInitialState(saved) {
     teams: saved.teams,
     // queue: indices into players array (unsold/pending)
     queue: (() => {
-      const q = saved.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
+      const pendingIdxs = saved.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
+      // Opt-in only (config.groupByCategory) — default behavior below is
+      // unchanged from before category groups existed.
+      if (saved.config.groupByCategory && Array.isArray(saved.config.categoryGroups) && saved.config.categoryGroups.length) {
+        const categoryGroups = resolveCategoryGroups(saved.config.categoryGroups, pendingIdxs.map(i => saved.players[i]))
+        return buildGroupedQueue(saved.players, pendingIdxs, categoryGroups, saved.config.randomizeOrder)
+      }
+      const q = pendingIdxs
       if (saved.config.randomizeOrder) {
         for (let i = q.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));[q[i], q[j]] = [q[j], q[i]]

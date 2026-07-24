@@ -48,6 +48,19 @@ function setupRoom(code, config, teams, players) {
   return code
 }
 
+/** Players with distinct roles (spec: [{ role, count }]), for category-group tests */
+function makePlayersWithRoles(spec) {
+  const players = []
+  let n = 0
+  spec.forEach(({ role, count }) => {
+    for (let i = 0; i < count; i++) {
+      n += 1
+      players.push({ id: `gp${n}`, name: `Player ${n}`, role, basePrice: 100, status: 'pending' })
+    }
+  })
+  return players
+}
+
 // ─── createRoom ───────────────────────────────────────────────
 
 describe('createRoom', () => {
@@ -66,6 +79,53 @@ describe('createRoom', () => {
     players.forEach(p => { p.status = 'sold' })
     setupRoom('CR02', makeConfig(), makeTeams(), players)
     assert.equal(engine.getRoom('CR02').queue.length, 0)
+  })
+})
+
+// ─── createRoom grouped queue (config.groupByCategory) ─────────
+
+describe('createRoom grouped queue', () => {
+  it('keeps the existing flat insertion-order queue when groupByCategory is off (default)', () => {
+    const players = makePlayersWithRoles([{ role: 'Bowler', count: 1 }, { role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
+    setupRoom('GQ01', makeConfig(), makeTeams(), players)
+    // Byte-for-byte identical to pre-category-groups behavior: plain insertion order.
+    assert.deepEqual(engine.getRoom('GQ01').queue, [0, 1, 2])
+  })
+
+  it('orders the queue by category group, each group as a contiguous block, when enabled', () => {
+    const players = makePlayersWithRoles([{ role: 'Bowler', count: 1 }, { role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }])
+    setupRoom('GQ02', makeConfig({
+      groupByCategory: true,
+      categoryGroups: [{ roles: ['Batsman'] }, { roles: ['Bowler'] }],
+    }), makeTeams(), players)
+    // Batsman (idx 1) block first, then both Bowlers (idx 0, 2) as one block.
+    assert.deepEqual(engine.getRoom('GQ02').queue, [1, 0, 2])
+  })
+
+  it('treats a merged category as one contiguous block spanning both roles', () => {
+    const players = makePlayersWithRoles([
+      { role: 'Batsman', count: 1 }, { role: 'Bowler', count: 1 }, { role: 'Wicket-keeper', count: 1 },
+    ])
+    setupRoom('GQ03', makeConfig({
+      groupByCategory: true,
+      categoryGroups: [{ roles: ['Bowler'] }, { roles: ['Batsman', 'Wicket-keeper'] }],
+    }), makeTeams(), players)
+    // Bowler (idx 1) first, then the merged Batsman+WK block (idx 0, 2).
+    assert.deepEqual(engine.getRoom('GQ03').queue, [1, 0, 2])
+  })
+
+  it('randomizeOrder shuffles within each group block but never mixes players across groups', () => {
+    const players = makePlayersWithRoles([{ role: 'Batsman', count: 5 }, { role: 'Bowler', count: 5 }])
+    setupRoom('GQ04', makeConfig({
+      groupByCategory: true,
+      randomizeOrder: true,
+      categoryGroups: [{ roles: ['Batsman'] }, { roles: ['Bowler'] }],
+    }), makeTeams(), players)
+    const queue = engine.getRoom('GQ04').queue
+    const batsmanIdxs = players.map((p, i) => i).filter(i => players[i].role === 'Batsman')
+    const bowlerIdxs = players.map((p, i) => i).filter(i => players[i].role === 'Bowler')
+    assert.deepEqual([...queue.slice(0, 5)].sort((a, b) => a - b), batsmanIdxs)
+    assert.deepEqual([...queue.slice(5, 10)].sort((a, b) => a - b), bowlerIdxs)
   })
 })
 

@@ -60,10 +60,18 @@ function createRoom(roomCode, auctionData) {
   // Preserve player statuses — pre-allocated players are already 'sold'
   room.players = auctionData.players.map(p => ({ ...p }))
   // Queue only contains pending (not pre-allocated) players
-  room.queue = room.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
-  if (room.config.randomizeOrder) {
-    for (let i = room.queue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));[room.queue[i], room.queue[j]] = [room.queue[j], room.queue[i]]
+  const pendingIdxs = room.players.reduce((acc, p, i) => p.status === 'pending' ? [...acc, i] : acc, [])
+  // Opt-in only (config.groupByCategory) — default behavior below is unchanged
+  // from before category groups existed, so existing auctions are unaffected.
+  if (room.config.groupByCategory && Array.isArray(room.config.categoryGroups) && room.config.categoryGroups.length) {
+    const { categoryGroups } = resolveCategoryGroups(room.config.categoryGroups, pendingIdxs.map(i => room.players[i]))
+    room.queue = buildGroupedQueue(room.players, pendingIdxs, categoryGroups, room.config.randomizeOrder)
+  } else {
+    room.queue = pendingIdxs
+    if (room.config.randomizeOrder) {
+      for (let i = room.queue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));[room.queue[i], room.queue[j]] = [room.queue[j], room.queue[i]]
+      }
     }
   }
   rooms.set(roomCode, room)
@@ -383,6 +391,396 @@ function unsellPlayer(roomCode, io) {
   return publicState(room)
 }
 
+// ── Round Robin Selection engine ───────────────────────────────
+// A second selection mechanism: no budget/bidding — teams take turns
+// (rotating every full round, in a randomized pick order the admin sets
+// explicitly) picking any available player from the current category;
+// once a category has no pending players left, selection advances to the
+// next category in the admin-arranged order (config.categoryOrder).
+
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+// Admin-arranged category groups (config.categoryGroups — each { roles: [...] },
+// letting two or more roles be combined into one pool), merged with whatever
+// pending-player roles actually exist: any present role missing from every
+// configured group (e.g. players added after the order was set) becomes its
+// own singleton group appended at the end, rather than being silently dropped;
+// roles no longer present are dropped from whichever group contained them.
+// Shared by both the draft engine (below) and the bidding engine's optional
+// grouped-queue construction (createRoom, config.groupByCategory).
+// Returns { categories, categoryGroups } — index-aligned: `categories` is the
+// display label per group (roles joined with " + "), `categoryGroups` is the
+// underlying role list per group, used for pending/match checks.
+function resolveCategoryGroups(configGroups, pendingPlayers) {
+  const present = [...new Set(pendingPlayers.map(p => p.role))]
+  const groups = Array.isArray(configGroups) ? configGroups : []
+  const covered = new Set(groups.flatMap(g => g.roles || []))
+  const resolvedGroups = [
+    ...groups
+      .map(g => ({ roles: (g.roles || []).filter(r => present.includes(r)) }))
+      .filter(g => g.roles.length > 0),
+    ...present.filter(r => !covered.has(r)).map(r => ({ roles: [r] })),
+  ]
+  return {
+    categories: resolvedGroups.map(g => g.roles.join(' + ')),
+    categoryGroups: resolvedGroups,
+  }
+}
+
+// Builds a bidding-mode auction queue ordered by category group instead of
+// plain insertion order: each group's pending players form one contiguous
+// block (in group order), optionally shuffled *within* the block only —
+// group order itself is never randomized, that would defeat the purpose.
+function buildGroupedQueue(players, pendingIdxs, categoryGroups, randomize) {
+  const byRole = new Map()
+  pendingIdxs.forEach(i => {
+    const role = players[i].role
+    if (!byRole.has(role)) byRole.set(role, [])
+    byRole.get(role).push(i)
+  })
+  const seen = new Set()
+  const queue = []
+  categoryGroups.forEach(group => {
+    let block = group.roles.flatMap(role => byRole.get(role) || [])
+    if (randomize) block = shuffle(block)
+    block.forEach(i => { if (!seen.has(i)) { seen.add(i); queue.push(i) } })
+  })
+  // Defensive: resolveCategoryGroups always covers every present role, so this
+  // should never actually add anything — kept as a safety net regardless.
+  pendingIdxs.forEach(i => { if (!seen.has(i)) queue.push(i) })
+  return queue
+}
+
+function makeDraftRoom(config) {
+  return {
+    config,             // { numTeams, maxPlayersPerTeam, timerEnabled, timerSeconds, categoryGroups, engine: 'draft' }
+    teams: [],          // [{ id, name, pin, players: [] }] — no budget
+    players: [],        // [{ id, name, role, status, soldTo }]
+    categories: [],     // admin-ordered display labels, one per category group
+    categoryGroups: [], // admin-ordered role lists, index-aligned with categories
+    currentCategoryIdx: 0,
+    pickOrder: [],       // team ids, set only via randomizePickOrder; rotates (first→last) every full round
+    currentTurnIdx: 0,
+    status: 'idle',      // idle | running | finished
+    paused: false,
+    // { [teamId]: remaining skip turns }, scoped to the *current* category only
+    // (reset on every category advance). Lazily populated the first time each
+    // team is evaluated against a category, from how many of their existing
+    // (retained) players already fall in it — see advanceDraftState.
+    categorySkips: {},
+    picks: [],            // undo stack: [{ playerId, playerIdx, playerBefore, teamId, pickOrder, currentTurnIdx, currentCategoryIdx, categorySkips, ts }]
+    events: [],            // display-only log (not undoable, not in `picks`): [{ type: 'shuffle', ts }]
+    timerLeft: null,
+    timerHandle: null,
+    connectedCaptains: new Map(),
+    captainSessions: new Map(),
+    gracePeriodHandles: new Map(),
+  }
+}
+
+function createDraftRoom(roomCode, auctionData) {
+  const room = makeDraftRoom(auctionData.config)
+  room.teams = auctionData.teams.map(t => ({ ...t, players: [...(t.players || [])] }))
+  room.players = auctionData.players.map(p => ({ ...p }))
+  const { categories, categoryGroups } = resolveCategoryGroups(
+    auctionData.config?.categoryGroups,
+    room.players.filter(p => p.status === 'pending')
+  )
+  room.categories = categories
+  room.categoryGroups = categoryGroups
+  rooms.set(roomCode, room)
+  return room
+}
+
+// Randomizes the team pick order — an explicit admin action (rather than an
+// automatic side effect of room creation) so it's visible/attributable in
+// the UI. Valid before the draft has started (can be re-run from idle), or
+// mid-draft at a round boundary (currentTurnIdx === 0 — nobody in the
+// current pass through the team list has picked or been skipped yet).
+function randomizePickOrder(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+  const atRoundBoundary = room.status === 'running' && room.currentTurnIdx === 0
+  if (room.status !== 'idle' && !atRoundBoundary) {
+    return { error: 'Pick order can only be reshuffled before the draft starts or between rounds' }
+  }
+  room.pickOrder = shuffle(room.teams.map(t => t.id))
+  room.currentTurnIdx = 0
+
+  if (atRoundBoundary) {
+    // Reordering can put a team at position 0 that was never validated by the
+    // boundary check (roster-full or still owes a category-retention skip) —
+    // re-walk the skip logic to land on a genuinely valid turn.
+    room.events.push({ type: 'shuffle', ts: Date.now() })
+    clearTimer(room)
+    advanceDraftState(room)
+    room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : null
+    if (room.status === 'running' && room.config.timerEnabled) startDraftTimer(roomCode, room, io)
+  }
+
+  io.to(roomCode).emit('draft:orderSet', publicDraftState(room))
+  return publicDraftState(room)
+}
+
+function currentDraftTeamId(room) {
+  return room.pickOrder[room.currentTurnIdx] ?? null
+}
+
+function categoryHasPending(room, categoryIdx) {
+  const roles = room.categoryGroups[categoryIdx]?.roles || []
+  return room.players.some(p => p.status === 'pending' && roles.includes(p.role))
+}
+
+function teamRosterFull(room, teamId) {
+  const maxPlayers = Number(room.config.maxPlayersPerTeam) || 0
+  if (maxPlayers <= 0) return false
+  const team = room.teams.find(t => t.id === teamId)
+  return team ? team.players.length >= maxPlayers : false
+}
+
+function advanceDraftTurn(room) {
+  room.currentTurnIdx += 1
+  if (room.currentTurnIdx >= room.pickOrder.length) {
+    room.pickOrder.push(room.pickOrder.shift()) // first mover moves to last
+    room.currentTurnIdx = 0
+  }
+}
+
+// Returns how many of `team`'s existing players fall in the given category's
+// role set — at the moment a team is first evaluated against a category this
+// can only be pre-existing (retained) players, never in-draft picks, since
+// they haven't had a turn in this category yet. Safe proxy for "how many
+// retained players does this team have here" with no separate flag needed.
+function retainedCountInCategory(team, roles) {
+  return team.players.filter(p => roles.includes(p.role)).length
+}
+
+// Skips forward through exhausted categories, capped-out teams, and teams
+// still sitting out turns they owe this category for pre-draft retentions,
+// until the draft lands on a valid (category, team) turn, or finishes.
+// Mutates room in place. Returns true if the draft is now finished.
+function advanceDraftState(room) {
+  const guardLimit = (room.pickOrder.length || 1) * (room.categories.length + 1) + room.pickOrder.length + 5
+  for (let i = 0; i < guardLimit; i++) {
+    if (room.pickOrder.length === 0 || room.currentCategoryIdx >= room.categories.length) {
+      room.status = 'finished'
+      return true
+    }
+    if (!categoryHasPending(room, room.currentCategoryIdx)) {
+      room.currentCategoryIdx += 1
+      room.categorySkips = {}
+      continue
+    }
+    if (room.teams.every(t => teamRosterFull(room, t.id))) {
+      room.status = 'finished'
+      return true
+    }
+    const teamId = currentDraftTeamId(room)
+    if (teamRosterFull(room, teamId)) {
+      advanceDraftTurn(room)
+      continue
+    }
+    if (!(teamId in room.categorySkips)) {
+      const team = room.teams.find(t => t.id === teamId)
+      const roles = room.categoryGroups[room.currentCategoryIdx]?.roles || []
+      room.categorySkips[teamId] = team ? retainedCountInCategory(team, roles) : 0
+    }
+    if (room.categorySkips[teamId] > 0) {
+      room.categorySkips[teamId] -= 1
+      advanceDraftTurn(room)
+      continue
+    }
+    return false
+  }
+  room.status = 'finished' // defensive: should be unreachable
+  return true
+}
+
+function startDraft(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+  if (room.status !== 'idle') return { error: 'Selection already started' }
+  if (!room.pickOrder.length) return { error: 'Set the pick order first' }
+
+  room.status = 'running'
+  const finished = advanceDraftState(room)
+  room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : null
+  if (!finished && room.config.timerEnabled) startDraftTimer(roomCode, room, io)
+
+  io.to(roomCode).emit('draft:started', publicDraftState(room))
+  return publicDraftState(room)
+}
+
+function pickPlayer(roomCode, teamId, playerId, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+  if (room.status !== 'running') return { error: 'Selection not running' }
+  if (room.paused) return { error: 'Selection is paused' }
+  if (teamId !== currentDraftTeamId(room)) return { error: 'Not your turn' }
+
+  const playerIdx = room.players.findIndex(p => p.id === playerId)
+  if (playerIdx < 0) return { error: 'Player not found' }
+  const player = room.players[playerIdx]
+  if (player.status !== 'pending') return { error: 'Player is not available' }
+  const currentCategory = room.categories[room.currentCategoryIdx]
+  const currentRoles = room.categoryGroups[room.currentCategoryIdx]?.roles || []
+  if (!currentRoles.includes(player.role)) return { error: `Must pick from the current category: ${currentCategory}` }
+
+  const team = room.teams.find(t => t.id === teamId)
+  if (!team) return { error: 'Team not found' }
+  if (teamRosterFull(room, teamId)) return { error: 'Team roster is full' }
+
+  clearTimer(room)
+
+  room.picks.push({
+    playerId: player.id,
+    playerIdx,
+    playerBefore: { ...player },
+    teamId,
+    pickOrder: [...room.pickOrder],
+    currentTurnIdx: room.currentTurnIdx,
+    currentCategoryIdx: room.currentCategoryIdx,
+    categorySkips: { ...room.categorySkips },
+    ts: Date.now(),
+  })
+
+  const soldAt = Date.now()
+  team.players.push({ ...player, status: 'sold', soldTo: teamId, soldAt })
+  room.players[playerIdx] = { ...player, status: 'sold', soldTo: teamId, soldAt }
+
+  advanceDraftTurn(room)
+  const finished = advanceDraftState(room)
+  room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : null
+  if (!finished && room.config.timerEnabled) startDraftTimer(roomCode, room, io)
+
+  io.to(roomCode).emit(finished ? 'draft:finished' : 'draft:picked', publicDraftState(room))
+  return publicDraftState(room)
+}
+
+function undoPick(roomCode, io) {
+  const room = getRoom(roomCode)
+  if (!room) return { error: 'Room not found' }
+  if (!room.picks.length) return { error: 'No pick to undo' }
+
+  clearTimer(room)
+  const last = room.picks.pop()
+  const team = room.teams.find(t => t.id === last.teamId)
+  if (team) {
+    const lastIdx = team.players.length - 1
+    if (team.players[lastIdx]?.id === last.playerId) {
+      team.players.pop()
+    } else {
+      const idx = team.players.findLastIndex(p => p.id === last.playerId)
+      if (idx >= 0) team.players.splice(idx, 1)
+    }
+  }
+
+  room.players[last.playerIdx] = { ...last.playerBefore, status: 'pending', soldTo: null, soldAt: null }
+  room.pickOrder = last.pickOrder
+  room.currentTurnIdx = last.currentTurnIdx
+  room.currentCategoryIdx = last.currentCategoryIdx
+  room.categorySkips = last.categorySkips || {}
+  room.status = 'running'
+  room.paused = false
+  room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : room.timerLeft
+  if (room.config.timerEnabled) startDraftTimer(roomCode, room, io)
+
+  io.to(roomCode).emit('draft:stateUpdate', publicDraftState(room))
+  return publicDraftState(room)
+}
+
+function startDraftTimer(roomCode, room, io) {
+  room.timerHandle = setInterval(() => {
+    room.timerLeft -= 1
+    io.to(roomCode).emit('timer:tick', { timerLeft: room.timerLeft })
+
+    if (room.timerLeft <= 0) {
+      clearTimer(room)
+      // Timed out with no pick made — the on-turn team forfeits this turn
+      // (no player assigned; nothing added to the undo stack).
+      advanceDraftTurn(room)
+      const finished = advanceDraftState(room)
+      room.timerLeft = room.config.timerEnabled ? room.config.timerSeconds : null
+      if (!finished && room.config.timerEnabled) startDraftTimer(roomCode, room, io)
+      io.to(roomCode).emit(finished ? 'draft:finished' : 'draft:stateUpdate', publicDraftState(room))
+    }
+  }, 1000)
+}
+
+function restoreDraftRoom(roomCode, snapshot, originalSetup) {
+  const room = makeDraftRoom(snapshot.config || originalSetup.config)
+  room.teams = snapshot.teams.map(snapshotTeam => {
+    const orig = (originalSetup.teams || []).find(t => t.id === snapshotTeam.id) || {}
+    return { ...snapshotTeam, pin: orig.pin || '' }
+  })
+  room.players = snapshot.players || []
+  room.categories = snapshot.categories || []
+  room.categoryGroups = snapshot.categoryGroups || []
+  room.currentCategoryIdx = snapshot.currentCategoryIdx ?? 0
+  room.pickOrder = snapshot.pickOrder || []
+  room.currentTurnIdx = snapshot.currentTurnIdx ?? 0
+  room.categorySkips = snapshot.categorySkips || {}
+  room.status = snapshot.status || 'idle'
+  room.timerLeft = null
+  room.picks = snapshot.picks || []
+  room.events = snapshot.events || []
+
+  rooms.set(roomCode, room)
+  return room
+}
+
+function publicDraftState(room) {
+  return {
+    config: room.config,
+    teams: room.teams.map(({ pin: _pin, ...t }) => t), // strip PINs from broadcast
+    players: room.players,
+    categories: room.categories,
+    categoryGroups: room.categoryGroups,
+    currentCategoryIdx: room.currentCategoryIdx,
+    currentCategory: room.categories[room.currentCategoryIdx] ?? null,
+    pickOrder: room.pickOrder,
+    currentTurnIdx: room.currentTurnIdx,
+    currentTurnTeamId: currentDraftTeamId(room),
+    status: room.status,
+    paused: room.paused,
+    timerLeft: room.timerLeft,
+    canUndoPick: room.picks.length > 0,
+    picks: room.picks.slice(0, 50).map(({ playerBefore: _playerBefore, pickOrder: _pickOrder, currentTurnIdx: _t, currentCategoryIdx: _c, categorySkips: _s, ...rest }) => rest),
+    events: room.events.slice(0, 50),
+    connectedTeamIds: [...room.connectedCaptains.values()],
+  }
+}
+
+function viewerDraftState(room) {
+  const full = publicDraftState(room)
+  return {
+    ...full,
+    teams: full.teams.map(t => ({
+      id: t.id,
+      name: t.name,
+      players: t.players,
+      playerCount: t.players.length,
+    })),
+  }
+}
+
+// Returns the correct public/viewer state builder for a room, regardless of
+// which selection engine it uses — the single dispatch point every generic
+// (engine-agnostic) call site should go through.
+function roomState(room) {
+  return room.config?.engine === 'draft' ? publicDraftState(room) : publicState(room)
+}
+
+function viewerRoomState(room) {
+  return room.config?.engine === 'draft' ? viewerDraftState(room) : viewerState(room)
+}
+
 function returnSoldPlayerToQueue(roomCode, playerId, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
@@ -429,29 +827,35 @@ function pauseAuction(roomCode, io) {
   if (!room || room.status !== 'running') return { error: 'Not running' }
   clearTimer(room)
   room.paused = true
-  io.to(roomCode).emit('auction:stateUpdate', publicState(room))
-  return publicState(room)
+  const event = room.config?.engine === 'draft' ? 'draft:stateUpdate' : 'auction:stateUpdate'
+  io.to(roomCode).emit(event, roomState(room))
+  return roomState(room)
 }
 
 function resumeAuction(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room || !room.paused) return { error: 'Not paused' }
   room.paused = false
-  if (room.config.timerEnabled && room.timerLeft > 0) startTimer(roomCode, room, io)
-  io.to(roomCode).emit('auction:stateUpdate', publicState(room))
-  return publicState(room)
+  if (room.config.timerEnabled && room.timerLeft > 0) {
+    if (room.config?.engine === 'draft') startDraftTimer(roomCode, room, io)
+    else startTimer(roomCode, room, io)
+  }
+  const event = room.config?.engine === 'draft' ? 'draft:stateUpdate' : 'auction:stateUpdate'
+  io.to(roomCode).emit(event, roomState(room))
+  return roomState(room)
 }
 
 function finishAuction(roomCode, io) {
   const room = getRoom(roomCode)
   if (!room) return { error: 'Room not found' }
   clearTimer(room)
-  // Every player not sold (still queued/pending or on the block) becomes 'unsold'
-  // so they're consistently counted as unsold and available for auto-assign / re-auction.
+  // Every player not sold/picked (still queued/pending or on the block) becomes
+  // 'unsold' so they're consistently counted as unavailable-but-not-assigned.
   room.players = room.players.map(p => p.status === 'sold' ? p : { ...p, status: 'unsold' })
   room.status = 'finished'
-  io.to(roomCode).emit('auction:finished', publicState(room))
-  return publicState(room)
+  const event = room.config?.engine === 'draft' ? 'draft:finished' : 'auction:finished'
+  io.to(roomCode).emit(event, roomState(room))
+  return roomState(room)
 }
 
 function restoreRoom(roomCode, snapshot, originalSetup) {
@@ -582,7 +986,27 @@ function clearTimer(room) {
 }
 
 // ── Persistence helpers (durable state only — no runtime handles/sockets) ──
+// Called generically (regardless of engine) by persistence.js, so both must
+// branch internally by `room.config.engine` / `s.config.engine`.
 function serializeRoom(room) {
+  if (room.config?.engine === 'draft') {
+    return {
+      config: room.config,
+      teams: room.teams,
+      players: room.players,
+      categories: room.categories,
+      categoryGroups: room.categoryGroups,
+      currentCategoryIdx: room.currentCategoryIdx,
+      pickOrder: room.pickOrder,
+      currentTurnIdx: room.currentTurnIdx,
+      categorySkips: room.categorySkips,
+      status: room.status,
+      timerLeft: room.timerLeft,
+      paused: room.paused,
+      picks: room.picks,
+      events: room.events,
+    }
+  }
   return {
     config: room.config,
     teams: room.teams,
@@ -604,6 +1028,24 @@ function serializeRoom(room) {
 // socket/session maps) are reset. A room that was mid-round is left paused so
 // the countdown doesn't run headless — the auctioneer resumes to continue.
 function hydrateRoom(roomCode, s) {
+  if (s.config?.engine === 'draft') {
+    const room = makeDraftRoom(s.config)
+    room.teams = s.teams || []
+    room.players = s.players || []
+    room.categories = s.categories || []
+    room.categoryGroups = s.categoryGroups || []
+    room.currentCategoryIdx = s.currentCategoryIdx ?? 0
+    room.pickOrder = s.pickOrder || []
+    room.currentTurnIdx = s.currentTurnIdx ?? 0
+    room.categorySkips = s.categorySkips || {}
+    room.status = s.status || 'idle'
+    room.timerLeft = s.timerLeft ?? null
+    room.picks = s.picks || []
+    room.events = s.events || []
+    room.paused = s.status === 'running' ? true : !!s.paused
+    rooms.set(roomCode, room)
+    return room
+  }
   const room = makeRoom(s.config)
   room.teams = s.teams || []
   room.players = s.players || []
@@ -683,4 +1125,15 @@ module.exports = {
   getAllRooms,
   publicState,
   viewerState,
+  // Round Robin Selection engine
+  createDraftRoom,
+  randomizePickOrder,
+  startDraft,
+  pickPlayer,
+  undoPick,
+  restoreDraftRoom,
+  publicDraftState,
+  viewerDraftState,
+  roomState,
+  viewerRoomState,
 }
