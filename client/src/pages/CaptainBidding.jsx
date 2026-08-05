@@ -212,9 +212,12 @@ function CaptainDraft() {
               {availablePlayers.map(p => (
                 <div key={p.id} className="bg-gray-800 rounded-xl px-4 py-3 flex items-center gap-2">
                   <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{p.name}</p>
-                    <p className="text-xs text-gray-500">{p.role}</p>
+                    <p className="text-xs text-gray-500">{p.role} {p.bowling && '⚾'}</p>
+                    {p.comments && (
+                      <p className="text-xs text-gray-400 italic truncate">Note: {p.comments}</p>
+                    )}
                   </div>
                 </div>
               ))}

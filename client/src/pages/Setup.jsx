@@ -28,6 +28,7 @@ const ROLE_OPTIONS = [
   { value: 'Batsman', label: 'Batsman' },
   { value: 'Bowler', label: 'Bowler' },
   { value: 'Wicket-keeper', label: 'Wicket Keeper' },
+  { value: 'PLAYER', label: 'PLAYER' },
 ]
 
 export default function Setup() {
@@ -43,7 +44,7 @@ export default function Setup() {
     }))
   )
   const [players, setPlayers] = useState([])
-  const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
+  const [newPlayer, setNewPlayer] = useState({ name: '', role: 'Batsman', basePrice: '', photoUrl: '', bowling: false, comments: '' })
   const [editingPlayerId, setEditingPlayerId] = useState(null)
   const [csvError, setCsvError] = useState('')
   const [csvWarnings, setCsvWarnings] = useState([])
@@ -116,14 +117,14 @@ export default function Setup() {
     setPlayers(prev => {
       const next = editingPlayerId
         ? prev.map(p => p.id === editingPlayerId
-          ? { ...p, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl }
+          ? { ...p, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl, bowling: newPlayer.bowling, comments: newPlayer.comments }
           : p)
-        : [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl }]
+        : [...prev, { id: `p-${Date.now()}`, name: nameVal.value, role: newPlayer.role, basePrice: priceVal.value, photoUrl, bowling: newPlayer.bowling, comments: newPlayer.comments }]
       setCsvWarnings(getPlayerImportWarnings(next))
       return next
     })
     setEditingPlayerId(null)
-    setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
+    setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '', bowling: false, comments: '' })
   }
 
   const startEditPlayer = (player) => {
@@ -133,12 +134,14 @@ export default function Setup() {
       role: player.role || 'Batsman',
       basePrice: String(player.basePrice ?? ''),
       photoUrl: player.photoUrl || '',
+      bowling: player.bowling || false,
+      comments: player.comments || '',
     })
   }
 
   const cancelEditPlayer = () => {
     setEditingPlayerId(null)
-    setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '' })
+    setNewPlayer({ name: '', role: 'Batsman', basePrice: '', photoUrl: '', bowling: false, comments: '' })
   }
 
   const removePlayer = (id) => {
@@ -164,6 +167,8 @@ export default function Setup() {
           const role = row.role || row.Role || 'Batsman'
           const basePrice = Number(row.basePrice || row.base_price || row['Base Price'] || config.minBidBase)
           const photoRaw = row.photoUrl || row.photo_url || row.photo || row.image || row.imageUrl || row.avatar || row['Photo URL'] || row['Image URL'] || ''
+          const bowling = row.Bowling || row.bowling || row.Bowls || row.bowls || ''
+          const comments = row.Comments || row.comments || row.Comment || row.comment || ''
           
           // Validate player name
           const nameVal = validatePlayerName(name)
@@ -173,9 +178,12 @@ export default function Setup() {
           const priceVal = validateBasePrice(basePrice, config.minBidBase)
           if (!priceVal.valid) { setCsvError(`Row ${i + 1}: ${priceVal.error}`); return null }
           
-          return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value, photoUrl: normalizePhotoUrl(photoRaw) }
+          // Parse bowling (treat "yes", "Yes", "y", "Y" as true, empty or anything else as false)
+          const bowlingValue = bowling.toString().trim().toLowerCase() === 'yes'
+          
+          return { id: `csv-${i}-${Date.now()}`, name: nameVal.value, role: role.trim(), basePrice: priceVal.value, photoUrl: normalizePhotoUrl(photoRaw), bowling: bowlingValue, comments: comments.trim() }
         }).filter(Boolean)
-        if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice (photoUrl optional)'); return }
+        if (!parsed.length) { setCsvError('No valid rows found. Ensure columns: name, role, basePrice (photoUrl, Bowling, Comments optional)'); return }
         const skipped = data.length - parsed.length
         setPlayers(prev => {
           const combined = [...prev, ...parsed]
@@ -546,7 +554,7 @@ export default function Setup() {
             {/* CSV Upload */}
             <div className="auction-surface rounded-xl p-4">
               <p className="text-sm font-semibold mb-2 text-gray-300">Import from CSV</p>
-              <p className="text-xs text-gray-500 mb-3">Columns: <code>name, role, basePrice</code> and optional <code>photoUrl</code></p>
+              <p className="text-xs text-gray-500 mb-3">Columns: <code>name, role, basePrice</code> and optional <code>photoUrl, Bowling, Comments</code></p>
               <input ref={fileRef} type="file" accept=".csv" onChange={handleCSV}
                 className="text-sm text-gray-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-700 file:text-white file:cursor-pointer hover:file:bg-blue-600" />
               {csvError && <p className="text-red-400 text-xs mt-2">{csvError}</p>}
@@ -583,7 +591,17 @@ export default function Setup() {
               </div>
               <div className="mt-3">
                 <input value={newPlayer.photoUrl} onChange={e => setNewPlayer(p => ({ ...p, photoUrl: e.target.value }))}
-                  placeholder="Photo URL (optional)" className="input-field" />
+                  placeholder="Photo URL (optional)" className="input-field mb-3" />
+                <div className="flex gap-3 items-center flex-wrap mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="checkbox" checked={newPlayer.bowling}
+                      onChange={e => setNewPlayer(p => ({ ...p, bowling: e.target.checked }))}
+                      className="w-4 h-4 rounded" />
+                    <span className="text-gray-300">Bowls</span>
+                  </label>
+                </div>
+                <input value={newPlayer.comments} onChange={e => setNewPlayer(p => ({ ...p, comments: e.target.value }))}
+                  placeholder="Comments (optional, e.g., 'not available for 1st match')" className="input-field" />
               </div>
             </div>
 
@@ -633,18 +651,21 @@ export default function Setup() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-[1fr_120px_100px_64px_88px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
-                  <span>Name</span><span>Role</span><span>Base</span><span></span>
+                <div className="grid grid-cols-[1fr_120px_80px_48px_88px] gap-2 px-4 py-2 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+                  <span>Name</span><span>Role</span><span></span><span></span>
                 </div>
                 <div className="max-h-72 overflow-y-auto divide-y divide-gray-800">
                   {filteredPlayers.map(p => (
-                    <div key={p.id} className="grid grid-cols-[1fr_120px_100px_64px_88px] gap-2 px-4 py-3 items-center text-sm">
+                    <div key={p.id} className="grid grid-cols-[1fr_120px_80px_48px_88px] gap-2 px-4 py-3 items-center text-sm">
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
-                        <span className="font-medium truncate">{p.name}</span>
+                        <div className="min-w-0">
+                          <span className="font-medium truncate block">{p.name}</span>
+                          {p.comments && <span className="text-xs text-gray-500 truncate block">{p.comments}</span>}
+                        </div>
                       </div>
                       <span className="text-gray-400">{p.role}</span>
-                      <span className="text-yellow-400">{p.basePrice} pts</span>
+                      <span className="text-center text-2xl">{p.bowling ? '⚾' : ''}</span>
                       <span className="text-[11px] text-gray-500">{p.photoUrl ? 'Photo' : 'No photo'}</span>
                       <div className="flex items-center justify-end gap-1.5">
                         <button onClick={() => startEditPlayer(p)} className="text-blue-400 hover:text-blue-300 text-xs">Edit</button>

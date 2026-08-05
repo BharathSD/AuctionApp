@@ -223,7 +223,12 @@ function OfflineBiddingConsole() {
                   {currentPlayer.role}
                 </div>
                 <h2 className="text-5xl xl:text-6xl font-extrabold leading-tight">{currentPlayer.name}</h2>
-                <p className="text-gray-400 text-lg">Base: {currentPlayer.basePrice} pts</p>
+                {currentPlayer.bowling && (
+                  <p className="text-gray-400 text-3xl">⚾</p>
+                )}
+                {currentPlayer.comments && (
+                  <p className="text-gray-500 text-sm italic">Note: {currentPlayer.comments}</p>
+                )}
 
                 {/* Current bid */}
                 <div className="auction-surface-soft rounded-2xl px-8 py-6 w-full max-w-2xl">

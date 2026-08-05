@@ -93,19 +93,22 @@ Push to `master` to trigger an auto-deploy.
 
 Upload a CSV file in the Players setup step. Supported column names:
 
-| Column | Aliases |
-|---|---|
-| `name` | `Name` |
-| `role` | `Role` |
-| `basePrice` | `base_price`, `Base Price` |
+| Column | Aliases | Required | Notes |
+|---|---|---|---|
+| `name` | `Name` | Yes | Player name (max 50 chars) |
+| `role` | `Role` | Yes | Player role/category |
+| `basePrice` | `base_price`, `Base Price` | Yes | Starting bid amount |
+| `photoUrl` | `photo_url`, `Photo URL`, `Image URL`, `imageUrl`, `avatar` | No | URL to player photo (HTTP/HTTPS) |
+| `Bowling` | `Bowls`, `bowling`, `bowls` | No | Indicate if player bowls (`yes`/`Yes` = true, empty = false) |
+| `Comments` | `comment`, `Comment` | No | Additional notes (e.g., availability, constraints) |
 
 **Example:**
 ```csv
-name,role,basePrice
-Virat Kohli,Batsman,200
-Jasprit Bumrah,Bowler,200
-Hardik Pandya,All-rounder,150
-Rishabh Pant,Wicket-keeper,100
+name,role,basePrice,photoUrl,Bowling,Comments
+Virat Kohli,Batsman,200,https://example.com/kohli.jpg,No,
+Jasprit Bumrah,Bowler,200,https://example.com/bumrah.jpg,Yes,
+Hardik Pandya,All Rounder,150,,Yes,Not available 1st week
+Rishabh Pant,Wicket-keeper,100,,No,
 ```
 
 A sample file is included at `sample-players.csv`.

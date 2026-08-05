@@ -148,10 +148,16 @@ export default function DraftBoard({ state, currentTurnTeam, onStart, onPick, on
                     key={p.id}
                     onClick={() => onPick(p.id)}
                     disabled={paused}
-                    className="team-bid-btn rounded-2xl py-4 px-3 font-bold transition-all flex items-center gap-2 justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="team-bid-btn rounded-2xl py-3 px-3 font-bold transition-all flex flex-col items-center gap-2 justify-center disabled:opacity-40 disabled:cursor-not-allowed text-center"
                   >
                     <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
-                    <span className="truncate">{p.name}</span>
+                    <div className="w-full min-w-0">
+                      <div className="truncate">{p.name}</div>
+                      {p.bowling && <div className="text-lg">⚾</div>}
+                      {p.comments && (
+                        <p className="text-xs text-gray-400 italic mt-1 line-clamp-2">{p.comments}</p>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>

@@ -207,15 +207,22 @@ export default function AvailablePlayers() {
                     </div>
 
                     <div className="text-sm text-gray-400">
-                      <span className="inline-block mr-4">
-                        Base Price: <span className="text-yellow-400 font-semibold">{player.basePrice}</span> pts
-                      </span>
+                      {player.bowling && (
+                        <span className="inline-block mr-4 text-2xl">⚾</span>
+                      )}
                       {role === 'admin' && player.soldTo && (
                         <span className="inline-block">
                           Team: <span className="text-blue-300 font-semibold">{teamsMap.get(player.soldTo)?.name || player.soldTo}</span>
                         </span>
                       )}
                     </div>
+
+                    {/* Comments */}
+                    {player.comments && (
+                      <div className="text-xs text-gray-400 mt-1 italic">
+                        <span className="text-gray-500">Note: </span>{player.comments}
+                      </div>
+                    )}
 
                     {/* Admin-only details */}
                     {role === 'admin' && (

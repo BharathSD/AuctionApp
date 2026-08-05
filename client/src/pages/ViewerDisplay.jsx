@@ -280,7 +280,12 @@ export default function ViewerDisplay() {
                 </span>
 
                 <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-2">{currentPlayer.name}</h1>
-                <p className="text-gray-300 text-lg">Base Price: <span className="text-yellow-300 font-bold">{currentPlayer.basePrice} pts</span></p>
+                {currentPlayer.bowling && (
+                  <p className="text-gray-300 text-4xl">⚾</p>
+                )}
+                {currentPlayer.comments && (
+                  <p className="text-gray-400 text-sm italic mt-2">Note: {currentPlayer.comments}</p>
+                )}
 
                 {status === 'sold' && (
                   <div className="mt-4 bg-green-800/60 rounded-2xl px-6 py-3">

@@ -178,10 +178,12 @@ export default function Results() {
       { key: 'role',      width: 18 },
       { key: 'basePrice', width: 14 },
       { key: 'soldPrice', width: 14 },
+      { key: 'bowling',   width: 10 },
+      { key: 'comments',  width: 30 },
     ]
 
     // Column header row
-    const headerRow = rosterSheet.addRow(['Team', 'Player', 'Role', 'Base Price', 'Sold Price'])
+    const headerRow = rosterSheet.addRow(['Team', 'Player', 'Role', 'Base Price', 'Sold Price', 'Bowls', 'Comments'])
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
@@ -205,22 +207,22 @@ export default function Results() {
       const headerColor = TEAM_HEADER_COLORS[ti % TEAM_HEADER_COLORS.length]
 
       // Team header row (spans all cols, merged)
-      const teamHeaderRow = rosterSheet.addRow([team.name, '', '', '', ''])
-      rosterSheet.mergeCells(teamHeaderRow.number, 1, teamHeaderRow.number, 5)
+      const teamHeaderRow = rosterSheet.addRow([team.name, '', '', '', '', '', ''])
+      rosterSheet.mergeCells(teamHeaderRow.number, 1, teamHeaderRow.number, 7)
       teamHeaderRow.getCell(1).font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }
       teamHeaderRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: headerColor } }
       teamHeaderRow.getCell(1).alignment = { horizontal: 'left', indent: 1 }
       teamHeaderRow.height = 20
 
       if (roster.length === 0) {
-        const emptyRow = rosterSheet.addRow(['', 'No players acquired', '', '', ''])
+        const emptyRow = rosterSheet.addRow(['', 'No players acquired', '', '', '', '', ''])
         emptyRow.getCell(2).font = { italic: true, color: { argb: 'FF9CA3AF' } }
         emptyRow.eachCell(cell => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
         })
       } else {
         roster.forEach(p => {
-          const row = rosterSheet.addRow(['', p.name, p.role, p.basePrice, p.soldPrice])
+          const row = rosterSheet.addRow(['', p.name, p.role, p.basePrice, p.soldPrice, p.bowling ? 'Yes' : 'No', p.comments || ''])
           row.eachCell(cell => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
             cell.alignment = { horizontal: 'left' }
@@ -228,10 +230,11 @@ export default function Results() {
           row.getCell(4).alignment = { horizontal: 'right' }
           row.getCell(5).alignment = { horizontal: 'right' }
           row.getCell(5).font = { bold: true }
+          row.getCell(6).alignment = { horizontal: 'center' }
         })
         // Team subtotal row
         const subtotal = roster.reduce((s, p) => s + p.soldPrice, 0)
-        const subtotalRow = rosterSheet.addRow(['', '', `${roster.length} players`, 'Spent:', subtotal])
+        const subtotalRow = rosterSheet.addRow(['', '', `${roster.length} players`, 'Spent:', subtotal, '', ''])
         subtotalRow.eachCell(cell => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
           cell.font = { italic: true }
@@ -243,7 +246,7 @@ export default function Results() {
       }
 
       // Budget remaining row
-      const budgetRow = rosterSheet.addRow(['', '', '', 'Budget left:', team.budget])
+      const budgetRow = rosterSheet.addRow(['', '', '', 'Budget left:', team.budget, '', ''])
       budgetRow.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
       })
@@ -446,7 +449,7 @@ export default function Results() {
                           <div className="flex items-center gap-2 min-w-0">
                             <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
                             <div className="min-w-0">
-                            <p className="text-sm font-medium">{p.name}</p>
+                            <p className="text-sm font-medium">{p.name} {p.bowling && '⚾'}</p>
                             <p className="text-xs text-gray-500">{p.role}</p>
                             </div>
                           </div>
@@ -471,11 +474,10 @@ export default function Results() {
                   <div className="flex items-center gap-2 min-w-0">
                     <PlayerAvatar name={p.name} photoUrl={p.photoUrl} size="sm" />
                     <div className="min-w-0">
-                    <p className="text-sm font-medium">{p.name}</p>
+                    <p className="text-sm font-medium">{p.name} {p.bowling && '🎳'}</p>
                     <p className="text-xs text-gray-500">{p.role}</p>
                     </div>
                   </div>
-                  {!isDraft && <p className="text-gray-500 text-sm">Base: {p.basePrice} pts</p>}
                 </div>
               ))}
             </div>
